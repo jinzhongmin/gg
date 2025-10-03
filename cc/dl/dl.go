@@ -116,6 +116,7 @@ static void* cccif_call(ffi_cif* cif, void* fnp,
 import "C"
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -236,12 +237,16 @@ func libsFind(lib string) (string, error) {
 func Open(fileName string) (handle iptr) {
 	fn, err := libsFind(fileName)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
 
 	cFileName := C.CString(fn)
 	defer C.free(uptr(cFileName))
 	handle = iptr(uptr(C.dlopen(cFileName, C.RTLD_LAZY|C.RTLD_GLOBAL)))
+	if handle == 0 {
+		log.Printf("library %s\n can not open", fn)
+	}
 	return
 }
 func Close(handle uptr) { C.dlclose(handle) }
