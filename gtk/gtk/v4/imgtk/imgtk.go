@@ -249,8 +249,8 @@ func NewImArea(render func(*ImArea)) *ImArea {
 			keyIdx[9] = 4
 			return func(c *gtk.GestureClick) int32 {
 				evt := c.GetCurrentEvent()
-				btn := evt.GetButton()
-				return keyIdx[btn]
+				ebtn := gdk.EventCast[*gdk.ButtonEvent](evt)
+				return keyIdx[ebtn.GetButton()]
 			}
 		}()
 		onClick.ConnectPressed(func(c *gtk.GestureClick, nPress int32, x, y float64) {

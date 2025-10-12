@@ -2138,8 +2138,8 @@ type DragSource struct{ GestureSingle }
 
 func GTypeDragSource() gobject.GType { return gtk_drag_source_get_type.Fn()() }
 func NewDragSource() *DragSource     { return gtk_drag_source_new.Fn()() }
-func (d *DragSource) SetContent(content *gdk.ContentProvider) {
-	gtk_drag_source_set_content.Fn()(d, content)
+func (d *DragSource) SetContent(content gdk.ContentProviderIface) {
+	gtk_drag_source_set_content.Fn()(d, gdk.GetContentProviderIface(content))
 }
 func (d *DragSource) GetContent() *gdk.ContentProvider  { return gtk_drag_source_get_content.Fn()(d) }
 func (d *DragSource) SetActions(actions gdk.DragAction) { gtk_drag_source_set_actions.Fn()(d, actions) }
@@ -2656,8 +2656,8 @@ func (e *Entry) SetIconTooltipMarkup(iconPos EntryIconPosition, tooltip string) 
 func (e *Entry) GetIconTooltipMarkup(iconPos EntryIconPosition) string {
 	return gtk_entry_get_icon_tooltip_markup.Fn()(e, iconPos).String()
 }
-func (e *Entry) SetIconDragSource(iconPos EntryIconPosition, provider *gdk.ContentProvider, actions gdk.DragAction) {
-	gtk_entry_set_icon_drag_source.Fn()(e, iconPos, provider, actions)
+func (e *Entry) SetIconDragSource(iconPos EntryIconPosition, provider gdk.ContentProviderIface, actions gdk.DragAction) {
+	gtk_entry_set_icon_drag_source.Fn()(e, iconPos, gdk.GetContentProviderIface(provider), actions)
 }
 func (e *Entry) GetCurrentIconDragSource() int32 {
 	return gtk_entry_get_current_icon_drag_source.Fn()(e)
@@ -3585,6 +3585,12 @@ func (f *FlowBox) SelectAll()                          { gtk_flow_box_select_all
 func (f *FlowBox) UnselectAll()                        { gtk_flow_box_unselect_all.Fn()(f) }
 func (f *FlowBox) SetSelectionMode(mode SelectionMode) { gtk_flow_box_set_selection_mode.Fn()(f, mode) }
 func (f *FlowBox) GetSelectionMode() SelectionMode     { return gtk_flow_box_get_selection_mode.Fn()(f) }
+func (f *FlowBox) AetHAdjustment(adj *Adjustment) {
+	gtk_flow_box_set_hadjustment.Fn()(f, adj)
+}
+func (f *FlowBox) AetVAdjustment(adj *Adjustment) {
+	gtk_flow_box_set_vadjustment.Fn()(f, adj)
+}
 func (f *FlowBox) SetFilterFunc(filterFunc func(child *FlowBoxChild, userData UPtr) bool,
 	userData interface{}, destroy func(UPtr)) {
 	gtk_flow_box_set_filter_func.Fn()(f, vcbu(filterFunc), anyptr(userData), vcbu(destroy))

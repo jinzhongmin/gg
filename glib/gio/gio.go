@@ -1212,7 +1212,7 @@ type GMenu struct{ GMenuModel }
 // #region MenuModel
 
 type GMenuModelObj struct {
-	Parent gobject.GObject
+	Parent gobject.GObjectObj
 	Priv   uptr
 }
 type GMenuModelClass struct {
@@ -1342,3 +1342,5 @@ func (o *GOutputStream) GetGOutputStreamIface() *GOutputStream { return o }
 type GOutputStream struct{ gobject.GObjectCore }
 
 // #endregion
+
+type GLoadableIcon struct{}

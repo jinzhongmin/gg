@@ -1,9 +1,5 @@
 package gdk
 
-import (
-	"github.com/jinzhongmin/gg/glib/gobject"
-)
-
 type AxisUse int32
 type CicpRange int32
 type CrossingMode int32
@@ -316,32 +312,3 @@ const (
 	ToplevelStateLeftResizable   ToplevelState = 32768
 	ToplevelStateSuspended       ToplevelState = 65536
 )
-
-type Clipboard struct{ gobject.GObject }
-type ContentProvider struct{ gobject.GObject }
-type Device struct{ gobject.GObject }
-type DeviceTool struct{ gobject.GObject }
-type Display struct{ gobject.GObject }
-
-type DrawContext struct{ gobject.GObject }
-type GLContext struct{ DrawContext }
-type Drag struct{ gobject.GObject }
-type Drop struct{ gobject.GObject }
-type FrameClock struct{ gobject.GObject }
-type Paintable struct{}
-type Snapshot struct{ gobject.GObject }
-type Surface struct{ gobject.GObject }
-type Texture struct{ gobject.GObject }
-type Monitor struct{ gobject.GObject }
-
-type ContentFormats struct{}
-type EventSequence struct{}
-type Rectangle struct{ X, Y, W, H int32 }
-type RGBA struct{ Red, Green, Blue, Alpha float32 }
-type TimeCoord struct {
-	Time  uint32
-	Flags AxisFlags
-	Axes  [12]float64
-}
-
-type Seat struct{}
