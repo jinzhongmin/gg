@@ -220,7 +220,7 @@ type GObjectObj struct {
 
 type GObjectClass struct {
 	GTypeClass          GTypeClass
-	ConstructProperties *glib.GSList
+	ConstructProperties *glib.GSList[GParamSpec]
 
 	Constructor               cc.Func // GObject* (*constructor) (GType type, guint n_construct_properties, GObjectConstructParam *construct_properties);
 	SetProperty               cc.Func // void (*set_property) (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
@@ -974,8 +974,8 @@ func SignalConnectData(obj GObjectIface, signal string,
 
 	handler := vcbu(fn)
 
-	var close func()
-	close = func() func() { return func() { data = close; data = nil; close = nil } }()
+	// var close func()
+	// close = func() func() { return func() { data = close; data = nil; close = nil } }()
 
 	var destroy uptr
 	destroy = vcbu(func(u uptr) {
@@ -984,7 +984,7 @@ func SignalConnectData(obj GObjectIface, signal string,
 		}
 		cc.CbkClose(handler)
 		cc.CbkCloseLate(destroy)
-		close()
+		// close()
 	})
 
 	sigs := cc.NewString(signal)
@@ -993,25 +993,24 @@ func SignalConnectData(obj GObjectIface, signal string,
 	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, handler, anyptr(data), destroy, flags)
 }
 
-func SignalConnectDataCfunc(obj GObjectIface, signal string,
-	fn uptr, data interface{}, data_destroy func(data uptr), flags GConnectFlags) uint64 {
+func SignalConnectDataRaw[T any](obj GObjectIface, signal string,
+	fn func(out, ins uptr), data *T, data_destroy func(data *T), flags GConnectFlags) uint64 {
 
-	var close func()
-	close = func() func() { return func() { data = close; data = nil; close = nil } }()
+	f := cc.CbkRaw[T](fn)
 
 	var destroy uptr
-	destroy = vcbu(func(u uptr) {
+	destroy = vcbu(func(u *T) {
 		if data_destroy != nil {
 			data_destroy(u)
 		}
+		cc.CbkClose(f)
 		cc.CbkCloseLate(destroy)
-		close()
 	})
 
 	sigs := cc.NewString(signal)
 	defer sigs.Free()
 
-	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, fn, anyptr(data), destroy, flags)
+	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, f, uptr(data), destroy, flags)
 }
 
 func (obj *GObject) SignalHasHandlerPending(signalId uint32, detail glib.GQuark, mayBeBlocked bool) bool {
@@ -1871,7 +1870,7 @@ func NewSigc[Fn any]() *Sigc[Fn] {
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
-			glib.IdleAddOnce(func() {
+			glib.IdleAddOnce(func(_ *int) {
 				for i := range sigc.connectList {
 					fn := sigc.connectList[i]
 					if fn.CanInt() {
@@ -1880,7 +1879,7 @@ func NewSigc[Fn any]() *Sigc[Fn] {
 					results = fn.Call(args)
 				}
 				wg.Done()
-			})
+			}, nil)
 			wg.Wait()
 			return results
 		}).Interface().(Fn)

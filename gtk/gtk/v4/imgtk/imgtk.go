@@ -170,7 +170,7 @@ func NewImArea(render func(*ImArea)) *ImArea {
 			}
 		})
 
-		connect(area, "render", cc.CbkRaw[func(g *gtk.GLArea, ctx *gdk.GLContext, _ uptr) bool](func(out, ins uptr) {
+		connect[func(g *gtk.GLArea, ctx *gdk.GLContext, _ uptr) bool](area, "render", func(out, ins uptr) {
 			ret := (*int32)(out)
 			if area.imCtx == nil || flagQuit {
 				*ret = 1
@@ -194,14 +194,14 @@ func NewImArea(render func(*ImArea)) *ImArea {
 			ig.ImplOpenGL3RenderDrawData(ig.GetDrawData())
 			area.inRender = false
 			*ret = 1
-		}))
+		})
 
 	}, func(area *ImArea) {
 
 		// mouse move
 		onMove := gtk.NewEventControllerMotion()
 		area.AddController(onMove)
-		connect(onMove, "motion", cc.CbkRaw[func(c *gtk.EventControllerMotion, x, y float64)](func(out, ins uptr) {
+		connect[func(c *gtk.EventControllerMotion, x, y float64)](onMove, "motion", func(out, ins uptr) {
 			if area.imCtx == nil {
 				return
 			}
@@ -210,7 +210,7 @@ func NewImArea(render func(*ImArea)) *ImArea {
 			ig.SetCurrentContext(area.imCtx)
 			io := ig.GetIO()
 			io.AddMousePosEvent(float32(*fs[1]), float32(*fs[2]))
-		}))
+		})
 
 		onMove.ConnectEnter(func(c *gtk.EventControllerMotion, x, y float64) {
 			area.fpsCurrent = area.fpsFocusIn
@@ -359,7 +359,7 @@ func (ia *ImArea) SetFps(fps float64) {
 }
 
 func (ia *ImArea) ConnectImRender(render func(*ImArea)) {
-	glib.IdleAdd(func() (Continue bool) { ia.fnRender = render; return false })
+	glib.IdleAddOnce(func(_ *int32) { ia.fnRender = render }, nil)
 }
 func (ia *ImArea) ConnectImInit(init func(*ig.ImGuiContext, *ig.ImGuiIO)) {
 	ia.fnInits = append(ia.fnInits, init)
@@ -537,8 +537,6 @@ func timeoutAdd(ms uint32, fn func() (Continue bool)) uint32 {
 	return g_timeout_add.Fn()(ms, fnp, nil)
 }
 
-func connect(obj gobject.GObjectIface, sig string, fn uptr) uint64 {
-	return gobject.SignalConnectDataCfunc(obj, sig, fn, nil, func(data uptr) {
-		cc.CbkClose(fn)
-	}, 0)
+func connect[T any](obj gobject.GObjectIface, sig string, fn func(out, ins uptr)) uint64 {
+	return gobject.SignalConnectDataRaw[T](obj, sig, fn, nil, nil, 0)
 }

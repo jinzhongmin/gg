@@ -85,7 +85,7 @@ func NewStringN(num uint64) String {
 	dl.CMemset(sp, 0, num)
 	return String(sp)
 }
-func NewStringLen(str string) (String, int32) {
+func NewStringLen(str string) (String, uint64) {
 	if str == *stringNull {
 		return 0, 0
 	}
@@ -104,7 +104,7 @@ func NewStringLen(str string) (String, int32) {
 		strPtr[i] = str[i]
 	}
 	strPtr[strLen] = 0
-	return String(p), int32(strLen)
+	return String(p), size
 }
 func NewStringRef(str string) (ptr String, len int64) {
 	pp := *(*[2]iptr)(uptr(&str))
@@ -126,9 +126,38 @@ func (c String) Free() {
 		dl.CFree(uptr(c))
 	}
 } // dl.CMiFree(uptr(*c))
+func (c String) TakeString(n ...uint64) string {
+	defer c.Free()
+	return c.String(n...)
+}
 func (c String) String(n ...uint64) string {
+	// if c == 0 {
+	// 	return ""
+	// }
+
+	// var count uint64
+	// if len(n) != 0 {
+	// 	count = n[0]
+	// } else {
+	// 	count = c.Len()
+	// }
+	// if count == 0 {
+	// 	return ""
+	// }
+
+	// b := make([]byte, count)
+	// dl.CMemcpy(uptr(&b[0]), uptr(c), count)
+	// return string(b)
+
+	return string(c.Bytes(n...))
+}
+func (c String) TakeBytes(n ...uint64) []byte {
+	defer c.Free()
+	return c.Bytes(n...)
+}
+func (c String) Bytes(n ...uint64) []byte {
 	if c == 0 {
-		return ""
+		return nil
 	}
 
 	var count uint64
@@ -137,13 +166,14 @@ func (c String) String(n ...uint64) string {
 	} else {
 		count = c.Len()
 	}
+
 	if count == 0 {
-		return ""
+		return []byte{}
 	}
 
-	b := make([]byte, count)
-	dl.CMemcpy(uptr(&b[0]), uptr(c), count)
-	return string(b)
+	dt := make([]byte, count)
+	copy(dt, unsafe.Slice((*byte)(uptr(c)), count))
+	return dt
 }
 func (c String) Ref(n ...uint64) string {
 	if c == 0 {
@@ -172,7 +202,8 @@ func (c String) Copy(src string, n int32) {
 	copy(*_dst, *_src)
 	(*_dst)[n] = 0
 }
-func (c String) Bytes(n int) []byte { return unsafe.Slice((*byte)(uptr(c)), n) }
+
+// func (c String) Bytes(n int) []byte { return unsafe.Slice((*byte)(uptr(c)), n) }
 
 type Strings iptr
 
@@ -196,11 +227,16 @@ func NewStringsLen(strs []string) (Strings, int32) {
 	return Strings(ss), int32(ls)
 }
 func (css Strings) Len() uint64 { return Ptr(css).Len() }
-func (css *Strings) Free() {
+func (css *Strings) Free(n ...uint64) {
 	if (*css) == 0 {
 		return
 	}
-	l := css.Len()
+	var l uint64
+	if len(n) > 0 {
+		l = n[0]
+	} else {
+		l = css.Len()
+	}
 
 	cp := (*[1 << 30]String)(uptr(*css))
 	for i := 0; i < int(l); i++ {
@@ -209,6 +245,10 @@ func (css *Strings) Free() {
 
 	dl.CFree(uptr(*css))
 	(*css) = 0
+}
+func (css Strings) TakeStrings(n ...uint64) []string {
+	defer css.Free(n...)
+	return css.Strings(n...)
 }
 func (css Strings) Strings(n ...uint64) []string {
 	if css == 0 {
@@ -252,6 +292,11 @@ func (css Strings) Ref(n ...uint64) []string {
 type Func Ptr
 
 func (fnp *Func) Bind(fn interface{}) { *(*uintptr)(uptr(fnp)) = iptr(Cbk(fn)) }
+func (fnp *Func) Free()               { CbkClose(uptr(*fnp)); *fnp = 0 }
+
+func FuncBindRaw[Fn any](fn *Func, raw func(out, ins uptr)) {
+	(*fn) = Func(CbkRaw[Fn](raw))
+}
 
 var vmenLock = sync.Mutex{}
 var vmen = struct {
@@ -348,11 +393,21 @@ func CbkClose(u uptr)           { dl.ClosureCloseByCode(u) }
 func CbkCloseLate(ptrs ...uptr) { dl.ClosureCloseByCodeLate(ptrs...) }
 
 func CbkRaw[T any](fn func(out, ins uptr)) uptr {
+	if fn == nil {
+		return nil
+	}
 	var f T
 	cls := dl.ClosureAlloc()
 	cls.ClosureLoc(f)
 	cls.RestLocRaw(fn)
 	return cls.Code()
+}
+
+func RawInAddr[T any](ins uptr, idx int) *T {
+	return unsafe.Slice((**T)(ins), idx+1)[idx]
+}
+func RawInValue[T any](ins uptr, idx int) T {
+	return *unsafe.Slice((**T)(ins), idx+1)[idx]
 }
 
 // #endregion

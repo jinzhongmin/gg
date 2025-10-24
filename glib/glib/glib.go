@@ -3,11 +3,29 @@ package glib
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"unsafe"
 
 	"github.com/jinzhongmin/gg/cc"
 )
+
+type ints interface {
+	~int8 | ~int16 | ~int32 | ~int | ~int64 |
+		~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
+}
+
+func carry[T any, E ints](slice []T) (*T, E) {
+	p, l := (*T)(nil), uint64(len(slice))
+	if l > 0 {
+		p = &slice[0]
+	}
+	return p, E(l)
+}
+func cbool(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 // #region Alloc
 
@@ -19,9 +37,10 @@ func GAlloc0[T any](size uint64) *T {
 	memset.Fn()(p, 0, size)
 	return (*T)(p)
 }
-func GNew[T any]() *T {
-	var a T
-	return GAlloc[T](uint64(unsafe.Sizeof(a)))
+func GNew[T any](a T) *T {
+	p := GAlloc[T](uint64(unsafe.Sizeof(a)))
+	(*p) = a
+	return p
 }
 func GNew0[T any]() *T {
 	var a T
@@ -32,164 +51,262 @@ func GNew0[T any]() *T {
 
 // #region Array
 
-type GArray struct {
-	Data UPtr
-	Len  uint32
+type GArray[T any] struct {
+	ptr UPtr
+	Len uint32
 }
 type GByteArray struct {
-	Data UPtr
+	data UPtr
 	Len  uint32
 }
-type GPtrArray struct {
-	Data UPtr
+type GPtrArray[T any] struct {
+	data UPtr
 	Len  uint32
 }
 
-func NewGArray(zeroTerminated, clear bool, elementSize uint32) *GArray {
-	return g_array_new.Fn()(zeroTerminated, clear, elementSize)
+func NewGArray[T any](zeroTerminated, clear bool) *GArray[T] {
+	var t T
+	return (*GArray[T])(g_array_new.Fn()(zeroTerminated, clear, uint32(unsafe.Sizeof(t))))
 }
-func NewGArrayTake(data UPtr, length uint64, clear bool, elementSize uint64) *GArray {
-	return g_array_new_take.Fn()(data, length, clear, elementSize)
+func NewGArrayCopy[T any](data []T) *GArray[T] {
+	var t T
+
+	size := unsafe.Sizeof(t)
+
+	dt := (*struct {
+		p UPtr
+		l int
+	})((UPtr)(&data))
+
+	p := GAlloc[T](uint64(size * uintptr(dt.l)))
+	copy(unsafe.Slice(p, dt.l), data)
+
+	return (*GArray[T])(g_array_new_take.Fn()(UPtr(p), uint64(dt.l), false, uint64(unsafe.Sizeof(t))))
 }
-func NewGArrayTakeZeroTerminated(data UPtr, clear bool, elementSize uint64) *GArray {
-	return g_array_new_take_zero_terminated.Fn()(data, clear, elementSize)
+func NewGArrayTake[T any](data UPtr, length uint64, clear bool) *GArray[T] {
+	var t T
+	return (*GArray[T])(g_array_new_take.Fn()(data, length, clear, uint64(unsafe.Sizeof(t))))
 }
-func (array *GArray) Steal() (data UPtr, length uint64) {
-	data = g_array_steal.Fn()(array, &length)
+func NewGArrayTakeZeroTerminated[T any](data UPtr, clear bool) *GArray[T] {
+	var t T
+	return (*GArray[T])(g_array_new_take_zero_terminated.Fn()(data, clear, uint64(unsafe.Sizeof(t))))
+}
+func (array *GArray[T]) Steal() (data UPtr, length uint64) {
+	data = g_array_steal.Fn()(UPtr(array), &length)
 	return
 }
-func NewGArraySized(zeroTerminated, clear bool, elementSize, reservedSize uint32) *GArray {
-	return g_array_sized_new.Fn()(zeroTerminated, clear, elementSize, reservedSize)
+func (array *GArray[T]) StealCopy() []T {
+	var length uint64
+	data := g_array_steal.Fn()(UPtr(array), &length)
+	if length == 0 {
+		return nil
+	}
+	out := make([]T, length)
+	copy(out, unsafe.Slice((*T)(data), length))
+	return out
 }
-func (array *GArray) Copy() *GArray              { return g_array_copy.Fn()(array) }
-func (array *GArray) Free(freeSegment bool) UPtr { return g_array_free.Fn()(array, freeSegment) }
-func (array *GArray) Ref() *GArray               { return g_array_ref.Fn()(array) }
-func (array *GArray) Unref()                     { g_array_unref.Fn()(array) }
-func (array *GArray) GetElementSize() uint32 {
-	return g_array_get_element_size.Fn()(array)
+func (array *GArray[T]) List() []T {
+	return unsafe.Slice((*T)(array.ptr), array.Len)
 }
-func (array *GArray) AppendVals(data interface{}, length uint32) *GArray {
-	return g_array_append_vals.Fn()(array, anyptr(data), length)
+func NewGArraySized[T any](zeroTerminated, clear bool, reservedSize uint32) *GArray[T] {
+	var t T
+	return (*GArray[T])(g_array_sized_new.Fn()(zeroTerminated, clear, uint32(unsafe.Sizeof(t)), reservedSize))
 }
-func (array *GArray) PrependVals(data interface{}, length uint32) *GArray {
-	return g_array_prepend_vals.Fn()(array, anyptr(data), length)
+func (array *GArray[T]) Copy() *GArray[T] { return (*GArray[T])(g_array_copy.Fn()(UPtr(array))) }
+func (array *GArray[T]) Free(freeSegment bool) UPtr {
+	return g_array_free.Fn()(UPtr(array), freeSegment)
 }
-func (array *GArray) InsertVals(index uint32, data interface{}, length uint32) *GArray {
-	return g_array_insert_vals.Fn()(array, index, anyptr(data), length)
+func (array *GArray[T]) Ref() *GArray[T] { return (*GArray[T])(g_array_ref.Fn()(UPtr(array))) }
+func (array *GArray[T]) Unref()          { g_array_unref.Fn()(UPtr(array)) }
+func (array *GArray[T]) GetElementSize() uint32 {
+	return g_array_get_element_size.Fn()(UPtr(array))
 }
-func (array *GArray) SetSize(length uint32) *GArray {
-	return g_array_set_size.Fn()(array, length)
+func (array *GArray[T]) Append(data []T) *GArray[T] {
+	p, l := (*T)(nil), uint32(len(data))
+	if l > 0 {
+		p = &data[0]
+	}
+	return (*GArray[T])(g_array_append_vals.Fn()(UPtr(array), UPtr(p), l))
 }
-func (array *GArray) RemoveIndex(index uint32) *GArray {
-	return g_array_remove_index.Fn()(array, index)
+func (array *GArray[T]) Prepend(data []T) *GArray[T] {
+	p, l := (*T)(nil), uint32(len(data))
+	if l > 0 {
+		p = &data[0]
+	}
+	return (*GArray[T])(g_array_prepend_vals.Fn()(UPtr(array), UPtr(p), l))
 }
-func (array *GArray) RemoveIndexFast(index uint32) *GArray {
-	return g_array_remove_index_fast.Fn()(array, index)
+func (array *GArray[T]) Insert(index uint32, data []T) *GArray[T] {
+	p, l := (*T)(nil), uint32(len(data))
+	if l > 0 {
+		p = &data[0]
+	}
+	return (*GArray[T])(g_array_insert_vals.Fn()(UPtr(array), index, UPtr(p), l))
 }
-func (array *GArray) RemoveRange(index uint32, length uint32) *GArray {
-	return g_array_remove_range.Fn()(array, index, length)
+func (array *GArray[T]) SetSize(length uint32) *GArray[T] {
+	return (*GArray[T])(g_array_set_size.Fn()(UPtr(array), length))
 }
-func (array *GArray) Sort(compareFunc func(a, b UPtr) int32) {
-	g_array_sort.Fn()(array, vcbu(compareFunc))
+func (array *GArray[T]) RemoveIndex(index uint32) *GArray[T] {
+	return (*GArray[T])(g_array_remove_index.Fn()(UPtr(array), index))
 }
-func (array *GArray) BinarySearch(target interface{}, compareFunc func(a, b UPtr) int32) (found bool, matchIndex uint32) {
-	found = g_array_binary_search.Fn()(array, anyptr(target), vcbu(compareFunc), &matchIndex)
+func (array *GArray[T]) RemoveIndexFast(index uint32) *GArray[T] {
+	return (*GArray[T])(g_array_remove_index_fast.Fn()(UPtr(array), index))
+}
+func (array *GArray[T]) RemoveRange(index uint32, length uint32) *GArray[T] {
+	return (*GArray[T])(g_array_remove_range.Fn()(UPtr(array), index, length))
+}
+func (array *GArray[T]) Sort(compareFunc func(a, b *T) int32) {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	g_array_sort.Fn()(UPtr(array), cf)
+}
+func (array *GArray[T]) BinarySearch(target *T, compareFunc func(curr, target *T) int32) (found bool, matchIndex uint32) {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	found = g_array_binary_search.Fn()(UPtr(array), anyptr(target), cf, &matchIndex)
 	return
 }
-func (array *GArray) SetClearFunc(clearFunc func(data UPtr)) {
-	g_array_set_clear_func.Fn()(array, vcbu(clearFunc))
+func (array *GArray[T]) SetClearFunc(clearFunc cc.Func /* clearFunc func(elmAddr *T) */) {
+	g_array_set_clear_func.Fn()(UPtr(array), clearFunc)
 }
 
-func NewGPtrArray() *GPtrArray { return g_ptr_array_new.Fn()() }
-func NewGPtrArrayWithFreeFunc(elementFreeFunc func(data UPtr)) *GPtrArray {
-	return g_ptr_array_new_with_free_func.Fn()(vcbu(elementFreeFunc))
+func (a *GPtrArray[T]) List() []*T {
+	return unsafe.Slice((**T)(a.data), a.Len)
 }
-func NewGPtrArrayTake(data UPtr, length uint64, elementFreeFunc func(data UPtr)) *GPtrArray {
-	return g_ptr_array_new_take.Fn()(data, length, vcbu(elementFreeFunc))
+func NewGPtrArray[T any]() *GPtrArray[T] { return (*GPtrArray[T])(g_ptr_array_new.Fn()()) }
+func NewGPtrArrayWithFreeFunc[T any](elmFreeFunc cc.Func /* elmFreeFunc func(data *T) */) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_new_with_free_func.Fn()(elmFreeFunc))
 }
-func NewGPtrArrayFromArray(data UPtr, length uint64,
-	copyFunc func(src, copyFuncUserData UPtr) UPtr,
-	copyFuncUserData interface{},
-	elementFreeFunc func(UPtr) UPtr) *GPtrArray {
-	return g_ptr_array_new_from_array.Fn()(data, length, vcbu(copyFunc), anyptr(copyFuncUserData), vcbu(elementFreeFunc))
+func NewGPtrArrayTake[T any](data *T, length uint64,
+	elementFreeFunc cc.Func /* elementFreeFunc func(data UPtr) */) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_new_take.Fn()(UPtr(data), length, elementFreeFunc))
 }
-func (a *GPtrArray) Steal() (data UPtr, length uint64) {
-	data = g_ptr_array_steal.Fn()(a, &length)
+func NewGPtrArrayFromArray[T any](arry *GArray[*T],
+	copyFunc func(src *T, _ UPtr) *T, elmFreeFunc cc.Func /* elmFreeFunc func(*T) */) *GPtrArray[T] {
+	cf := vcbu(copyFunc)
+	defer cc.CbkClose(cf)
+	return (*GPtrArray[T])(g_ptr_array_new_from_array.Fn()(arry.ptr, uint64(arry.Len), cf, nil, elmFreeFunc))
+}
+func (a *GPtrArray[T]) Steal() (data *T, length uint64) {
+	data = (*T)(g_ptr_array_steal.Fn()(UPtr(a), &length))
 	return
 }
-func (a *GPtrArray) Copy(copyFunc func(src, userData UPtr) UPtr, userData interface{}) *GPtrArray {
-	return g_ptr_array_copy.Fn()(a, vcbu(copyFunc), anyptr(userData))
+func (a *GPtrArray[T]) Copy(copyFunc func(src *T, _ UPtr) UPtr) UPtr /* *GPtrArray[T] */ {
+	cf := vcbu(copyFunc)
+	defer cc.CbkClose(cf)
+	return g_ptr_array_copy.Fn()(UPtr(a), cf, nil)
 }
-func NewGPtrArraySized(reservedSize uint32) *GPtrArray {
-	return g_ptr_array_sized_new.Fn()(reservedSize)
+func NewGPtrArraySized[T any](reservedSize uint32) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_sized_new.Fn()(reservedSize))
 }
-func NewGPtrArrayFull(reservedSize uint32, elementFreeFunc func(data UPtr)) *GPtrArray {
-	return g_ptr_array_new_full.Fn()(reservedSize, vcbu(elementFreeFunc))
+func NewGPtrArrayFull[T any](reservedSize uint32, elmFreeFunc cc.Func /* elementFreeFunc func(data *T) */) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_new_full.Fn()(reservedSize, elmFreeFunc))
 }
-func NewGPtrArrayNullTerminated(reservedSize uint32, elementFreeFunc func(data UPtr), nullTerminated bool) *GPtrArray {
-	return g_ptr_array_new_null_terminated.Fn()(reservedSize, vcbu(elementFreeFunc), nullTerminated)
+func NewGPtrArrayNullTerminated[T any](reservedSize uint32,
+	elmFreeFunc cc.Func /* elmFreeFunc func(data *T) */, nullTerminated bool) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_new_null_terminated.Fn()(reservedSize, elmFreeFunc, nullTerminated))
 }
-func NewGPtrArrayTakeNullTerminated(data UPtr, elementFreeFunc func(data UPtr)) *GPtrArray {
-	return g_ptr_array_new_take_null_terminated.Fn()(data, vcbu(elementFreeFunc))
+func NewGPtrArrayTakeNullTerminated[T any](data UPtr, elmFreeFunc cc.Func /* func(data *T) */) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_new_take_null_terminated.Fn()(data, elmFreeFunc))
 }
-func NewGPtrArrayFromNullTerminatedArray(data UPtr,
-	copyFunc func(src, copyFuncUserData UPtr) UPtr,
-	copyFuncUserData interface{},
-	elementFreeFunc func(UPtr) UPtr) *GPtrArray {
-	return g_ptr_array_new_from_null_terminated_array.Fn()(data, vcbu(copyFunc), anyptr(copyFuncUserData), vcbu(elementFreeFunc))
+func NewGPtrArrayFromNullTerminatedArray[T any](data UPtr,
+	copyFunc func(src *T, _ UPtr) *T,
+	elmFreeFunc cc.Func /* elmFreeFunc func(UPtr) UPtr */) *GPtrArray[T] {
+	cf := vcbu(copyFunc)
+	defer cc.CbkClose(cf)
+
+	return (*GPtrArray[T])(g_ptr_array_new_from_null_terminated_array.Fn()(data, cf, nil, elmFreeFunc))
 }
-func (a *GPtrArray) Free(freeSegment bool) UPtr { return g_ptr_array_free.Fn()(a, freeSegment) }
-func (a *GPtrArray) Ref() *GPtrArray            { return g_ptr_array_ref.Fn()(a) }
-func (a *GPtrArray) Unref()                     { g_ptr_array_unref.Fn()(a) }
-func (a *GPtrArray) SetFreeFunc(elementFreeFunc func(data UPtr)) {
-	g_ptr_array_set_free_func.Fn()(a, vcbu(elementFreeFunc))
+func (a *GPtrArray[T]) Free(freeSegment bool) UPtr {
+	return g_ptr_array_free.Fn()(UPtr(a), freeSegment)
 }
-func (a *GPtrArray) SetSize(length int32)          { g_ptr_array_set_size.Fn()(a, length) }
-func (a *GPtrArray) RemoveIndex(index uint32) UPtr { return g_ptr_array_remove_index.Fn()(a, index) }
-func (a *GPtrArray) RemoveIndexFast(index uint32) UPtr {
-	return g_ptr_array_remove_index_fast.Fn()(a, index)
+func (a *GPtrArray[T]) Ref() *GPtrArray[T] { return (*GPtrArray[T])(g_ptr_array_ref.Fn()(UPtr(a))) }
+func (a *GPtrArray[T]) Unref()             { g_ptr_array_unref.Fn()(UPtr(a)) }
+func (a *GPtrArray[T]) SetFreeFunc(elmFreeFunc cc.Func /* elmFreeFunc func(UPtr */) {
+	g_ptr_array_set_free_func.Fn()(UPtr(a), elmFreeFunc)
 }
-func (a *GPtrArray) StealIndex(index uint32) UPtr { return g_ptr_array_steal_index.Fn()(a, index) }
-func (a *GPtrArray) StealIndexFast(index uint32) UPtr {
-	return g_ptr_array_steal_index_fast.Fn()(a, index)
+func (a *GPtrArray[T]) SetSize(length int32) { g_ptr_array_set_size.Fn()(UPtr(a), length) }
+func (a *GPtrArray[T]) RemoveIndex(index uint32) *T {
+	return (*T)(g_ptr_array_remove_index.Fn()(UPtr(a), index))
 }
-func (a *GPtrArray) Remove(data UPtr) bool     { return g_ptr_array_remove.Fn()(a, data) }
-func (a *GPtrArray) RemoveFast(data UPtr) bool { return g_ptr_array_remove_fast.Fn()(a, data) }
-func (a *GPtrArray) RemoveRange(index, length uint32) *GPtrArray {
-	return g_ptr_array_remove_range.Fn()(a, index, length)
+func (a *GPtrArray[T]) RemoveIndexFast(index uint32) *T {
+	return (*T)(g_ptr_array_remove_index_fast.Fn()(UPtr(a), index))
 }
-func (a *GPtrArray) Add(data UPtr) { g_ptr_array_add.Fn()(a, data) }
-func (a *GPtrArray) Extend(array *GPtrArray, copyFunc func(src, userData UPtr) UPtr, userData UPtr) {
-	g_ptr_array_extend.Fn()(a, array, vcbu(copyFunc), userData)
+func (a *GPtrArray[T]) StealIndex(index uint32) *T {
+	return (*T)(g_ptr_array_steal_index.Fn()(UPtr(a), index))
 }
-func (a *GPtrArray) ExtendAndSteal(array *GPtrArray) { g_ptr_array_extend_and_steal.Fn()(a, array) }
-func (a *GPtrArray) Insert(index int32, data UPtr)   { g_ptr_array_insert.Fn()(a, index, data) }
-func (a *GPtrArray) Sort(compareFunc func(a, b UPtr) int32) {
-	g_ptr_array_sort.Fn()(a, vcbu(compareFunc))
+func (a *GPtrArray[T]) StealIndexFast(index uint32) *T {
+	return (*T)(g_ptr_array_steal_index_fast.Fn()(UPtr(a), index))
 }
-func (a *GPtrArray) SortWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) {
-	g_ptr_array_sort_with_data.Fn()(a, vcbu(compareFunc), userData)
+func (a *GPtrArray[T]) Remove(data *T) bool { return g_ptr_array_remove.Fn()(UPtr(a), UPtr(data)) }
+func (a *GPtrArray[T]) RemoveFast(data *T) bool {
+	return g_ptr_array_remove_fast.Fn()(UPtr(a), UPtr(data))
 }
-func (a *GPtrArray) SortValues(compareFunc func(a, b UPtr) int32) {
-	g_ptr_array_sort_values.Fn()(a, vcbu(compareFunc))
+func (a *GPtrArray[T]) RemoveRange(index, length uint32) *GPtrArray[T] {
+	return (*GPtrArray[T])(g_ptr_array_remove_range.Fn()(UPtr(a), index, length))
 }
-func (a *GPtrArray) SortValuesWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) {
-	g_ptr_array_sort_values_with_data.Fn()(a, vcbu(compareFunc), userData)
+func (a *GPtrArray[T]) Add(data *T) { g_ptr_array_add.Fn()(UPtr(a), UPtr(data)) }
+func (a *GPtrArray[T]) Extend(array *GPtrArray[T], copyFunc func(src *T, _ UPtr) *T) {
+	cf := vcbu(copyFunc)
+	defer cc.CbkClose(cf)
+	g_ptr_array_extend.Fn()(UPtr(a), UPtr(array), cf, nil)
 }
-func (a *GPtrArray) Foreach(fn func(data, userData UPtr), userData interface{}) {
-	g_ptr_array_foreach.Fn()(a, vcbu(fn), anyptr(userData))
+func (a *GPtrArray[T]) ExtendAndSteal(array *GPtrArray[T]) {
+	g_ptr_array_extend_and_steal.Fn()(UPtr(a), UPtr(array))
 }
-func (a *GPtrArray) Find(needle UPtr, index *uint32) bool {
-	return g_ptr_array_find.Fn()(a, needle, index)
+func (a *GPtrArray[T]) Insert(index int32, data *T) {
+	g_ptr_array_insert.Fn()(UPtr(a), index, UPtr(data))
 }
-func (a *GPtrArray) FindWithEqualFunc(needle UPtr, equalFunc func(a, b UPtr) bool, index *uint32) bool {
-	return g_ptr_array_find_with_equal_func.Fn()(a, needle, vcbu(equalFunc), index)
+func (a *GPtrArray[T]) Sort(compareFunc func(a, b *T) int32) {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	g_ptr_array_sort.Fn()(UPtr(a), cf)
 }
-func (a *GPtrArray) IsNullTerminated() bool { return g_ptr_array_is_null_terminated.Fn()(a) }
+
+// func (a *GPtrArray[T]) SortWithData(compareFunc func(a, b *T, userData UPtr) int32, userData UPtr) {
+// 	cf := vcbu(compareFunc)
+// 	defer cc.CbkClose(cf)
+// 	g_ptr_array_sort_with_data.Fn()(UPtr(a), vcbu(compareFunc), nil)
+// }
+
+func (a *GPtrArray[T]) SortValues(compareFunc func(a, b *T) int32) {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	g_ptr_array_sort_values.Fn()(UPtr(a), cf)
+}
+
+// func (a *GPtrArray[T]) SortValuesWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) {
+// 	g_ptr_array_sort_values_with_data.Fn()(a, vcbu(compareFunc), userData)
+// }
+
+func (a *GPtrArray[T]) Foreach(fn func(data *T)) {
+	f := vcbu(fn)
+	defer cc.CbkClose(f)
+	g_ptr_array_foreach.Fn()(UPtr(a), f, nil)
+}
+func (a *GPtrArray[T]) Find(needle *T) (index uint32, ok bool) {
+	ok = g_ptr_array_find.Fn()(UPtr(a), UPtr(needle), &index)
+	return
+}
+func (a *GPtrArray[T]) FindWithEqualFunc(needle *T, equalFunc func(a, b *T) bool) (index uint32, ok bool) {
+	ef := cc.Cbk(equalFunc)
+	defer cc.CbkClose(ef)
+	ok = g_ptr_array_find_with_equal_func.Fn()(UPtr(a), UPtr(needle), ef, &index)
+	return
+}
+func (a *GPtrArray[T]) IsNullTerminated() bool { return g_ptr_array_is_null_terminated.Fn()(UPtr(a)) }
 
 func NewGByteArray() *GByteArray { return g_byte_array_new.Fn()() }
+func NewGByteArrayFrom(data []byte) *GByteArray {
+	l := len(data)
+	p := GAlloc[byte](uint64(l))
+	copy(unsafe.Slice(p, l), data)
+	return g_byte_array_new_take.Fn()(UPtr(p), uint64(l))
+}
 func NewGByteArrayTake(data UPtr, length uint64) *GByteArray {
 	return g_byte_array_new_take.Fn()(data, length)
+}
+func (a *GByteArray) List() []byte {
+	return unsafe.Slice((*byte)(a.data), a.Len)
 }
 func (a *GByteArray) Steal() (data UPtr, length uint64) {
 	data = g_byte_array_steal.Fn()(a, &length)
@@ -198,10 +315,10 @@ func (a *GByteArray) Steal() (data UPtr, length uint64) {
 func NewGByteArraySized(reservedSize uint32) *GByteArray {
 	return g_byte_array_sized_new.Fn()(reservedSize)
 }
-func (a *GByteArray) Free(freeSegment bool) UPtr { return g_byte_array_free.Fn()(a, freeSegment) }
-func (a *GByteArray) FreeToBytes() *GBytes       { return g_byte_array_free_to_bytes.Fn()(a) }
-func (a *GByteArray) Ref() *GByteArray           { return g_byte_array_ref.Fn()(a) }
-func (a *GByteArray) Unref()                     { g_byte_array_unref.Fn()(a) }
+func (a *GByteArray) Free(freeSegment bool) *byte { return g_byte_array_free.Fn()(a, freeSegment) }
+func (a *GByteArray) FreeToBytes() *GBytes        { return g_byte_array_free_to_bytes.Fn()(a) }
+func (a *GByteArray) Ref() *GByteArray            { return g_byte_array_ref.Fn()(a) }
+func (a *GByteArray) Unref()                      { g_byte_array_unref.Fn()(a) }
 func (a *GByteArray) Append(data []byte) *GByteArray {
 	return g_byte_array_append.Fn()(a, UPtr(&data[0]), uint32(len(data)))
 }
@@ -218,12 +335,15 @@ func (a *GByteArray) RemoveIndexFast(index uint32) *GByteArray {
 func (a *GByteArray) RemoveRange(index, length uint32) *GByteArray {
 	return g_byte_array_remove_range.Fn()(a, index, length)
 }
-func (a *GByteArray) Sort(compareFunc func(a, b UPtr) int32) {
-	g_byte_array_sort.Fn()(a, vcbu(compareFunc))
+func (a *GByteArray) Sort(compareFunc func(a, b *byte) int32) {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	g_byte_array_sort.Fn()(a, cf)
 }
-func (a *GByteArray) SortWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) {
-	g_byte_array_sort_with_data.Fn()(a, vcbu(compareFunc), userData)
-}
+
+// func (a *GByteArray) SortWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) {
+// 	g_byte_array_sort_with_data.Fn()(a, vcbu(compareFunc), userData)
+// }
 
 // #endregion
 
@@ -231,23 +351,31 @@ func (a *GByteArray) SortWithData(compareFunc func(a, b, userData UPtr) int32, u
 
 type GAsyncQueue struct{}
 
-func NewGAsyncQueue() *GAsyncQueue { return g_async_queue_new.Fn()() }
-func NewGAsyncQueueFull(itemFreeFunc func(data UPtr)) *GAsyncQueue {
-	return g_async_queue_new_full.Fn()(vcbu(itemFreeFunc))
+func NewGAsyncQueue() *GAsyncQueue {
+	return g_async_queue_new.Fn()()
 }
-func (q *GAsyncQueue) Lock()                 { g_async_queue_lock.Fn()(q) }
-func (q *GAsyncQueue) Unlock()               { g_async_queue_unlock.Fn()(q) }
-func (q *GAsyncQueue) Ref() *GAsyncQueue     { return g_async_queue_ref.Fn()(q) }
-func (q *GAsyncQueue) Unref()                { g_async_queue_unref.Fn()(q) }
-func (q *GAsyncQueue) Push(data interface{}) { g_async_queue_push.Fn()(q, anyptr(data)) }
+func NewGAsyncQueueFull(itemFreeFunc cc.Func /* itemFreeFunc func(data UPtr) */) *GAsyncQueue {
+	return g_async_queue_new_full.Fn()(itemFreeFunc)
+}
+func (q *GAsyncQueue) Lock()             { g_async_queue_lock.Fn()(q) }
+func (q *GAsyncQueue) Unlock()           { g_async_queue_unlock.Fn()(q) }
+func (q *GAsyncQueue) Ref() *GAsyncQueue { return g_async_queue_ref.Fn()(q) }
+func (q *GAsyncQueue) Unref()            { g_async_queue_unref.Fn()(q) }
+func (q *GAsyncQueue) Push(data interface{}) {
+	g_async_queue_push.Fn()(q, anyptr(data))
+}
 func (q *GAsyncQueue) PushUnlocked(data interface{}) {
 	g_async_queue_push_unlocked.Fn()(q, anyptr(data))
 }
-func (q *GAsyncQueue) PushSorted(data interface{}, cmp func(a, b, userData UPtr) int32, userData interface{}) {
-	g_async_queue_push_sorted.Fn()(q, anyptr(data), vcbu(cmp), anyptr(userData))
+func (q *GAsyncQueue) PushSorted(data interface{}, cmp func(a, b, _ UPtr) int32) {
+	cp := vcbu(cmp)
+	defer cc.CbkClose(cp)
+	g_async_queue_push_sorted.Fn()(q, anyptr(data), cp, nil)
 }
-func (q *GAsyncQueue) PushSortedUnlocked(data interface{}, cmp func(a, b, userData UPtr) int32, userData interface{}) {
-	g_async_queue_push_sorted_unlocked.Fn()(q, anyptr(data), vcbu(cmp), anyptr(userData))
+func (q *GAsyncQueue) PushSortedUnlocked(data interface{}, cmp func(a, b, _ UPtr) int32) {
+	cp := vcbu(cmp)
+	defer cc.CbkClose(cp)
+	g_async_queue_push_sorted_unlocked.Fn()(q, anyptr(data), cp, nil)
 }
 func (q *GAsyncQueue) Pop() UPtr            { return g_async_queue_pop.Fn()(q) }
 func (q *GAsyncQueue) PopUnlocked() UPtr    { return g_async_queue_pop_unlocked.Fn()(q) }
@@ -261,11 +389,15 @@ func (q *GAsyncQueue) TimeoutPopUnlocked(timeout uint64) UPtr {
 }
 func (q *GAsyncQueue) Length() int32         { return g_async_queue_length.Fn()(q) }
 func (q *GAsyncQueue) LengthUnlocked() int32 { return g_async_queue_length_unlocked.Fn()(q) }
-func (q *GAsyncQueue) Sort(cmp func(a, b, userData UPtr) int32, userData interface{}) {
-	g_async_queue_sort.Fn()(q, vcbu(cmp), anyptr(userData))
+func (q *GAsyncQueue) Sort(cmp func(a, b, _ UPtr) int32) {
+	cp := vcbu(cmp)
+	defer cc.CbkClose(cp)
+	g_async_queue_sort.Fn()(q, cp, nil)
 }
-func (q *GAsyncQueue) SortUnlocked(cmp func(a, b, userData UPtr) int32, userData interface{}) {
-	g_async_queue_sort_unlocked.Fn()(q, vcbu(cmp), anyptr(userData))
+func (q *GAsyncQueue) SortUnlocked(cmp func(a, b, _ UPtr) int32) {
+	cp := vcbu(cmp)
+	defer cc.CbkClose(cp)
+	g_async_queue_sort_unlocked.Fn()(q, cp, nil)
 }
 func (q *GAsyncQueue) Remove(item interface{}) bool {
 	return g_async_queue_remove.Fn()(q, anyptr(item))
@@ -284,61 +416,186 @@ func (q *GAsyncQueue) PushFrontUnlocked(item interface{}) {
 
 type GBytes struct{}
 
-func NewBytes(data []byte) *GBytes {
-	if len(data) == 0 {
-		return g_bytes_new.Fn()(nil, 0)
-	}
-	return g_bytes_new.Fn()(UPtr(&data[0]), uint(len(data)))
-}
+func NewGBytes[T string | []byte](data T) *GBytes {
+	dt := (*struct {
+		p *byte
+		l int
+	})((UPtr)(&data))
 
-func NewBytesFromString(data string) *GBytes {
-	n := len(data)
-	if n == 0 {
-		return g_bytes_new.Fn()(nil, 0)
-	}
-	ps := *(*[2]UPtr)(UPtr(&data))
-	return g_bytes_new.Fn()(ps[0], uint(n))
-}
-
-func NewBytesStatic(data []byte) *GBytes {
-	if len(data) == 0 {
-		return g_bytes_new_static.Fn()(nil, 0)
-	}
-	return g_bytes_new_static.Fn()(UPtr(&data[0]), uint(len(data)))
+	return g_bytes_new.Fn()(dt.p, uint64(dt.l))
 }
 
 func (b *GBytes) Compare(b2 *GBytes) int { return g_bytes_compare.Fn()(b, b2) }
 func (b *GBytes) Equal(b2 *GBytes) bool  { return g_bytes_equal.Fn()(b, b2) }
 func (b *GBytes) GetData() []byte {
-	var size uint
+	var size uint64
 	ptr := g_bytes_get_data.Fn()(b, &size)
-	return *(*[]byte)(cc.Slice(ptr, int64(size)))
+	return unsafe.Slice(ptr, size)
 }
-func (b *GBytes) GetRegion(offset, length uint) []byte {
+func (b *GBytes) GetRegion(offset, length uint64) []byte {
 	ptr := g_bytes_get_region.Fn()(b, offset, length)
-	return *(*[]byte)(cc.Slice(ptr, int64(length)))
+	return unsafe.Slice(ptr, length)
 }
-
-func (b *GBytes) GetSize() uint { return g_bytes_get_size.Fn()(b) }
-func (b *GBytes) Hash() uint    { return g_bytes_hash.Fn()(b) }
-func (b *GBytes) NewFromBytes(offset, length uint) *GBytes {
+func (b *GBytes) GetSize() uint64 { return g_bytes_get_size.Fn()(b) }
+func (b *GBytes) Hash() uint32    { return g_bytes_hash.Fn()(b) }
+func (b *GBytes) NewFromBytes(offset, length uint64) *GBytes {
 	return g_bytes_new_from_bytes.Fn()(b, offset, length)
 }
-
 func (b *GBytes) Ref() *GBytes              { return g_bytes_ref.Fn()(b) }
 func (b *GBytes) Unref()                    { g_bytes_unref.Fn()(b) }
 func (b *GBytes) UnrefToArray() *GByteArray { return g_bytes_unref_to_array.Fn()(b) }
 func (b *GBytes) UnrefToData() []byte {
-	var size uint
+	var size uint64
 	ptr := g_bytes_unref_to_data.Fn()(b, &size)
-	return *(*[]byte)(cc.Slice(ptr, int64(size)))
+	defer GFree(ptr)
+	return unsafe.Slice(ptr, size)
+}
+func (b *GBytes) UnrefToString() string {
+	var size uint64
+	ptr := g_bytes_unref_to_data.Fn()(b, &size)
+	return (cc.String)(UPtr(ptr)).TakeString(size)
 }
 
 // #endregion
 
 // #region DateTime
 
-type GDateTime struct {
+type GDateTime struct{}
+
+func (dt *GDateTime) Unref()          { g_date_time_unref.Fn()(dt) }
+func (dt *GDateTime) Ref() *GDateTime { return g_date_time_ref.Fn()(dt) }
+
+func NewGDateTimeNow(tz *GTimeZone) *GDateTime { return g_date_time_new_now.Fn()(tz) }
+func NewGDateTimeNowLocal() *GDateTime         { return g_date_time_new_now_local.Fn()() }
+func NewGDateTimeNowUtc() *GDateTime           { return g_date_time_new_now_utc.Fn()() }
+
+func NewGDateTimeFromUnixLocal(t int64) *GDateTime { return g_date_time_new_from_unix_local.Fn()(t) }
+func NewGDateTimeFromUnixUtc(t int64) *GDateTime   { return g_date_time_new_from_unix_utc.Fn()(t) }
+func NewGDateTimeFromUnixLocalUsec(usecs int64) *GDateTime {
+	return g_date_time_new_from_unix_local_usec.Fn()(usecs)
+}
+func NewGDateTimeFromUnixUtcUsec(usecs int64) *GDateTime {
+	return g_date_time_new_from_unix_utc_usec.Fn()(usecs)
+}
+
+func NewGDateTimeFromIso8601(text string, defaultTz *GTimeZone) *GDateTime {
+	t := cc.NewString(text)
+	defer t.Free()
+	return g_date_time_new_from_iso8601.Fn()(t, defaultTz)
+}
+func NewGDateTime(tz *GTimeZone, year, month, day, hour, minute int, seconds float64) *GDateTime {
+	return g_date_time_new.Fn()(tz, year, month, day, hour, minute, seconds)
+}
+func NewGDateTimeLocal(year, month, day, hour, minute int, seconds float64) *GDateTime {
+	return g_date_time_new_local.Fn()(year, month, day, hour, minute, seconds)
+}
+func NewGDateTimeUtc(year, month, day, hour, minute int, seconds float64) *GDateTime {
+	return g_date_time_new_utc.Fn()(year, month, day, hour, minute, seconds)
+}
+
+func (dt *GDateTime) Add(timespan GTimeSpan) *GDateTime { return g_date_time_add.Fn()(dt, timespan) }
+func (dt *GDateTime) AddYears(years int) *GDateTime     { return g_date_time_add_years.Fn()(dt, years) }
+func (dt *GDateTime) AddMonths(months int) *GDateTime   { return g_date_time_add_months.Fn()(dt, months) }
+func (dt *GDateTime) AddWeeks(weeks int) *GDateTime     { return g_date_time_add_weeks.Fn()(dt, weeks) }
+func (dt *GDateTime) AddDays(days int) *GDateTime       { return g_date_time_add_days.Fn()(dt, days) }
+func (dt *GDateTime) AddHours(hours int) *GDateTime     { return g_date_time_add_hours.Fn()(dt, hours) }
+func (dt *GDateTime) AddMinutes(minutes int) *GDateTime {
+	return g_date_time_add_minutes.Fn()(dt, minutes)
+}
+func (dt *GDateTime) AddSeconds(seconds float64) *GDateTime {
+	return g_date_time_add_seconds.Fn()(dt, seconds)
+}
+func (dt *GDateTime) AddFull(years, months, days, hours, minutes int, seconds float64) *GDateTime {
+	return g_date_time_add_full.Fn()(dt, years, months, days, hours, minutes, seconds)
+}
+
+func (dt1 *GDateTime) Compare(dt2 *GDateTime) int {
+	return g_date_time_compare.Fn()(dt1, dt2)
+}
+func (begin *GDateTime) Difference(end *GDateTime) GTimeSpan {
+	return g_date_time_difference.Fn()(end, begin)
+}
+func (datetime *GDateTime) TimeHash() uint32 {
+	return g_date_time_hash.Fn()(datetime)
+}
+func (dt *GDateTime) Equal(dt2 *GDateTime) bool {
+	return g_date_time_equal.Fn()(dt, dt2) != 0
+}
+func (dt *GDateTime) GetYmd() (year, month, day int) {
+	g_date_time_get_ymd.Fn()(dt, &year, &month, &day)
+	return
+}
+func (dt *GDateTime) GetYear() int              { return g_date_time_get_year.Fn()(dt) }
+func (dt *GDateTime) GetMonth() int             { return g_date_time_get_month.Fn()(dt) }
+func (dt *GDateTime) GetDayOfMonth() int        { return g_date_time_get_day_of_month.Fn()(dt) }
+func (dt *GDateTime) GetWeekNumberingYear() int { return g_date_time_get_week_numbering_year.Fn()(dt) }
+func (dt *GDateTime) GetWeekOfYear() int        { return g_date_time_get_week_of_year.Fn()(dt) }
+func (dt *GDateTime) GetDayOfWeek() int         { return g_date_time_get_day_of_week.Fn()(dt) }
+func (dt *GDateTime) GetDayOfYear() int         { return g_date_time_get_day_of_year.Fn()(dt) }
+func (dt *GDateTime) GetHour() int              { return g_date_time_get_hour.Fn()(dt) }
+func (dt *GDateTime) GetMinute() int            { return g_date_time_get_minute.Fn()(dt) }
+func (dt *GDateTime) GetSecond() int            { return g_date_time_get_second.Fn()(dt) }
+func (dt *GDateTime) GetMicrosecond() int       { return g_date_time_get_microsecond.Fn()(dt) }
+func (dt *GDateTime) GetSeconds() float64       { return g_date_time_get_seconds.Fn()(dt) }
+
+func (dt *GDateTime) ToUnix() int64     { return g_date_time_to_unix.Fn()(dt) }
+func (dt *GDateTime) ToUnixUsec() int64 { return g_date_time_to_unix_usec.Fn()(dt) }
+
+func (dt *GDateTime) GetUtcOffset() GTimeSpan { return g_date_time_get_utc_offset.Fn()(dt) }
+func (dt *GDateTime) GetTimezone() *GTimeZone { return g_date_time_get_timezone.Fn()(dt) }
+func (dt *GDateTime) GetTimezoneAbbreviation() string {
+	return g_date_time_get_timezone_abbreviation.Fn()(dt).String()
+}
+func (dt *GDateTime) IsDaylightSavings() bool { return g_date_time_is_daylight_savings.Fn()(dt) != 0 }
+
+func (dt *GDateTime) ToTimezone(tz *GTimeZone) *GDateTime {
+	return g_date_time_to_timezone.Fn()(dt, tz)
+}
+func (dt *GDateTime) ToLocal() *GDateTime { return g_date_time_to_local.Fn()(dt) }
+func (dt *GDateTime) ToUtc() *GDateTime   { return g_date_time_to_utc.Fn()(dt) }
+
+func (dt *GDateTime) Format(format string) string {
+	f := cc.NewString(format)
+	defer f.Free()
+	return g_date_time_format.Fn()(dt, f).TakeString()
+}
+func (dt *GDateTime) FormatIso8601() string { return g_date_time_format_iso8601.Fn()(dt).TakeString() }
+
+// #endregion
+
+// #region Env Exports
+func GGetenv(variable string) string {
+	v := cc.NewString(variable)
+	defer v.Free()
+	return g_getenv.Fn()(v).String()
+}
+func GSetenv(variable, value string, overwrite bool) bool {
+	vb, vl := cc.NewString(variable), cc.NewString(value)
+	defer vb.Free()
+	defer vl.Free()
+	return g_setenv.Fn()(vb, vl, cbool(overwrite)) != 0
+}
+func GUnsetenv(variable string) {
+	v := cc.NewString(variable)
+	defer v.Free()
+	g_unsetenv.Fn()(v)
+}
+func GListenv() []string    { return g_listenv.Fn()().TakeStrings() }
+func GGetEnviron() []string { return g_get_environ.Fn()().TakeStrings() }
+func GEnvironGetenv(envp []string, variable string) string {
+	p, v := cc.NewStrings(envp), cc.NewString(variable)
+	defer p.Free()
+	return g_environ_getenv.Fn()(p, v).String()
+}
+func GEnvironSetenv(envp []string, variable, value string, overwrite bool) []string {
+	p, vb, va := cc.NewStrings(envp), cc.NewString(variable), cc.NewString(value)
+	defer p.Free()
+	return g_environ_setenv.Fn()(p, vb, va, cbool(overwrite)).Strings()
+}
+func GEnvironUnsetenv(envp []string, variable string) []string {
+	p, v := cc.NewStrings(envp), cc.NewString(variable)
+	defer p.Free()
+	return g_environ_unsetenv.Fn()(p, v).TakeStrings()
 }
 
 // #endregion
@@ -351,42 +608,39 @@ type GError struct {
 	Message cc.String
 }
 
-func NewError(domain GQuark, code int32, format string, a ...interface{}) *GError {
-	return g_error_new.Fn()(domain, code, fmt.Sprintf(format, a...))
+func NewGError(domain GQuark, code int32, format string, a ...interface{}) *GError {
+	f := cc.NewString(fmt.Sprintf(format, a...))
+	defer f.Free()
+	return g_error_new.Fn()(domain, code, f)
 }
 func ErrorDomainRegister(typeName string, privateSize uint,
 	typeInit func(err *GError), typeCopy func(src, dst *GError), typeFree func(err *GError)) GQuark {
-	init, copy, free := UPtr(nil), UPtr(nil), UPtr(nil)
-	if typeInit != nil {
-		init = vcbu(typeInit)
-	}
-	if typeCopy != nil {
-		copy = vcbu(typeCopy)
-	}
-	if typeFree != nil {
-		free = vcbu(typeFree)
-	}
-	return g_error_domain_register.Fn()(typeName, privateSize, init, copy, free)
+	init, copy, free := vcbu(typeInit), vcbu(typeCopy), vcbu(typeFree)
+	tn := cc.NewString(typeName)
+	defer tn.Free()
+	return g_error_domain_register.Fn()(tn, privateSize, init, copy, free)
 }
 func ErrorDomainRegisterStatic(typeName string, privateSize uint,
 	typeInit func(err *GError), typeCopy func(src, dst *GError), typeFree func(err *GError)) GQuark {
-	init, copy, free := UPtr(nil), UPtr(nil), UPtr(nil)
-	if typeInit != nil {
-		init = vcbu(typeInit)
-	}
-	if typeCopy != nil {
-		copy = vcbu(typeCopy)
-	}
-	if typeFree != nil {
-		free = vcbu(typeFree)
-	}
-	return g_error_domain_register_static.Fn()(typeName, privateSize, init, copy, free)
+	init, copy, free := vcbu(typeInit), vcbu(typeCopy), vcbu(typeFree)
+	tn := cc.NewString(typeName)
+	return g_error_domain_register_static.Fn()(tn, privateSize, init, copy, free)
 }
 
 func (e *GError) Copy() *GError                     { return g_error_copy.Fn()(e) }
 func (e *GError) Free()                             { g_error_free.Fn()(e) }
 func (e *GError) Matches(domain GQuark, code int32) { g_error_matches.Fn()(e, domain, code) }
 func (e *GError) Error() error {
+	if e == nil {
+		return nil
+	}
+	return errors.New(e.Message.String())
+}
+func (e *GError) TakeError() error {
+	if e == nil {
+		return nil
+	}
+	defer e.Free()
 	return errors.New(e.Message.String())
 }
 
@@ -394,135 +648,167 @@ func (e *GError) Error() error {
 
 // #region List
 
-type GList struct {
-	Data UPtr
-	Next *GList
-	Prev *GList
+type GList[T any] struct {
+	Data *T
+	Next *GList[T]
+	Prev *GList[T]
 }
 
-func ListAlloc() *GList                            { return g_list_alloc.Fn()() }
-func NewGList() *GList                             { return g_list_alloc.Fn()() }
-func AllocList() *GList                            { return g_list_alloc.Fn()() }
-func (l *GList) Free()                             { g_list_free.Fn()(l) }
-func (l *GList) Free1()                            { g_list_free_1.Fn()(l) }
-func (l *GList) FreeFull(freeFunc func(data UPtr)) { g_list_free_full.Fn()(l, vcbu(freeFunc)) }
-func (l *GList) Append(data UPtr) *GList           { return g_list_append.Fn()(l, data) }
-func (l *GList) Prepend(data UPtr) *GList          { return g_list_prepend.Fn()(l, data) }
-func (l *GList) Insert(data UPtr, position int32) *GList {
-	return g_list_insert.Fn()(l, data, position)
+func GListAlloc[T any]() *GList[T] { return (*GList[T])(g_list_alloc.Fn()()) }
+func NewGList[T any]() *GList[T]   { return (*GList[T])(g_list_alloc.Fn()()) }
+
+// func AllocGList[T any]() *GList[T] { return (*GList[T])(g_list_alloc.Fn()()) }
+
+func (l *GList[T]) Free()  { g_list_free.Fn()(UPtr(l)) }
+func (l *GList[T]) Free1() { g_list_free_1.Fn()(UPtr(l)) }
+func (l *GList[T]) FreeFull(freeFunc func(data *T)) {
+	ff := cc.Cbk(freeFunc)
+	defer cc.CbkClose(ff)
+	g_list_free_full.Fn()(UPtr(l), ff)
 }
-func (l *GList) InsertSorted(data UPtr, compare func(a, b UPtr) int32) *GList {
-	return g_list_insert_sorted.Fn()(l, data, vcbu(compare))
+func (l *GList[T]) Append(data *T) *GList[T] {
+	return (*GList[T])(g_list_append.Fn()(UPtr(l), UPtr(data)))
 }
-func (l *GList) InsertSortedWithData(data UPtr, compare func(a, b, data UPtr) int32, userData UPtr) *GList {
-	return g_list_insert_sorted_with_data.Fn()(l, data, vcbu(compare), userData)
+func (l *GList[T]) Prepend(data *T) *GList[T] {
+	return (*GList[T])(g_list_prepend.Fn()(UPtr(l), UPtr(data)))
 }
-func (l *GList) InsertBefore(sibling *GList, data UPtr) *GList {
-	return g_list_insert_before.Fn()(l, sibling, data)
+func (l *GList[T]) Insert(data *T, position int32) *GList[T] {
+	return (*GList[T])(g_list_insert.Fn()(UPtr(l), UPtr(data), position))
 }
-func (l *GList) InsertBeforeLink(sibling *GList, link *GList) *GList {
-	return g_list_insert_before_link.Fn()(l, sibling, link)
-}
-func (l *GList) Concat(list2 *GList) *GList {
-	return g_list_concat.Fn()(l, list2)
-}
-func (l *GList) Remove(data UPtr) *GList {
-	return g_list_remove.Fn()(l, data)
-}
-func (l *GList) RemoveAll(data UPtr) *GList {
-	return g_list_remove_all.Fn()(l, data)
-}
-func (l *GList) RemoveLink(link *GList) *GList {
-	return g_list_remove_link.Fn()(l, link)
-}
-func (l *GList) DeleteLink(link *GList) *GList {
-	return g_list_delete_link.Fn()(l, link)
-}
-func (l *GList) Reverse() *GList {
-	return g_list_reverse.Fn()(l)
+func (l *GList[T]) InsertSorted(data *T, compare func(a, b *T) int32) *GList[T] {
+	cp := vcbu(compare)
+	defer cc.CbkClose(cp)
+	return (*GList[T])(g_list_insert_sorted.Fn()(UPtr(l), UPtr(data), cp))
 }
 
-func (l *GList) Copy() *GList {
-	return g_list_copy.Fn()(l)
+//	func (l *GList[T]) InsertSortedWithData(data *T, compare func(a, b, data UPtr) int32, userData UPtr) *GList {
+//		return g_list_insert_sorted_with_data.Fn()(l, data, vcbu(compare), userData)
+//	}
+
+func (l *GList[T]) InsertBefore(sibling *GList[T], data *T) *GList[T] {
+	return (*GList[T])(g_list_insert_before.Fn()(UPtr(l), UPtr(sibling), UPtr(data)))
+}
+func (l *GList[T]) InsertBeforeLink(sibling *GList[T], link *GList[T]) *GList[T] {
+	return (*GList[T])(g_list_insert_before_link.Fn()(UPtr(l), UPtr(sibling), UPtr(link)))
+}
+func (l *GList[T]) Concat(list2 *GList[T]) *GList[T] {
+	return (*GList[T])(g_list_concat.Fn()(UPtr(l), UPtr(list2)))
+}
+func (l *GList[T]) Remove(data *T) *GList[T] {
+	return (*GList[T])(g_list_remove.Fn()(UPtr(l), UPtr(data)))
+}
+func (l *GList[T]) RemoveAll(data *T) *GList[T] {
+	return (*GList[T])(g_list_remove_all.Fn()(UPtr(l), UPtr(data)))
+}
+func (l *GList[T]) RemoveLink(link *GList[T]) *GList[T] {
+	return (*GList[T])(g_list_remove_link.Fn()(UPtr(l), UPtr(link)))
+}
+func (l *GList[T]) DeleteLink(link *GList[T]) *GList[T] {
+	return (*GList[T])(g_list_delete_link.Fn()(UPtr(l), UPtr(link)))
+}
+func (l *GList[T]) Reverse() *GList[T] {
+	return (*GList[T])(g_list_reverse.Fn()(UPtr(l)))
+}
+func (l *GList[T]) Copy() *GList[T] {
+	return (*GList[T])(g_list_copy.Fn()(UPtr(l)))
+}
+func (l *GList[T]) CopyDeep(copyFunc func(src *T, _ UPtr) *T) *GList[T] {
+	cp := vcbu(copyFunc)
+	defer cc.CbkClose(cp)
+	return (*GList[T])(g_list_copy_deep.Fn()(UPtr(l), cp, nil))
+}
+func (l *GList[T]) Nth(n uint32) *GList[T]     { return (*GList[T])(g_list_nth.Fn()(UPtr(l), n)) }
+func (l *GList[T]) NthPrev(n uint32) *GList[T] { return (*GList[T])(g_list_nth_prev.Fn()(UPtr(l), n)) }
+func (l *GList[T]) Find(data *T) *GList[T]     { return (*GList[T])(g_list_find.Fn()(UPtr(l), UPtr(data))) }
+func (l *GList[T]) FindCustom(data *T, compareFunc func(curr, data *T) int32) *GList[T] {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	return (*GList[T])(g_list_find_custom.Fn()(UPtr(l), UPtr(data), cf))
+}
+func (l *GList[T]) Position(link *GList[T]) int32 {
+	return g_list_position.Fn()(UPtr(l), UPtr(link))
+}
+func (l *GList[T]) Index(data *T) int32 {
+	return g_list_index.Fn()(UPtr(l), UPtr(data))
+}
+func (l *GList[T]) Last() *GList[T] {
+	return (*GList[T])(g_list_last.Fn()(UPtr(l)))
+}
+func (l *GList[T]) First() *GList[T] {
+	return (*GList[T])(g_list_first.Fn()(UPtr(l)))
+}
+func (l *GList[T]) Length() uint32 {
+	return g_list_length.Fn()(UPtr(l))
+}
+func (l *GList[T]) ForEach(fn func(data *T, _ UPtr)) {
+	f := vcbu(fn)
+	defer cc.CbkClose(f)
+	g_list_foreach.Fn()(UPtr(l), f, nil)
 }
 
-func (l *GList) CopyDeep(copyFunc func(src, data UPtr) UPtr, userData UPtr) *GList {
-	return g_list_copy_deep.Fn()(l, vcbu(copyFunc), userData)
-}
-func (l *GList) Nth(n uint32) *GList     { return g_list_nth.Fn()(l, n) }
-func (l *GList) NthPrev(n uint32) *GList { return g_list_nth_prev.Fn()(l, n) }
-func (l *GList) Find(data UPtr) *GList   { return g_list_find.Fn()(l, data) }
-func (l *GList) FindCustom(data UPtr, compareFunc func(a, b UPtr) int32) *GList {
-	return g_list_find_custom.Fn()(l, data, vcbu(compareFunc))
-}
-func (l *GList) Position(link *GList) int32 {
-	return g_list_position.Fn()(l, link)
-}
-func (l *GList) Index(data UPtr) int32 {
-	return g_list_index.Fn()(l, data)
-}
-func (l *GList) Last() *GList {
-	return g_list_last.Fn()(l)
-}
-func (l *GList) First() *GList {
-	return g_list_first.Fn()(l)
-}
-func (l *GList) Length() uint32 {
-	return g_list_length.Fn()(l)
-}
-func (l *GList) ForEach(fn func(data, userData UPtr), userData UPtr) {
-	g_list_foreach.Fn()(l, vcbu(fn), userData)
+func (l *GList[T]) Sort(compareFunc func(a, b *T) int32) *GList[T] {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	return (*GList[T])(g_list_sort.Fn()(UPtr(l), cf))
 }
 
-func (l *GList) Sort(compareFunc func(a, b UPtr) int32) *GList {
-	return g_list_sort.Fn()(l, vcbu(compareFunc))
+// func (l *GList[T]) SortWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) *GList[T] {
+// 	return (*GList[T])(g_list_sort_with_data.Fn()(l, vcbu(compareFunc), userData))
+// }
+
+func (l *GList[T]) NthData(n uint32) *T { return (*T)(g_list_nth_data.Fn()(UPtr(l), n)) }
+func ClearList[T any](list **GList[T], destroy func(data *T)) {
+	d := vcbu(destroy)
+	defer cc.CbkClose(d)
+	g_clear_list.Fn()(UPtr(list), d)
 }
 
-func (l *GList) SortWithData(compareFunc func(a, b, userData UPtr) int32, userData UPtr) *GList {
-	return g_list_sort_with_data.Fn()(l, vcbu(compareFunc), userData)
-}
-func (l *GList) NthData(n uint32) UPtr { return g_list_nth_data.Fn()(l, n) }
-func ClearList(list **GList, destroy func(data UPtr)) {
-	g_clear_list.Fn()(list, vcbu(destroy))
-}
-func GListList[T any](l *GList, close func(*GList)) []T {
-	type pinner struct {
-		list  *GList
-		slice *[]T
-	}
-	num := l.Length()
-	if num == 0 {
-		return nil
-	}
+// func GListList[T any](l *GList[T], close func(*GList[T])) []T {
+// 	type pinner struct {
+// 		list  *GList[T]
+// 		slice *[]T
+// 	}
+// 	num := l.Length()
+// 	if num == 0 {
+// 		return nil
+// 	}
 
-	pin := new(pinner)
-	pin.list = l
-	slice := make([]T, num)
-	pin.slice = &slice
-	runtime.SetFinalizer(pin, func(p *pinner) {
-		if close != nil {
-			close(p.list)
-			return
-		}
-		p.list.Free()
+// 	pin := new(pinner)
+// 	pin.list = l
+// 	slice := make([]T, num)
+// 	pin.slice = &slice
+// 	runtime.SetFinalizer(pin, func(p *pinner) {
+// 		if close != nil {
+// 			close(p.list)
+// 			return
+// 		}
+// 		p.list.Free()
 
-		_ = *p.slice
+// 		_ = *p.slice
+// 	})
+
+// 	var t T
+// 	switch any(t).(type) {
+// 	case string:
+// 		for i := uint32(0); i < num; i++ {
+// 			a := ((cc.String)(UPtr(l.Nth(i).Data))).String()
+// 			(*pin.slice)[i] = any(a).(T)
+// 		}
+// 	default:
+// 		for i := uint32(0); i < num; i++ {
+// 			(*pin.slice)[i] = *(*T)(UPtr(&l.Nth(i).Data))
+// 		}
+// 	}
+
+//		return *pin.slice
+//	}
+
+func (l *GList[T]) List() (lst []*T) {
+	lst = []*T{}
+	l.ForEach(func(data *T, _ UPtr) {
+		lst = append(lst, data)
 	})
-
-	var t T
-	switch any(t).(type) {
-	case string:
-		for i := uint32(0); i < num; i++ {
-			a := ((cc.String)(l.Nth(i).Data)).String()
-			(*pin.slice)[i] = any(a).(T)
-		}
-	default:
-		for i := uint32(0); i < num; i++ {
-			(*pin.slice)[i] = *(*T)(UPtr(&l.Nth(i).Data))
-		}
-	}
-
-	return *pin.slice
+	return
 }
 
 // #endregion
@@ -543,7 +829,7 @@ type GSource struct {
 	Flags    uint32
 	SourceID uint32
 
-	PollFds *GSList
+	PollFds *GSList[GPollFD]
 	Prev    *GSource
 	Next    *GSource
 
@@ -570,7 +856,7 @@ type GSourceFuncs struct {
 type GPid int32
 
 func NewGMainContext() *GMainContext { return g_main_context_new.Fn()() }
-func NewGMainContextWithFlags(flags uint32) *GMainContext {
+func NewGMainContextWithFlags(flags GMainContextFlags) *GMainContext {
 	return g_main_context_new_with_flags.Fn()(flags)
 }
 func (c *GMainContext) Ref() *GMainContext { return g_main_context_ref.Fn()(c) }
@@ -589,12 +875,17 @@ func (c *GMainContext) FindSourceByUserData(userData interface{}) *GSource {
 func (c *GMainContext) FindSourceByFuncsUserData(funcs *GSourceFuncs, userData interface{}) *GSource {
 	return g_main_context_find_source_by_funcs_user_data.Fn()(c, funcs, anyptr(userData))
 }
-func (c *GMainContext) Wakeup()                      { g_main_context_wakeup.Fn()(c) }
-func (c *GMainContext) Acquire() bool                { return g_main_context_acquire.Fn()(c) }
-func (c *GMainContext) Release()                     { g_main_context_release.Fn()(c) }
-func (c *GMainContext) IsOwner() bool                { return g_main_context_is_owner.Fn()(c) }
-func (c *GMainContext) Wait(cond, mutex UPtr) bool   { return g_main_context_wait.Fn()(c, cond, mutex) }
-func (c *GMainContext) Prepare(priority *int32) bool { return g_main_context_prepare.Fn()(c, priority) }
+func (c *GMainContext) Wakeup()       { g_main_context_wakeup.Fn()(c) }
+func (c *GMainContext) Acquire() bool { return g_main_context_acquire.Fn()(c) }
+func (c *GMainContext) Release()      { g_main_context_release.Fn()(c) }
+func (c *GMainContext) IsOwner() bool { return g_main_context_is_owner.Fn()(c) }
+
+// func (c *GMainContext) Wait(cond, mutex UPtr) bool   { return g_main_context_wait.Fn()(c, cond, mutex) }
+
+func (c *GMainContext) Prepare() (priority int32, ready bool) {
+	ready = g_main_context_prepare.Fn()(c, &priority)
+	return
+}
 func (c *GMainContext) Query(maxPriority int32, timeout *int32, fds *GPollFD, nFds int32) int32 {
 	return g_main_context_query.Fn()(c, maxPriority, timeout, fds, nFds)
 }
@@ -616,12 +907,32 @@ func (c *GMainContext) PushThreadDefault()       { g_main_context_push_thread_de
 func (c *GMainContext) PopThreadDefault()        { g_main_context_pop_thread_default.Fn()(c) }
 func GetThreadDefaultMainContext() *GMainContext { return g_main_context_get_thread_default.Fn()() }
 func RefThreadDefaultMainContext() *GMainContext { return g_main_context_ref_thread_default.Fn()() }
-func (c *GMainContext) InvokeFull(priority int32, fn func(_ UPtr) (Continue bool),
-	data interface{}, notify func(_ UPtr)) {
-	g_main_context_invoke_full.Fn()(c, priority, vcbu(fn), anyptr(data), vcbu(notify))
+func (c *GMainContext) InvokeFull(priority int32, fn func(_ UPtr) (Continue bool), notify func(_ UPtr)) {
+	var f, n UPtr
+	f = vcbu(f)
+	n = vcbu(func(a UPtr) {
+		if notify != nil {
+			notify(a)
+		}
+		if f != nil {
+			cc.CbkClose(f)
+		}
+		cc.CbkCloseLate(n)
+	})
+
+	g_main_context_invoke_full.Fn()(c, priority, f, nil, n)
 }
 func (c *GMainContext) Invoke(fn func(_ UPtr) (Continue bool)) {
-	g_main_context_invoke.Fn()(c, vcbu(fn), nil)
+	var f UPtr
+	f = vcbu(func(a UPtr) (Continue bool) {
+		if fn(a) {
+			return true
+		}
+
+		cc.CbkCloseLate(f)
+		return false
+	})
+	g_main_context_invoke.Fn()(c, f, nil)
 }
 
 func NewGMainLoop(context *GMainContext, isRunning bool) *GMainLoop {
@@ -638,7 +949,12 @@ func NewGSource(sourceFuncs *GSourceFuncs, structSize uint32) *GSource {
 	return g_source_new.Fn()(sourceFuncs, structSize)
 }
 func (s *GSource) SetDisposeFunction(dispose func(s *GSource)) {
-	g_source_set_dispose_function.Fn()(s, vcbu(dispose))
+	var d UPtr
+	d = vcbu(func(s *GSource) {
+		dispose(s)
+		cc.CbkCloseLate(d)
+	})
+	g_source_set_dispose_function.Fn()(s, d)
 }
 func (s *GSource) Ref() *GSource                       { return g_source_ref.Fn()(s) }
 func (s *GSource) Unref()                              { g_source_unref.Fn()(s) }
@@ -731,36 +1047,279 @@ func ChildWatchAddFull(priority int32, pid GPid, fn func(pid GPid, waitStatus in
 func ChildWatchAdd(pid GPid, fn func(pid GPid, waitStatus int32)) uint32 {
 	return g_child_watch_add.Fn()(pid, vcbu(fn), nil)
 }
-func IdleAdd(fn func() (Continue bool)) uint32 {
-	var fnp UPtr
-	fnp = vcbu(func(_ UPtr) (Continue bool) {
-		b := fn()
-		if !b {
-			cc.CbkCloseLate(fnp)
+func IdleAdd[T any](fn func(data *T) (Continue bool), data *T) uint32 {
+	var f UPtr
+	f = cc.CbkRaw[func(data UPtr) int32](func(out, ins UPtr) {
+		data := cc.RawInAddr[T](ins, 0)
+		ret := (*int32)(out)
+		if fn(data) {
+			(*ret) = 1
+		} else {
+			(*ret) = 0
+			cc.CbkCloseLate(f)
 		}
-		return b
 	})
-	return g_idle_add.Fn()(fnp, nil)
+	return g_idle_add.Fn()(f, UPtr(data))
 }
-func IdleAddFull(priority int32, fn func(_ UPtr) (Continue bool),
-	data interface{}, notify func(_ UPtr)) uint32 {
-	return g_idle_add_full.Fn()(priority, vcbu(fn), anyptr(data), vcbu(notify))
-}
-func IdleAddOnce(fn func()) uint32 {
-	var fnp UPtr
-	fnp = vcbu(func() {
-		fn()
-		cc.CbkCloseLate(fnp)
+func IdleAddFull[T any](
+	priority int32, fn func(data *T) (Continue bool),
+	data *T, notify func(data *T)) uint32 {
+
+	var f, n UPtr
+	f = cc.CbkRaw[func(data UPtr) int32](func(out, ins UPtr) {
+		ret := (*int32)(out)
+		if fn(cc.RawInAddr[T](ins, 0)) {
+			(*ret) = 1
+		} else {
+			(*ret) = 0
+		}
 	})
-	return g_idle_add_once.Fn()(fnp, nil)
+	n = cc.CbkRaw[func(data UPtr)](func(out, ins UPtr) {
+		notify(cc.RawInAddr[T](ins, 0))
+		cc.CbkClose(f)
+		cc.CbkCloseLate(n)
+	})
+
+	return g_idle_add_full.Fn()(priority, f, UPtr(data), n)
 }
-func IdleRemoveByData(data interface{}) bool { return g_idle_remove_by_data.Fn()(anyptr(data)) }
+func IdleAddOnce[T any](fn func(data *T), data *T) uint32 {
+	var f UPtr
+	f = cc.CbkRaw[func(data UPtr)](func(out, ins UPtr) {
+		fn(cc.RawInAddr[T](ins, 0))
+		cc.CbkCloseLate(f)
+	})
+	return g_idle_add_once.Fn()(f, UPtr(data))
+}
+func IdleRemoveByData[T any](data *T) bool { return g_idle_remove_by_data.Fn()(UPtr(data)) }
+
+// #endregion
+
+// #region Mem
+func GFree[T any](ptr *T)                   { g_free.Fn()(UPtr(ptr)) }
+func GFreeSized[T any](mem *T, size uint64) { g_free_sized.Fn()(UPtr(mem), size) }
+
+// func GClearPointer(pp *uptr, destroy cc.Func)    { g_clear_pointer.Fn()(pp, destroy) }
+
+func GMalloc[T any](nBytes uint64) *T             { return (*T)(g_malloc.Fn()(nBytes)) }
+func GMalloc0[T any](nBytes uint64) *T            { return (*T)(g_malloc0.Fn()(nBytes)) }
+func GRealloc[T any](mem *T, nBytes uint64) *T    { return (*T)(g_realloc.Fn()(UPtr(mem), nBytes)) }
+func GTryMalloc[T any](nBytes uint64) *T          { return (*T)(g_try_malloc.Fn()(nBytes)) }
+func GTryMalloc0[T any](nBytes uint64) *T         { return (*T)(g_try_malloc0.Fn()(nBytes)) }
+func GTryRealloc[T any](mem *T, nBytes uint64) *T { return (*T)(g_try_realloc.Fn()(UPtr(mem), nBytes)) }
+func GMallocN[T any](nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_malloc_n.Fn()(nBlocks, nBlockBytes))
+}
+func GMalloc0N[T any](nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_malloc0_n.Fn()(nBlocks, nBlockBytes))
+}
+func GReallocN[T any](mem *T, nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_realloc_n.Fn()(UPtr(mem), nBlocks, nBlockBytes))
+}
+func GTryMallocN[T any](nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_try_malloc_n.Fn()(nBlocks, nBlockBytes))
+}
+func GTryMalloc0N[T any](nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_try_malloc0_n.Fn()(nBlocks, nBlockBytes))
+}
+func GTryReallocN[T any](mem *T, nBlocks, nBlockBytes uint64) *T {
+	return (*T)(g_try_realloc_n.Fn()(UPtr(mem), nBlocks, nBlockBytes))
+}
+func GAlignedAlloc[T any](nBlocks, nBlockBytes, alignment uint64) *T {
+	return (*T)(g_aligned_alloc.Fn()(nBlocks, nBlockBytes, alignment))
+}
+func GAlignedAlloc0[T any](nBlocks, nBlockBytes, alignment uint64) *T {
+	return (*T)(g_aligned_alloc0.Fn()(nBlocks, nBlockBytes, alignment))
+}
+func GAlignedFree[T any](mem *T) { g_aligned_free.Fn()(UPtr(mem)) }
+func GAlignedFreeSized[T any](mem *T, alignment, size uint64) {
+	g_aligned_free_sized.Fn()(UPtr(mem), alignment, size)
+}
+
+// #endregion
+
+// #region OptionContext
+
+type GOptionContext struct{}
+type GOptionGroup struct{}
+type GOptionEntry struct {
+	LongName  cc.String
+	ShortName byte
+	Flags     GOptionFlags
+
+	Arg     GOptionArg
+	ArgData UPtr
+
+	Description    cc.String
+	ArgDescription cc.String
+}
+
+func MakeGOptionEntry[T any](longName string, shortName byte,
+	flags GOptionFlags, arg GOptionArg, argAddr *T, description, argDescription string) GOptionEntry {
+	e := GOptionEntry{}
+	e.LongName = cc.NewString(longName)
+	e.ShortName = shortName
+	e.Flags = flags
+	e.Arg = arg
+	e.ArgData = UPtr(argAddr)
+	e.Description = cc.NewString(description)
+	e.ArgDescription = cc.NewString(argDescription)
+	return e
+}
+func (e GOptionEntry) Unref() {
+	e.LongName.Free()
+	e.Description.Free()
+	e.ArgDescription.Free()
+}
+func NewGOptionContext(parameterString string) *GOptionContext {
+	ps := cc.NewString(parameterString)
+	defer ps.Free()
+	return g_option_context_new.Fn()(ps)
+}
+func (ctx *GOptionContext) SetSummary(summary string) {
+	s := cc.NewString(summary)
+	defer s.Free()
+	g_option_context_set_summary.Fn()(ctx, s)
+}
+func (ctx *GOptionContext) GetSummary() string {
+	return g_option_context_get_summary.Fn()(ctx).String()
+}
+func (ctx *GOptionContext) SetDescription(description string) {
+	des := cc.NewString(description)
+	defer des.Free()
+	g_option_context_set_description.Fn()(ctx, des)
+}
+func (ctx *GOptionContext) GetDescription() string {
+	return g_option_context_get_description.Fn()(ctx).String()
+}
+func (ctx *GOptionContext) Free() { g_option_context_free.Fn()(ctx) }
+func (ctx *GOptionContext) SetHelpEnabled(helpEnabled bool) {
+	g_option_context_set_help_enabled.Fn()(ctx, cbool(helpEnabled))
+}
+func (ctx *GOptionContext) GetHelpEnabled() bool {
+	return g_option_context_get_help_enabled.Fn()(ctx) != 0
+}
+func (ctx *GOptionContext) SetIgnoreUnknownOptions(ignoreUnknown bool) {
+	g_option_context_set_ignore_unknown_options.Fn()(ctx, cbool(ignoreUnknown))
+}
+func (ctx *GOptionContext) GetIgnoreUnknownOptions() bool {
+	return g_option_context_get_ignore_unknown_options.Fn()(ctx) != 0
+}
+func (ctx *GOptionContext) SetStrictPosix(strictPosix bool) {
+	g_option_context_set_strict_posix.Fn()(ctx, strictPosix)
+}
+func (ctx *GOptionContext) GetStrictPosix() bool {
+	return g_option_context_get_strict_posix.Fn()(ctx) != 0
+}
+func (ctx *GOptionContext) AddMainEntries(entries []GOptionEntry, translationDomain string) {
+	t := cc.NewString(translationDomain)
+	defer t.Free()
+	entries = append(entries, GOptionEntry{})
+	e, _ := carry[GOptionEntry, int](entries)
+	g_option_context_add_main_entries.Fn()(ctx, e, t)
+	_ = entries
+}
+func (ctx *GOptionContext) Parse(args []string) error {
+	argv, argc := cc.NewStringsLen(args)
+	var gerr *GError
+	if g_option_context_parse.Fn()(ctx, &argc, &argv, &gerr) == 0 {
+		return gerr.TakeError()
+	}
+	return nil
+}
+func (ctx *GOptionContext) ParseStrv(args []string) error {
+	argv := cc.NewStrings(args)
+	var gerr *GError
+	if g_option_context_parse_strv.Fn()(ctx, &argv, &gerr) == 0 {
+		return gerr.TakeError()
+	}
+	return nil
+}
+func (ctx *GOptionContext) SetTranslateFunc(translate func(str cc.String, _ UPtr) cc.String) {
+	t := cc.CbkRaw[func(str cc.String, _ UPtr) cc.String](func(out, ins UPtr) {
+		i := unsafe.Slice((*UPtr)(ins), 2)
+		i1 := (*cc.String)(i[0])
+		i2 := (*UPtr)(i[2])
+
+		*(*cc.String)(out) = translate(*i1, *i2)
+	})
+	var des UPtr
+	des = cc.Cbk(func(_ UPtr) {
+		cc.CbkClose(t)
+		cc.CbkCloseLate(des)
+	})
+
+	g_option_context_set_translate_func.Fn()(ctx, t, nil, des)
+}
+func (ctx *GOptionContext) SetTranslationDomain(domain string) {
+	d := cc.NewString(domain)
+	defer d.Free()
+	g_option_context_set_translation_domain.Fn()(ctx, d)
+}
+func (ctx *GOptionContext) AddGroup(group *GOptionGroup) { g_option_context_add_group.Fn()(ctx, group) }
+func (ctx *GOptionContext) SetMainGroup(group *GOptionGroup) {
+	g_option_context_set_main_group.Fn()(ctx, group)
+}
+func (ctx *GOptionContext) GetMainGroup() *GOptionGroup {
+	return g_option_context_get_main_group.Fn()(ctx)
+}
+func (ctx *GOptionContext) GetHelp(mainHelp bool, group *GOptionGroup) string {
+	return g_option_context_get_help.Fn()(ctx, cbool(mainHelp), group).TakeString()
+}
+
+func NewGOptionGroup(name, description, helpDescription string, destroy func()) *GOptionGroup {
+	des, n, d, h := UPtr(nil), cc.NewString(name), cc.NewString(description), cc.NewString(helpDescription)
+	cc.Cbk(func(_ UPtr) {
+		destroy()
+		cc.CbkCloseLate(des)
+	})
+	return g_option_group_new.Fn()(n, d, h, nil, des)
+}
+func (group *GOptionGroup) SetParseHooks(preParseFunc, postParseFunc cc.Func,
+
+/* gboolean(* GOptionParseFunc) (GOptionContext* context, GOptionGroup* group, gpointer data, GError** error) */) {
+	g_option_group_set_parse_hooks.Fn()(group, preParseFunc, postParseFunc)
+}
+func (group *GOptionGroup) SetErrorHook(errorFunc cc.Func,
+
+/* void (* GOptionErrorFunc) ( GOptionContext* context, GOptionGroup* group, gpointer data, GError** error) */) {
+	g_option_group_set_error_hook.Fn()(group, errorFunc)
+}
+func (group *GOptionGroup) Ref() *GOptionGroup { return g_option_group_ref.Fn()(group) }
+func (group *GOptionGroup) Unref()             { g_option_group_unref.Fn()(group) }
+func (group *GOptionGroup) AddEntries(entries *GOptionEntry) {
+	g_option_group_add_entries.Fn()(group, entries)
+}
+func (group *GOptionGroup) SetTranslateFunc(translate func(str cc.String, _ UPtr) cc.String) {
+	t := cc.CbkRaw[func(str cc.String, _ UPtr) cc.String](func(out, ins UPtr) {
+		i := unsafe.Slice((*UPtr)(ins), 2)
+		i1 := (*cc.String)(i[0])
+		i2 := (*UPtr)(i[2])
+
+		*(*cc.String)(out) = translate(*i1, *i2)
+	})
+	var des UPtr
+	des = cc.Cbk(func(_ UPtr) {
+		cc.CbkClose(t)
+		cc.CbkCloseLate(des)
+	})
+
+	g_option_group_set_translate_func.Fn()(group, t, nil, des)
+}
+func (group *GOptionGroup) SetTranslationDomain(domain string) {
+	d := cc.NewString(domain)
+	defer d.Free()
+	g_option_group_set_translation_domain.Fn()(group, d)
+}
 
 // #endregion
 
 // #region PollFD
 
-type GPollFD struct{}
+type GPollFD struct {
+	FD      int
+	Events  uint16
+	REvents uint16
+}
 
 // #endregion
 
@@ -768,111 +1327,168 @@ type GPollFD struct{}
 
 type GQuark uint32
 
-func GQuarkTryString(str string) GQuark        { return g_quark_try_string.Fn()(str) }
-func GQuarkFromStaticString(str string) GQuark { return g_quark_from_static_string.Fn()(str) }
-func GQuarkFromString(str string) GQuark       { return g_quark_from_string.Fn()(str) }
-func (quark GQuark) ToString() string          { return g_quark_to_string.Fn()(quark) }
-func (quark GQuark) String() string            { return g_quark_to_string.Fn()(quark) }
+func GQuarkTryString(str string) GQuark {
+	s := cc.NewString(str)
+	defer s.Free()
+	return g_quark_try_string.Fn()(s)
+}
+func GQuarkFromStaticString(str string) GQuark {
+	s := cc.NewString(str)
+	defer s.Free()
+	return g_quark_from_static_string.Fn()(s)
+}
+func GQuarkFromString(str string) GQuark {
+	s := cc.NewString(str)
+	defer s.Free()
+	return g_quark_from_string.Fn()(s)
+}
+func (quark GQuark) ToString() string { return g_quark_to_string.Fn()(quark).String() }
+func (quark GQuark) String() string   { return g_quark_to_string.Fn()(quark).String() }
 
 // #endregion
 
 // #region SList
 
-type GSList struct {
-	Data UPtr
-	Next *GSList
+type GSList[T any] struct {
+	Data *T
+	Next *GSList[T]
 }
 
-func NewGSList() *GSList                            { return g_slist_alloc.Fn()() }
-func (l *GSList) Free()                             { g_slist_free.Fn()(l) }
-func (l *GSList) Free1()                            { g_slist_free_1.Fn()(l) }
-func (l *GSList) FreeFull(freeFunc func(data UPtr)) { g_slist_free_full.Fn()(l, vcbu(freeFunc)) }
-func (l *GSList) Append(data interface{}) *GSList   { return g_slist_append.Fn()(l, anyptr(data)) }
-func (l *GSList) Prepend(data interface{}) *GSList  { return g_slist_prepend.Fn()(l, anyptr(data)) }
-func (l *GSList) Insert(data interface{}, position int32) *GSList {
-	return g_slist_insert.Fn()(l, anyptr(data), position)
+func NewGSList[T any]() *GSList[T] { return (*GSList[T])(g_slist_alloc.Fn()()) }
+func (l *GSList[T]) Free()         { g_slist_free.Fn()(UPtr(l)) }
+func (l *GSList[T]) Free1()        { g_slist_free_1.Fn()(UPtr(l)) }
+func (l *GSList[T]) FreeFull(freeFunc func(data *T)) {
+	ff := vcbu(freeFunc)
+	defer cc.CbkClose(ff)
+	g_slist_free_full.Fn()(UPtr(l), ff)
 }
-func (l *GSList) InsertSorted(data interface{}, compareFunc func(a, b UPtr) int32) *GSList {
-	return g_slist_insert_sorted.Fn()(l, anyptr(data), vcbu(compareFunc))
+func (l *GSList[T]) Append(data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_append.Fn()(UPtr(l), UPtr(data)))
 }
-func (l *GSList) InsertSortedWithData(data interface{}, compareDataFunc func(a, b, userData UPtr) int32, userData interface{}) *GSList {
-	return g_slist_insert_sorted_with_data.Fn()(l, anyptr(data), vcbu(compareDataFunc), anyptr(userData))
+func (l *GSList[T]) Prepend(data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_prepend.Fn()(UPtr(l), UPtr(data)))
 }
-func (l *GSList) InsertBefore(sibling *GSList, data interface{}) *GSList {
-	return g_slist_insert_before.Fn()(l, sibling, anyptr(data))
+func (l *GSList[T]) Insert(data *T, position int32) *GSList[T] {
+	return (*GSList[T])(g_slist_insert.Fn()(UPtr(l), UPtr(data), position))
 }
-func (l *GSList) Concat(list2 *GSList) *GSList       { return g_slist_concat.Fn()(l, list2) }
-func (l *GSList) Remove(data interface{}) *GSList    { return g_slist_remove.Fn()(l, anyptr(data)) }
-func (l *GSList) RemoveAll(data interface{}) *GSList { return g_slist_remove_all.Fn()(l, anyptr(data)) }
-func (l *GSList) RemoveLink(link *GSList) *GSList    { return g_slist_remove_link.Fn()(l, link) }
-func (l *GSList) DeleteLink(link *GSList) *GSList    { return g_slist_delete_link.Fn()(l, link) }
-func (l *GSList) Reverse() *GSList                   { return g_slist_reverse.Fn()(l) }
-func (l *GSList) Copy() *GSList                      { return g_slist_copy.Fn()(l) }
-func (l *GSList) CopyDeep(copyFunc func(src, userData UPtr) UPtr, userData interface{}) *GSList {
-	return g_slist_copy_deep.Fn()(l, vcbu(copyFunc), anyptr(userData))
+func (l *GSList[T]) InsertSorted(data *T, compareFunc func(a, b *T) int32) *GSList[T] {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	return (*GSList[T])(g_slist_insert_sorted.Fn()(UPtr(l), UPtr(data), cf))
 }
-func (l *GSList) Nth(n uint32) *GSList          { return g_slist_nth.Fn()(l, n) }
-func (l *GSList) Find(data interface{}) *GSList { return g_slist_find.Fn()(l, anyptr(data)) }
-func (l *GSList) FindCustom(data interface{}, compareFunc func(a, b UPtr) int32) *GSList {
-	return g_slist_find_custom.Fn()(l, anyptr(data), vcbu(compareFunc))
-}
-func (l *GSList) Position(link *GSList) int32  { return g_slist_position.Fn()(l, link) }
-func (l *GSList) Index(data interface{}) int32 { return g_slist_index.Fn()(l, anyptr(data)) }
-func (l *GSList) Last() *GSList                { return g_slist_last.Fn()(l) }
-func (l *GSList) Length() uint32               { return g_slist_length.Fn()(l) }
-func (l *GSList) ForEach(fn func(data, userData UPtr), userData interface{}) {
-	g_slist_foreach.Fn()(l, vcbu(fn), anyptr(userData))
-}
-func (l *GSList) Sort(compareFunc func(a, b UPtr) int32) *GSList {
-	return g_slist_sort.Fn()(l, vcbu(compareFunc))
-}
-func (l *GSList) SortWithData(compareDataFunc func(a, b, userData UPtr) int32, userData interface{}) *GSList {
-	return g_slist_sort_with_data.Fn()(l, vcbu(compareDataFunc), anyptr(userData))
-}
-func (l *GSList) NthData(n uint32) UPtr { return g_slist_nth_data.Fn()(l, n) }
-func (l *GSList) Clear(destroy func(data UPtr)) {
-	g_clear_slist.Fn()(&l, vcbu(destroy))
-}
-func GSListList[T any](l *GSList, close func(*GSList)) (list []T) {
-	type pinner struct {
-		list  *GSList
-		slice *[]T
-	}
-	num := l.Length()
-	if num == 0 {
-		return nil
-	}
 
-	pin := new(pinner)
-	pin.list = l
-	slice := make([]T, num)
-	pin.slice = &slice
+//	func (l *GSList[T]) InsertSortedWithData(data interface{}, compareDataFunc func(a, b, userData UPtr) int32, userData interface{}) *GSList {
+//		return g_slist_insert_sorted_with_data.Fn()(UPtr(l), anyptr(data), vcbu(compareDataFunc), anyptr(userData))
+//	}
 
-	runtime.SetFinalizer(pin, func(p *pinner) {
-		if close != nil {
-			close(p.list)
-			return
-		}
-		p.list.Free()
+func (l *GSList[T]) InsertBefore(sibling *GSList[T], data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_insert_before.Fn()(UPtr(l), UPtr(sibling), UPtr(data)))
+}
+func (l *GSList[T]) Concat(list2 *GSList[T]) *GSList[T] {
+	return (*GSList[T])(g_slist_concat.Fn()(UPtr(l), UPtr(list2)))
+}
+func (l *GSList[T]) Remove(data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_remove.Fn()(UPtr(l), UPtr(data)))
+}
+func (l *GSList[T]) RemoveAll(data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_remove_all.Fn()(UPtr(l), UPtr(data)))
+}
+func (l *GSList[T]) RemoveLink(link *GSList[T]) *GSList[T] {
+	return (*GSList[T])(g_slist_remove_link.Fn()(UPtr(l), UPtr(link)))
+}
+func (l *GSList[T]) DeleteLink(link *GSList[T]) *GSList[T] {
+	return (*GSList[T])(g_slist_delete_link.Fn()(UPtr(l), UPtr(link)))
+}
+func (l *GSList[T]) Reverse() *GSList[T] { return (*GSList[T])(g_slist_reverse.Fn()(UPtr(l))) }
+func (l *GSList[T]) Copy() *GSList[T]    { return (*GSList[T])(g_slist_copy.Fn()(UPtr(l))) }
+func (l *GSList[T]) CopyDeep(copyFunc func(src *T, _ UPtr) *T) *GSList[T] {
+	cf := vcbu(copyFunc)
+	defer cc.CbkClose(cf)
+	return (*GSList[T])(g_slist_copy_deep.Fn()(UPtr(l), cf, nil))
+}
+func (l *GSList[T]) Nth(n uint32) *GSList[T] { return (*GSList[T])(g_slist_nth.Fn()(UPtr(l), n)) }
+func (l *GSList[T]) Find(data *T) *GSList[T] {
+	return (*GSList[T])(g_slist_find.Fn()(UPtr(l), UPtr(data)))
+}
+func (l *GSList[T]) FindCustom(data *T, compareFunc func(curr, data *T) int32) *GSList[T] {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	return (*GSList[T])(g_slist_find_custom.Fn()(UPtr(l), UPtr(data), cf))
+}
+func (l *GSList[T]) Position(link *GSList[T]) int32 {
+	return g_slist_position.Fn()(UPtr(l), UPtr(link))
+}
+func (l *GSList[T]) Index(data *T) int32 { return g_slist_index.Fn()(UPtr(l), UPtr(data)) }
+func (l *GSList[T]) Last() *GSList[T]    { return (*GSList[T])(g_slist_last.Fn()(UPtr(l))) }
+func (l *GSList[T]) Length() uint32      { return g_slist_length.Fn()(UPtr(l)) }
+func (l *GSList[T]) ForEach(fn func(data *T, _ UPtr)) {
+	f := vcbu(fn)
+	defer cc.CbkClose(f)
+	g_slist_foreach.Fn()(UPtr(l), f, nil)
+}
+func (l *GSList[T]) Sort(compareFunc func(a, b *T) int32) *GSList[T] {
+	cf := vcbu(compareFunc)
+	defer cc.CbkClose(cf)
+	return (*GSList[T])(g_slist_sort.Fn()(UPtr(l), cf))
+}
 
-		_ = *p.slice
+//	func (l *GSList[T]) SortWithData(compareDataFunc func(a, b, userData UPtr) int32, userData interface{}) *GSList {
+//		return g_slist_sort_with_data.Fn()(UPtr(l), vcbu(compareDataFunc), anyptr(userData))
+//	}
+
+func (l *GSList[T]) NthData(n uint32) UPtr { return g_slist_nth_data.Fn()(UPtr(l), n) }
+func (l *GSList[T]) Clear(destroy func(data UPtr)) {
+	addr := UPtr(l)
+	g_clear_slist.Fn()(&addr, vcbu(destroy))
+}
+func (l *GSList[T]) List() (lst []*T) {
+	lst = []*T{}
+	l.ForEach(func(data *T, _ UPtr) {
+		lst = append(lst, data)
 	})
-
-	var t T
-	switch any(t).(type) {
-	case string:
-		for i := uint32(0); i < num; i++ {
-			a := ((cc.String)(l.Nth(i).Data)).String()
-			(*pin.slice)[i] = any(a).(T)
-		}
-	default:
-		for i := uint32(0); i < num; i++ {
-			(*pin.slice)[i] = *(*T)(l.Nth(i).Data)
-		}
-	}
-
-	return *pin.slice
+	return
 }
+
+// func GSListList[T any](l *GSList, close func(*GSList)) (list []T) {
+// 	type pinner struct {
+// 		list  *GSList
+// 		slice *[]T
+// 	}
+// 	num := l.Length()
+// 	if num == 0 {
+// 		return nil
+// 	}
+
+// 	pin := new(pinner)
+// 	pin.list = l
+// 	slice := make([]T, num)
+// 	pin.slice = &slice
+
+// 	runtime.SetFinalizer(pin, func(p *pinner) {
+// 		if close != nil {
+// 			close(p.list)
+// 			return
+// 		}
+// 		p.list.Free()
+
+// 		_ = *p.slice
+// 	})
+
+// 	var t T
+// 	switch any(t).(type) {
+// 	case string:
+// 		for i := uint32(0); i < num; i++ {
+// 			a := ((cc.String)(l.Nth(i).Data)).String()
+// 			(*pin.slice)[i] = any(a).(T)
+// 		}
+// 	default:
+// 		for i := uint32(0); i < num; i++ {
+// 			(*pin.slice)[i] = *(*T)(l.Nth(i).Data)
+// 		}
+// 	}
+
+// 	return *pin.slice
+// }
 
 // #endregion
 
@@ -889,58 +1505,103 @@ func (s *GString) Ptr() UPtr      { return s.ptr }
 func (s *GString) Len() uint64    { return s.len }
 func (s *GString) Alc() uint64    { return s.alc }
 
-func NewGString(init string) *GString             { return g_string_new.Fn()(init) }
-func NewGStringLen(init string, len int) *GString { return g_string_new_len.Fn()(init, len) }
-func NewGStringTake(ptr UPtr) *GString            { return g_string_new_take.Fn()(ptr) }
-func NewGstringSized(dflSize uint) *GString       { return g_string_sized_new.Fn()(dflSize) }
+func NewGString(init string) *GString {
+	s := cc.NewString(init)
+	defer s.Free()
+	return g_string_new.Fn()(s)
+}
+func NewGStringLen(init string, len int) *GString {
+	s := cc.NewString(init)
+	defer s.Free()
+	return g_string_new_len.Fn()(s, len)
+}
+func NewGStringTake(ptr cc.String) *GString { return g_string_new_take.Fn()(ptr) }
+func NewGstringSized(dflSize uint) *GString { return g_string_sized_new.Fn()(dflSize) }
 
-func (s *GString) Append(val string) *GString { return g_string_append.Fn()(s, val) }
-func (s *GString) AppendC(c byte) *GString    { return g_string_append_c.Fn()(s, c) }
+func (s *GString) Append(val string) *GString {
+	v := cc.NewString(val)
+	defer v.Free()
+	return g_string_append.Fn()(s, v)
+}
+func (s *GString) AppendC(c byte) *GString { return g_string_append_c.Fn()(s, c) }
 func (s *GString) AppendLen(val string, len int) *GString {
-	return g_string_append_len.Fn()(s, val, len)
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_append_len.Fn()(s, ss, len)
 }
 func (s *GString) AppendPrintf(format string, args ...interface{}) {
-	g_string_append_printf.Fn()(s, fmt.Sprintf(format, args...))
+	f := cc.NewString(fmt.Sprintf(format, args...))
+	defer f.Free()
+	g_string_append_printf.Fn()(s, f)
 }
 func (s *GString) AppendUnichar(c uint32) *GString { return g_string_append_unichar.Fn()(s, c) }
 func (s *GString) AppendUriEscaped(unescaped, reservedCharsAllowed string, allowUtf8 bool) *GString {
-	return g_string_append_uri_escaped.Fn()(s, unescaped, reservedCharsAllowed, allowUtf8)
+	u, r := cc.NewString(unescaped), cc.NewString(reservedCharsAllowed)
+	defer u.Free()
+	defer r.Free()
+	return g_string_append_uri_escaped.Fn()(s, u, r, allowUtf8)
 }
-func (s *GString) AsciiDown() *GString                 { return g_string_ascii_down.Fn()(s) }
-func (s *GString) AsciiUp() *GString                   { return g_string_ascii_up.Fn()(s) }
-func (s *GString) Assign(val string) *GString          { return g_string_assign.Fn()(s, val) }
-func (s *GString) Down() *GString                      { return g_string_down.Fn()(s) }
-func (s *GString) Equal(s2 *GString) bool              { return g_string_equal.Fn()(s, s2) }
-func (s *GString) Erase(pos, len int) *GString         { return g_string_erase.Fn()(s, pos, len) }
-func (s *GString) Free(freeSegment bool) UPtr          { return g_string_free.Fn()(s, freeSegment) }
-func (s *GString) FreeAndSteal() UPtr                  { return g_string_free_and_steal.Fn()(s) }
-func (s *GString) FreeToBytes() *GBytes                { return g_string_free_to_bytes.Fn()(s) }
-func (s *GString) Hash() uint                          { return g_string_hash.Fn()(s) }
-func (s *GString) Insert(pos int, val string) *GString { return g_string_insert.Fn()(s, pos, val) }
-func (s *GString) InsertC(pos int, c byte) *GString    { return g_string_insert_c.Fn()(s, pos, c) }
+func (s *GString) AsciiDown() *GString { return g_string_ascii_down.Fn()(s) }
+func (s *GString) AsciiUp() *GString   { return g_string_ascii_up.Fn()(s) }
+func (s *GString) Assign(val string) *GString {
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_assign.Fn()(s, ss)
+}
+func (s *GString) Down() *GString              { return g_string_down.Fn()(s) }
+func (s *GString) Equal(s2 *GString) bool      { return g_string_equal.Fn()(s, s2) }
+func (s *GString) Erase(pos, len int) *GString { return g_string_erase.Fn()(s, pos, len) }
+func (s *GString) Free(freeSegment bool) UPtr  { return g_string_free.Fn()(s, freeSegment) }
+func (s *GString) FreeAndSteal() UPtr          { return g_string_free_and_steal.Fn()(s) }
+func (s *GString) FreeToBytes() *GBytes        { return g_string_free_to_bytes.Fn()(s) }
+func (s *GString) Hash() uint                  { return g_string_hash.Fn()(s) }
+func (s *GString) Insert(pos int, val string) *GString {
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_insert.Fn()(s, pos, ss)
+}
+
+func (s *GString) InsertC(pos int, c byte) *GString { return g_string_insert_c.Fn()(s, pos, c) }
 func (s *GString) InsertLen(pos int, val string, len int) *GString {
-	return g_string_insert_len.Fn()(s, pos, val, len)
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_insert_len.Fn()(s, pos, ss, len)
 }
 func (s *GString) InsertUnichar(pos int, c uint32) *GString {
 	return g_string_insert_unichar.Fn()(s, pos, c)
 }
 func (s *GString) Overwrite(pos uint, val string) *GString {
-	return g_string_overwrite.Fn()(s, pos, val)
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_overwrite.Fn()(s, pos, ss)
 }
 func (s *GString) OverwriteLen(pos uint, val string, len int) *GString {
-	return g_string_overwrite_len.Fn()(s, pos, val, len)
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_overwrite_len.Fn()(s, pos, ss, len)
 }
-func (s *GString) Prepend(val string) *GString { return g_string_prepend.Fn()(s, val) }
-func (s *GString) PrependC(c byte) *GString    { return g_string_prepend_c.Fn()(s, c) }
+func (s *GString) Prepend(val string) *GString {
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_prepend.Fn()(s, ss)
+}
+func (s *GString) PrependC(c byte) *GString { return g_string_prepend_c.Fn()(s, c) }
 func (s *GString) PrependLen(val string, len int) *GString {
-	return g_string_prepend_len.Fn()(s, val, len)
+	ss := cc.NewString(val)
+	defer ss.Free()
+	return g_string_prepend_len.Fn()(s, ss, len)
 }
 func (s *GString) PrependUnichar(c uint32) *GString { return g_string_prepend_unichar.Fn()(s, c) }
 func (s *GString) Printf(format string, args ...interface{}) {
-	g_string_printf.Fn()(s, fmt.Sprintf(format, args...))
+	f := cc.NewString(fmt.Sprintf(format, args...))
+	defer f.Free()
+	g_string_printf.Fn()(s, f)
 }
 func (s *GString) Replace(find, replace string, limit uint32) uint32 {
-	return g_string_replace.Fn()(s, find, replace, limit)
+	f, r := cc.NewString(find), cc.NewString(replace)
+	defer f.Free()
+	defer r.Free()
+	return g_string_replace.Fn()(s, f, r, limit)
 }
 func (s *GString) SetSize(len uint) *GString  { return g_string_set_size.Fn()(s, len) }
 func (s *GString) Truncate(len uint) *GString { return g_string_truncate.Fn()(s, len) }
@@ -948,235 +1609,285 @@ func (s *GString) Up() *GString               { return g_string_up.Fn()(s) }
 
 // #endregion
 
-// #region Variant
+// #region TimeZone
 
-type GVariantIter struct{}
+type GTimeZone struct{}
+
+// func NewGTimeZone(identifier string) *GTimeZone {
+// 	idt := cc.NewString(identifier)
+// 	defer idt.Free()
+// 	return g_time_zone_new.Fn()(idt)
+// }
+
+func NewGTimeZoneIdentifier(identifier string) *GTimeZone {
+	idt := cc.NewString(identifier)
+	defer idt.Free()
+	return g_time_zone_new_identifier.Fn()(idt)
+}
+func NewGTimeZoneUtc() *GTimeZone                 { return g_time_zone_new_utc.Fn()() }
+func NewGTimeZoneLocal() *GTimeZone               { return g_time_zone_new_local.Fn()() }
+func NewGTimeZoneOffset(seconds int32) *GTimeZone { return g_time_zone_new_offset.Fn()(seconds) }
+
+func (tz *GTimeZone) Ref() *GTimeZone { return g_time_zone_ref.Fn()(tz) }
+func (tz *GTimeZone) Unref()          { g_time_zone_unref.Fn()(tz) }
+
+func (tz *GTimeZone) FindInterval(typ GTimeType, time int64) int {
+	return g_time_zone_find_interval.Fn()(tz, typ, time)
+}
+func (tz *GTimeZone) AdjustTime(typ GTimeType, time *int64) int {
+	return g_time_zone_adjust_time.Fn()(tz, typ, time)
+}
+
+func (tz *GTimeZone) GetAbbreviation(interval int) string {
+	return g_time_zone_get_abbreviation.Fn()(tz, interval).String()
+}
+func (tz *GTimeZone) GetOffset(interval int) int32 { return g_time_zone_get_offset.Fn()(tz, interval) }
+func (tz *GTimeZone) IsDst(interval int) bool      { return g_time_zone_is_dst.Fn()(tz, interval) != 0 }
+func (tz *GTimeZone) GetIdentifier() string        { return g_time_zone_get_identifier.Fn()(tz).String() }
+
+// #endregion
+
+// #region Variant
 
 type GVariantType struct{}
 
-type nameSpaceGVariantType int
-
-const (
-	GVariantTypes nameSpaceGVariantType = 0
-)
-
-func (t nameSpaceGVariantType) New(typeString string) *GVariantType {
-	return g_variant_type_new.Fn()(typeString)
+func NewGVariantType[T string | GVariantClass](typ T) *GVariantType {
+	switch tp := any(typ).(type) {
+	case string:
+		t := cc.NewString(tp)
+		defer t.Free()
+		return g_variant_type_new.Fn()(t)
+	case GVariantClass:
+		t := cc.NewString(string(byte(tp)))
+		defer t.Free()
+		return g_variant_type_new.Fn()(t)
+	}
+	return nil
 }
-func (t nameSpaceGVariantType) NewByClass(cls GVariantClass) *GVariantType {
-	return g_variant_type_new.Fn()(string(byte(cls)))
-}
-func (t nameSpaceGVariantType) NewArray(elementType *GVariantType) *GVariantType {
+
+func NewGVariantTypeArray(elementType *GVariantType) *GVariantType {
 	return g_variant_type_new_array.Fn()(elementType)
 }
-func (t nameSpaceGVariantType) NewDictEntry(keyType, valueType *GVariantType) *GVariantType {
+func NewGVariantTypeDictEntry(keyType, valueType *GVariantType) *GVariantType {
 	return g_variant_type_new_dict_entry.Fn()(keyType, valueType)
 }
-func (t nameSpaceGVariantType) NewMaybe(elementType *GVariantType) *GVariantType {
+func NewGVariantTypeMaybe(elementType *GVariantType) *GVariantType {
 	return g_variant_type_new_maybe.Fn()(elementType)
 }
-func (t nameSpaceGVariantType) NewTuple(items []*GVariantType) *GVariantType {
-	return g_variant_type_new_tuple.Fn()(&items[0], int32(len(items)))
+func NewGVariantTypeTuple(items []*GVariantType) *GVariantType {
+	return g_variant_type_new_tuple.Fn()(carry[*GVariantType, int32](items))
 }
 
-func (t *GVariantType) Copy() *GVariantType            { return g_variant_type_copy.Fn()(t) }
-func (t *GVariantType) DupString() string              { return g_variant_type_dup_string.Fn()(t) }
-func (t *GVariantType) Element() *GVariantType         { return g_variant_type_element.Fn()(t) }
-func (t *GVariantType) Equal(other *GVariantType) bool { return g_variant_type_equal.Fn()(t, other) }
-func (t *GVariantType) First() *GVariantType           { return g_variant_type_first.Fn()(t) }
-func (t *GVariantType) Free()                          { g_variant_type_free.Fn()(t) }
-func (t *GVariantType) GetStringLength() uint          { return g_variant_type_get_string_length.Fn()(t) }
-func (t *GVariantType) Hash() uint32                   { return g_variant_type_hash.Fn()(UPtr(t)) }
-func (t *GVariantType) IsArray() bool                  { return g_variant_type_is_array.Fn()(t) }
-func (t *GVariantType) IsBasic() bool                  { return g_variant_type_is_basic.Fn()(t) }
-func (t *GVariantType) IsContainer() bool              { return g_variant_type_is_container.Fn()(t) }
-func (t *GVariantType) IsDefinite() bool               { return g_variant_type_is_definite.Fn()(t) }
-func (t *GVariantType) IsDictEntry() bool              { return g_variant_type_is_dict_entry.Fn()(t) }
-func (t *GVariantType) IsMaybe() bool                  { return g_variant_type_is_maybe.Fn()(t) }
-func (t *GVariantType) IsSubtypeOf(supertype *GVariantType) bool {
-	return g_variant_type_is_subtype_of.Fn()(t, supertype)
+func (t *GVariantType) Copy() *GVariantType    { return g_variant_type_copy.Fn()(t) }
+func (t *GVariantType) DupString() string      { return g_variant_type_dup_string.Fn()(t).TakeString() }
+func (t *GVariantType) Element() *GVariantType { return g_variant_type_element.Fn()(t) }
+func (t *GVariantType) Equal(other *GVariantType) bool {
+	return g_variant_type_equal.Fn()(t, other) != 0
 }
-func (t *GVariantType) IsTuple() bool        { return g_variant_type_is_tuple.Fn()(t) }
-func (t *GVariantType) IsVariant() bool      { return g_variant_type_is_variant.Fn()(t) }
+func (t *GVariantType) First() *GVariantType  { return g_variant_type_first.Fn()(t) }
+func (t *GVariantType) Free()                 { g_variant_type_free.Fn()(t) }
+func (t *GVariantType) GetStringLength() uint { return g_variant_type_get_string_length.Fn()(t) }
+func (t *GVariantType) Hash() uint32          { return g_variant_type_hash.Fn()(UPtr(t)) }
+func (t *GVariantType) IsArray() bool         { return g_variant_type_is_array.Fn()(t) != 0 }
+func (t *GVariantType) IsBasic() bool         { return g_variant_type_is_basic.Fn()(t) != 0 }
+func (t *GVariantType) IsContainer() bool     { return g_variant_type_is_container.Fn()(t) != 0 }
+func (t *GVariantType) IsDefinite() bool      { return g_variant_type_is_definite.Fn()(t) != 0 }
+func (t *GVariantType) IsDictEntry() bool     { return g_variant_type_is_dict_entry.Fn()(t) != 0 }
+func (t *GVariantType) IsMaybe() bool         { return g_variant_type_is_maybe.Fn()(t) != 0 }
+func (t *GVariantType) IsSubtypeOf(supertype *GVariantType) bool {
+	return g_variant_type_is_subtype_of.Fn()(t, supertype) != 0
+}
+func (t *GVariantType) IsTuple() bool        { return g_variant_type_is_tuple.Fn()(t) != 0 }
+func (t *GVariantType) IsVariant() bool      { return g_variant_type_is_variant.Fn()(t) != 0 }
 func (t *GVariantType) Key() *GVariantType   { return g_variant_type_key.Fn()(t) }
 func (t *GVariantType) NItems() uint         { return g_variant_type_n_items.Fn()(t) }
 func (t *GVariantType) Next() *GVariantType  { return g_variant_type_next.Fn()(t) }
-func (t *GVariantType) PeekString() string   { return g_variant_type_peek_string.Fn()(t) }
+func (t *GVariantType) PeekString() string   { return g_variant_type_peek_string.Fn()(t).String() }
 func (t *GVariantType) Value() *GVariantType { return g_variant_type_value.Fn()(t) }
 
 type GVariant struct{}
 
-type nameSpaceGVariant int
-
-const (
-	GVariants nameSpaceGVariant = 0
-)
-
-func (ns nameSpaceGVariant) New(format string, args ...interface{}) *GVariant {
-	return g_variant_new.Fn()(fmt.Sprintf(format, args...))
+func NewGVariant(format string, args ...interface{}) *GVariant {
+	f := cc.NewString(format)
+	defer f.Free()
+	return g_variant_new.FnVa()(f, args...)
+}
+func NewGVariantArray(elementType *GVariantType, children []*GVariant) *GVariant {
+	c, l := carry[*GVariant, int64](children)
+	return g_variant_new_array.Fn()(elementType, c, l)
 }
 
-func (ns nameSpaceGVariant) NewArray(elementType *GVariantType, children []*GVariant) *GVariant {
-	return g_variant_new_array.Fn()(elementType, &children[0], int64(len(children)))
+func NewGVariantBoolean(value bool) *GVariant {
+	return g_variant_new_boolean.Fn()(cbool(value))
 }
-
-func (ns nameSpaceGVariant) NewBoolean(value bool) *GVariant {
-	return g_variant_new_boolean.Fn()(value)
-}
-
-func (ns nameSpaceGVariant) NewByte(value byte) *GVariant {
+func NewGVariantByte(value byte) *GVariant {
 	return g_variant_new_byte.Fn()(value)
 }
 
-func (ns nameSpaceGVariant) NewByteString(str string) *GVariant {
-	return g_variant_new_bytestring.Fn()(str)
+func NewGVariantByteString(str string) *GVariant {
+	s := cc.NewString(str)
+	defer s.Free()
+	return g_variant_new_bytestring.Fn()(s)
 }
 
-func (ns nameSpaceGVariant) NewByteStringArray(strv []string) *GVariant {
-	p := cc.NewStrings(strv)
+func NewGVariantByteStringArray(strv []string) *GVariant {
+	p, l := cc.NewStringsLen(strv)
 	defer p.Free()
-	return g_variant_new_bytestring_array.Fn()(p, int64(len(strv)))
+	return g_variant_new_bytestring_array.Fn()(p, int64(l))
 }
 
-func (ns nameSpaceGVariant) NewDictEntry(key, value *GVariant) *GVariant {
+func NewGVariantDictEntry(key, value *GVariant) *GVariant {
 	return g_variant_new_dict_entry.Fn()(key, value)
 }
 
-func (ns nameSpaceGVariant) NewDouble(value float64) *GVariant {
+func NewGVariantDouble(value float64) *GVariant {
 	return g_variant_new_double.Fn()(value)
 }
 
-func (ns nameSpaceGVariant) NewFixedArray(elementType *GVariantType, elementsPtr interface{}, nElements, elementSize uint) *GVariant {
-	return g_variant_new_fixed_array.Fn()(elementType, anyptr(elementsPtr), nElements, elementSize)
+func NewGVariantFixedArray[T any](elementType *GVariantType, elements []T) *GVariant {
+	var t T
+	p, l := carry[T, uint64](elements)
+	return g_variant_new_fixed_array.Fn()(elementType, UPtr(p), l, uint64(unsafe.Sizeof(t)))
 }
 
-func (ns nameSpaceGVariant) NewFromBytes(type_ *GVariantType, bytes *GBytes, trusted bool) *GVariant {
-	return g_variant_new_from_bytes.Fn()(type_, bytes, trusted)
+func NewGVariantFromBytes(typ *GVariantType, bytes *GBytes, trusted bool) *GVariant {
+	return g_variant_new_from_bytes.Fn()(typ, bytes, cbool(trusted))
 }
 
-// func (ns nameSpaceGVariant) NewFromData(type_ *GVariantType, data uptr, size int64, trusted bool, notify GDestroyNotify, userData uptr) *GVariant {
+// func (ns nameSpaceGVariant) NewFromData(type_ *GVariantType, data UPtr, size int64, trusted bool, notify GDestroyNotify, userData UPtr) *GVariant {
 // 	return g_variant_new_from_data(type_, data, size, trusted, notify, userData)
 // }
 
-func (ns nameSpaceGVariant) NewHandle(value int32) *GVariant { return g_variant_new_handle.Fn()(value) }
-func (ns nameSpaceGVariant) NewInt16(value int16) *GVariant  { return g_variant_new_int16.Fn()(value) }
-func (ns nameSpaceGVariant) NewInt32(value int32) *GVariant  { return g_variant_new_int32.Fn()(value) }
-func (ns nameSpaceGVariant) NewInt64(value int64) *GVariant  { return g_variant_new_int64.Fn()(value) }
-func (ns nameSpaceGVariant) NewMaybe(childType *GVariantType, child *GVariant) *GVariant {
+func NewGVariantHandle(value int32) *GVariant { return g_variant_new_handle.Fn()(value) }
+func NewGVariantInt16(value int16) *GVariant  { return g_variant_new_int16.Fn()(value) }
+func NewGVariantInt32(value int32) *GVariant  { return g_variant_new_int32.Fn()(value) }
+func NewGVariantInt64(value int64) *GVariant  { return g_variant_new_int64.Fn()(value) }
+func NewGVariantMaybe(childType *GVariantType, child *GVariant) *GVariant {
 	return g_variant_new_maybe.Fn()(childType, child)
 }
-func (ns nameSpaceGVariant) NewObjectPath(objectPath string) *GVariant {
-	return g_variant_new_object_path.Fn()(objectPath)
+func NewGVariantObjectPath(objectPath string) *GVariant {
+	ob := cc.NewString(objectPath)
+	defer ob.Free()
+	return g_variant_new_object_path.Fn()(ob)
 }
 
-func (ns nameSpaceGVariant) NewObjv(strv []string) *GVariant {
-	p := cc.NewStrings(strv)
+func NewGVariantObjv(strv []string) *GVariant {
+	p, l := cc.NewStringsLen(strv)
 	defer p.Free()
-	return g_variant_new_objv.Fn()(p, int64(len(strv)))
+	return g_variant_new_objv.Fn()(p, int64(l))
 }
 
-func (ns nameSpaceGVariant) NewParsed(format string, args ...interface{}) *GVariant {
-	return g_variant_new_parsed.Fn()(fmt.Sprintf(format, args...))
+func NewGVariantParsed(format string, args ...interface{}) *GVariant {
+	f := cc.NewString(fmt.Sprintf(format, args...))
+	defer f.Free()
+	return g_variant_new_parsed.Fn()(f)
 }
 
-func (ns nameSpaceGVariant) NewPrintf(format string, args ...interface{}) *GVariant {
-	return g_variant_new_printf.Fn()(fmt.Sprintf(format, args...))
+func NewGVariantPrintf(format string, args ...interface{}) *GVariant {
+	f := cc.NewString(fmt.Sprintf(format, args...))
+	defer f.Free()
+	return g_variant_new_printf.Fn()(f)
 }
 
-func (ns nameSpaceGVariant) NewSignature(signature string) *GVariant {
-	return g_variant_new_signature.Fn()(signature)
+func NewGVariantSignature(signature string) *GVariant {
+	s := cc.NewString(signature)
+	defer s.Free()
+	return g_variant_new_signature.Fn()(s)
 }
 
-func (ns nameSpaceGVariant) NewString(str string) *GVariant {
-	return g_variant_new_string.Fn()(str)
+func NewGVariantString(str string) *GVariant {
+	s := cc.NewString(str)
+	defer s.Free()
+	return g_variant_new_string.Fn()(s)
 }
 
-func (ns nameSpaceGVariant) NewStrv(strv []string) *GVariant {
-	p := cc.NewStrings(strv)
+func NewGVariantStrv(strv []string) *GVariant {
+	p, l := cc.NewStringsLen(strv)
 	defer p.Free()
-	return g_variant_new_strv.Fn()(p, int64(len(strv)))
+	return g_variant_new_strv.Fn()(p, int64(l))
 }
 
-func (ns nameSpaceGVariant) NewTuple(children []*GVariant) *GVariant {
-	return g_variant_new_tuple.Fn()(&children[0], uint(len(children)))
+func NewGVariantTuple(children []*GVariant) *GVariant {
+	return g_variant_new_tuple.Fn()(carry[*GVariant, uint64](children))
 }
 
-func (ns nameSpaceGVariant) NewUint16(value uint16) *GVariant {
+func NewGVariantUint16(value uint16) *GVariant {
 	return g_variant_new_uint16.Fn()(value)
 }
-func (ns nameSpaceGVariant) NewUint32(value uint32) *GVariant {
+func NewGVariantUint32(value uint32) *GVariant {
 	return g_variant_new_uint32.Fn()(value)
 }
-func (ns nameSpaceGVariant) NewUint64(value uint64) *GVariant {
+func NewGVariantUint64(value uint64) *GVariant {
 	return g_variant_new_uint64.Fn()(value)
 }
-func (ns nameSpaceGVariant) NewVariant(value *GVariant) *GVariant {
+func NewGVariantVariant(value *GVariant) *GVariant {
 	return g_variant_new_variant.Fn()(value)
 }
 
-// GVariant 方法
-
 func (v *GVariant) Byteswap() *GVariant { return g_variant_byteswap.Fn()(v) }
 func (v *GVariant) CheckFormatString(format string, copyOnly bool) bool {
-	return g_variant_check_format_string.Fn()(v, format, copyOnly)
+	f := cc.NewString(format)
+	defer f.Free()
+	return g_variant_check_format_string.Fn()(v, f, cbool(copyOnly)) != 0
 }
 func (v *GVariant) Classify() GVariantClass      { return g_variant_classify.Fn()(v) }
 func (v *GVariant) Compare(other *GVariant) bool { return g_variant_compare.Fn()(v, other) != 0 }
 func (v *GVariant) DupByteString() string {
-	var length uint64
-	p := g_variant_dup_bytestring.Fn()(v, &length)
-	defer p.Free()
-	return p.String(length)
+	var l uint64
+	return g_variant_dup_bytestring.Fn()(v, &l).TakeString(l)
 }
 func (v *GVariant) DupByteStringArray() []string {
-	var length uint64
-	cArray := g_variant_dup_bytestring_array.Fn()(v, &length)
-	defer cArray.Free()
-	return cArray.Strings(length)
+	var l uint64
+	return g_variant_dup_bytestring_array.Fn()(v, &l).TakeStrings()
 }
 func (v *GVariant) DupObjv() []string {
-	var length uint64
-	cArray := g_variant_dup_objv.Fn()(v, &length)
-	defer cArray.Free()
-	return cArray.Strings(length)
+	var l uint64
+	return g_variant_dup_objv.Fn()(v, &l).TakeStrings(l)
 }
 func (v *GVariant) DupString() string {
-	var length uint64
-	str := g_variant_dup_string.Fn()(v, &length)
-	defer str.Free()
-	return str.String(length)
+	var l uint64
+	return g_variant_dup_string.Fn()(v, &l).TakeString(l)
 }
 func (v *GVariant) DupStrv() []string {
-	var length uint64
-	cArray := g_variant_dup_strv.Fn()(v, &length)
-	defer cArray.Free()
-	return cArray.Strings(length)
+	var l uint64
+	return g_variant_dup_strv.Fn()(v, &l).TakeStrings(l)
 }
-func (v *GVariant) Equal(other *GVariant) bool         { return g_variant_equal.Fn()(v, other) }
-func (v *GVariant) Get(format string, ptr interface{}) { g_variant_get.Fn()(v, format, anyptr(ptr)) }
-func (v *GVariant) GetBoolean() bool                   { return g_variant_get_boolean.Fn()(v) }
-func (v *GVariant) GetByte() byte                      { return g_variant_get_byte.Fn()(v) }
+func (v *GVariant) Equal(other *GVariant) bool { return g_variant_equal.Fn()(v, other) != 0 }
 
+// func (v *GVariant) Get(format string, ptr interface{}) { g_variant_get.Fn()(v, format, anyptr(ptr)) }
+
+func GVariantGet[T any](v *GVariant, format string, ptr *T) {
+	f := cc.NewString(format)
+	defer f.Free()
+	g_variant_get.Fn()(v, f, UPtr(ptr))
+}
+func (v *GVariant) GetBoolean() bool      { return g_variant_get_boolean.Fn()(v) != 0 }
+func (v *GVariant) GetByte() byte         { return g_variant_get_byte.Fn()(v) }
 func (v *GVariant) GetByteString() string { return g_variant_get_bytestring.Fn()(v) }
-
 func (v *GVariant) GetByteStringArray() []string {
-	var length uint64
-	cArray := g_variant_get_bytestring_array.Fn()(v, &length)
-	defer cc.Ptr(cArray).Free()
-	return cArray.Ref(length)
+	var l uint64
+	return g_variant_get_bytestring_array.Fn()(v, &l).TakeStrings(l)
 }
-func (v *GVariant) GetChild(index uint, format string, ptr interface{}) {
-	g_variant_get_child.Fn()(v, index, format, anyptr(ptr))
+func GVariantGetChild[T any](v *GVariant, index uint64, format string, ptr *T) {
+	f := cc.NewString(format)
+	defer f.Free()
+	g_variant_get_child.Fn()(v, index, f, UPtr(ptr))
 }
-func (v *GVariant) GetChildValue(index uint) *GVariant {
+func (v *GVariant) GetChildValue(index uint64) *GVariant {
 	return g_variant_get_child_value.Fn()(v, index)
 }
 func (v *GVariant) GetData() UPtr           { return g_variant_get_data.Fn()(v) }
 func (v *GVariant) GetDataAsBytes() *GBytes { return g_variant_get_data_as_bytes.Fn()(v) }
 func (v *GVariant) GetDouble() float64      { return g_variant_get_double.Fn()(v) }
-func (v *GVariant) GetFixedArray(elementSize uint) (firstPtr UPtr, nElements uint) {
+func (v *GVariant) GetFixedArray(elementSize uint64) (firstPtr UPtr, nElements uint64) {
 	firstPtr = g_variant_get_fixed_array.Fn()(v, &nElements, elementSize)
 	return
+}
+func GVariantGetFixedArray[T any](v *GVariant) []T {
+	var l uint64
+	var t T
+	p := g_variant_get_fixed_array.Fn()(v, &l, uint64(unsafe.Sizeof(t)))
+	return unsafe.Slice((*T)(p), l)
 }
 func (v *GVariant) GetHandle() int32         { return g_variant_get_handle.Fn()(v) }
 func (v *GVariant) GetInt16() int16          { return g_variant_get_int16.Fn()(v) }
@@ -1185,74 +1896,145 @@ func (v *GVariant) GetInt64() int64          { return g_variant_get_int64.Fn()(v
 func (v *GVariant) GetMaybe() *GVariant      { return g_variant_get_maybe.Fn()(v) }
 func (v *GVariant) GetNormalForm() *GVariant { return g_variant_get_normal_form.Fn()(v) }
 func (v *GVariant) GetObjv() []string {
-	var length uint64
-	cArray := g_variant_get_objv.Fn()(v, &length)
-	return cArray.Ref(length)
+	var l uint64
+	cArray := g_variant_get_objv.Fn()(v, &l)
+	defer cc.Free(UPtr(cArray))
+	return cArray.Strings(l)
 }
 func (v *GVariant) GetSize() uint { return g_variant_get_size.Fn()(v) }
 func (v *GVariant) GetString() string {
 	var length uint64
-	str := g_variant_get_string.Fn()(v, &length)
-	return str.String(length)
+	return g_variant_get_string.Fn()(v, &length).String(length)
 }
-
 func (v *GVariant) GetStrv() []string {
 	var length uint64
-	cArray := g_variant_get_strv.Fn()(v, &length)
-	return cArray.Strings(length)
+	return g_variant_get_strv.Fn()(v, &length).Strings(length)
 }
-
 func (v *GVariant) GetType() *GVariantType { return g_variant_get_type.Fn()(v) }
-
-func (v *GVariant) GetTypeString() string { return g_variant_get_type_string.Fn()(v) }
-
-func (v *GVariant) GetUint16() uint16 { return g_variant_get_uint16.Fn()(v) }
-func (v *GVariant) GetUint32() uint32 { return g_variant_get_uint32.Fn()(v) }
-func (v *GVariant) GetUint64() uint64 { return g_variant_get_uint64.Fn()(v) }
-
-func (v *GVariant) GetVariant() *GVariant { return g_variant_get_variant.Fn()(v) }
-
-func (v *GVariant) Hash() uint { return g_variant_hash.Fn()(v) }
-
-func (v *GVariant) IsContainer() bool  { return g_variant_is_container.Fn()(v) }
-func (v *GVariant) IsFloating() bool   { return g_variant_is_floating.Fn()(v) }
-func (v *GVariant) IsNormalForm() bool { return g_variant_is_normal_form.Fn()(v) }
-
+func (v *GVariant) GetTypeString() string  { return g_variant_get_type_string.Fn()(v).String() }
+func (v *GVariant) GetUint16() uint16      { return g_variant_get_uint16.Fn()(v) }
+func (v *GVariant) GetUint32() uint32      { return g_variant_get_uint32.Fn()(v) }
+func (v *GVariant) GetUint64() uint64      { return g_variant_get_uint64.Fn()(v) }
+func (v *GVariant) GetVariant() *GVariant  { return g_variant_get_variant.Fn()(v) }
+func (v *GVariant) Hash() uint64           { return g_variant_hash.Fn()(v) }
+func (v *GVariant) IsContainer() bool      { return g_variant_is_container.Fn()(v) != 0 }
+func (v *GVariant) IsFloating() bool       { return g_variant_is_floating.Fn()(v) != 0 }
+func (v *GVariant) IsNormalForm() bool     { return g_variant_is_normal_form.Fn()(v) != 0 }
 func (v *GVariant) IsOfType(typ *GVariantType) bool {
-	return g_variant_is_of_type.Fn()(v, typ)
+	return g_variant_is_of_type.Fn()(v, typ) != 0
 }
-
-func (v *GVariant) IterNew() *GVariantIter { return g_variant_iter_new.Fn()(v) }
 
 func (v *GVariant) Lookup(key string, format string, args ...interface{}) bool {
-	return g_variant_lookup.FnVa()(v, key, format, args...)
+	k, f := cc.NewString(key), cc.NewString(format)
+	defer k.Free()
+	defer k.Free()
+	return g_variant_lookup.FnVa()(v, k, f, args...) != 0
 }
-
 func (v *GVariant) LookupValue(key string, typ *GVariantType) *GVariant {
-	return g_variant_lookup_value.Fn()(v, key, typ)
+	k := cc.NewString(key)
+	defer k.Free()
+	return g_variant_lookup_value.Fn()(v, k, typ)
 }
-
-func (v *GVariant) NChildren() uint { return g_variant_n_children.Fn()(v) }
-
-func (v *GVariant) Print(typeAnnotate bool) string { return g_variant_print.Fn()(v, typeAnnotate) }
-
+func (v *GVariant) NChildren() uint64 { return g_variant_n_children.Fn()(v) }
+func (v *GVariant) Print(typeAnnotate bool) string {
+	return g_variant_print.Fn()(v, cbool(typeAnnotate)).TakeString()
+}
 func (v *GVariant) PrintString(str *GString, typeAnnotate bool) *GString {
-	return g_variant_print_string.Fn()(v, str, typeAnnotate)
+	return g_variant_print_string.Fn()(v, str, cbool(typeAnnotate))
 }
-
 func (v *GVariant) Ref() *GVariant     { return g_variant_ref.Fn()(v) }
 func (v *GVariant) RefSink() *GVariant { return g_variant_ref_sink.Fn()(v) }
-
-func (v *GVariant) Store(data UPtr) { g_variant_store.Fn()(v, data) }
-
+func (v *GVariant) Store(data UPtr)    { g_variant_store.Fn()(v, data) }
 func (v *GVariant) TakeRef() *GVariant { return g_variant_take_ref.Fn()(v) }
 func (v *GVariant) Unref()             { g_variant_unref.Fn()(v) }
 
+type GVariantIter struct{}
+
+func NewGVariantIter(value *GVariant) *GVariantIter { return g_variant_iter_new.Fn()(value) }
+func (iter *GVariantIter) Init(value *GVariant) uint64 {
+	return g_variant_iter_init.Fn()(iter, value)
+}
+func (iter *GVariantIter) Copy() *GVariantIter  { return g_variant_iter_copy.Fn()(iter) }
+func (iter *GVariantIter) NChildren() uint64    { return g_variant_iter_n_children.Fn()(iter) }
+func (iter *GVariantIter) Free()                { g_variant_iter_free.Fn()(iter) }
+func (iter *GVariantIter) NextValue() *GVariant { return g_variant_iter_next_value.Fn()(iter) }
+func (iter *GVariantIter) Next(formatString string, args ...interface{}) bool {
+	f := cc.NewString(formatString)
+	defer f.Free()
+	return g_variant_iter_next.FnVa()(iter, f, args...) != 0
+}
+func (iter *GVariantIter) Loop(formatString string, args ...interface{}) bool {
+	f := cc.NewString(formatString)
+	defer f.Free()
+	return g_variant_iter_loop.FnVa()(iter, f, args...) != 0
+}
+
+type GVariantBuilder struct{}
+
+func NewGVariantBuilder(typ *GVariantType) *GVariantBuilder { return g_variant_builder_new.Fn()(typ) }
+func (builder *GVariantBuilder) Unref()                     { g_variant_builder_unref.Fn()(builder) }
+func (builder *GVariantBuilder) Ref() *GVariantBuilder      { return g_variant_builder_ref.Fn()(builder) }
+func (builder *GVariantBuilder) Init(typ *GVariantType)     { g_variant_builder_init.Fn()(builder, typ) }
+func (builder *GVariantBuilder) InitStatic(typ *GVariantType) {
+	g_variant_builder_init_static.Fn()(builder, typ)
+}
+func (builder *GVariantBuilder) End() *GVariant         { return g_variant_builder_end.Fn()(builder) }
+func (builder *GVariantBuilder) Clear()                 { g_variant_builder_clear.Fn()(builder) }
+func (builder *GVariantBuilder) Open(typ *GVariantType) { g_variant_builder_open.Fn()(builder, typ) }
+func (builder *GVariantBuilder) Close()                 { g_variant_builder_close.Fn()(builder) }
+func (builder *GVariantBuilder) AddValue(value *GVariant) {
+	g_variant_builder_add_value.Fn()(builder, value)
+}
+func (builder *GVariantBuilder) Add(formatString string, args ...interface{}) {
+	ss := cc.NewString(formatString)
+	defer ss.Free()
+	g_variant_builder_add.FnVa()(builder, ss, args...)
+}
+func (builder *GVariantBuilder) AddParsed(formatString string, args ...interface{}) {
+	ss := cc.NewString(formatString)
+	defer ss.Free()
+	g_variant_builder_add_parsed.FnVa()(builder, ss, args...)
+}
+
+type GVariantDict struct{}
+
+func NewGVariantDict(fromAsv *GVariant) *GVariantDict { return g_variant_dict_new.Fn()(fromAsv) }
+func (dict *GVariantDict) Init(fromAsv *GVariant)     { g_variant_dict_init.Fn()(dict, fromAsv) }
+func (dict *GVariantDict) Lookup(key string, formatString string, args ...interface{}) bool {
+	k, f := cc.NewString(key), cc.NewString(formatString)
+	defer k.Free()
+	defer f.Free()
+	return g_variant_dict_lookup.FnVa()(dict, k, f, args...) != 0
+}
+func (dict *GVariantDict) LookupValue(key string, expectedType *GVariantType) *GVariant {
+	k := cc.NewString(key)
+	defer k.Free()
+	return g_variant_dict_lookup_value.Fn()(dict, k, expectedType)
+}
+func (dict *GVariantDict) Contains(key string) bool {
+	k := cc.NewString(key)
+	defer k.Free()
+	return g_variant_dict_contains.Fn()(dict, k) != 0
+}
+func (dict *GVariantDict) Insert(key, formatString string, args ...interface{}) {
+	k, f := cc.NewString(key), cc.NewString(formatString)
+	defer k.Free()
+	defer f.Free()
+	g_variant_dict_insert.FnVa()(dict, k, f, args...)
+}
+func (dict *GVariantDict) InsertValue(key string, value *GVariant) {
+	k := cc.NewString(key)
+	defer k.Free()
+	g_variant_dict_insert_value.Fn()(dict, k, value)
+}
+func (dict *GVariantDict) Remove(key string) bool {
+	k := cc.NewString(key)
+	defer k.Free()
+	return g_variant_dict_remove.Fn()(dict, k) != 0
+}
+func (dict *GVariantDict) Clear()             { g_variant_dict_clear.Fn()(dict) }
+func (dict *GVariantDict) End() *GVariant     { return g_variant_dict_end.Fn()(dict) }
+func (dict *GVariantDict) Ref() *GVariantDict { return g_variant_dict_ref.Fn()(dict) }
+func (dict *GVariantDict) Unref()             { g_variant_dict_unref.Fn()(dict) }
+
 // #endregion
-
-func GetEnv(env string) string                      { return g_getenv.Fn()(env) }
-func SetEnv(env, value string, overwrite bool) bool { return g_setenv.Fn()(env, value, overwrite) }
-
-func GFree(ptr interface{}) { g_free.Fn()(anyptr(ptr)) }
-
-type GOptionGroup struct{}

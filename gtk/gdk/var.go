@@ -135,8 +135,8 @@ var (
 	gdk_content_formats_builder_add_mime_type   = cc.DlFunc[func(*ContentFormatsBuilder, cc.String), cc.Void]{Name: "gdk_content_formats_builder_add_mime_type"}
 	gdk_content_formats_builder_add_gtype       = cc.DlFunc[func(*ContentFormatsBuilder, gobject.GType), cc.Void]{Name: "gdk_content_formats_builder_add_gtype"}
 	gdk_file_list_get_type                      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_file_list_get_type"}
-	gdk_file_list_get_files                     = cc.DlFunc[func(*FileList) *glib.GSList, *glib.GSList]{Name: "gdk_file_list_get_files"}
-	gdk_file_list_new_from_list                 = cc.DlFunc[func(*glib.GSList) *FileList, *FileList]{Name: "gdk_file_list_new_from_list"}
+	gdk_file_list_get_files                     = cc.DlFunc[func(*FileList) uptr, uptr]{Name: "gdk_file_list_get_files"}
+	gdk_file_list_new_from_list                 = cc.DlFunc[func(uptr) *FileList, *FileList]{Name: "gdk_file_list_new_from_list"}
 	gdk_file_list_new_from_array                = cc.DlFunc[func(**gio.GFile, uint64) *FileList, *FileList]{Name: "gdk_file_list_new_from_array"}
 	// #endregion
 
@@ -249,7 +249,7 @@ var (
 	gdk_display_get_primary_clipboard  = cc.DlFunc[func(*Display) *Clipboard, *Clipboard]{Name: "gdk_display_get_primary_clipboard"}
 	gdk_display_get_app_launch_context = cc.DlFunc[func(*Display) *AppLaunchContext, *AppLaunchContext]{Name: "gdk_display_get_app_launch_context"}
 	gdk_display_get_default_seat       = cc.DlFunc[func(*Display) *Seat, *Seat]{Name: "gdk_display_get_default_seat"}
-	gdk_display_list_seats             = cc.DlFunc[func(*Display) *glib.GList, *glib.GList]{Name: "gdk_display_list_seats"}
+	gdk_display_list_seats             = cc.DlFunc[func(*Display) *glib.GList[Seat], *glib.GList[Seat]]{Name: "gdk_display_list_seats"}
 	gdk_display_get_monitors           = cc.DlFunc[func(*Display) *gio.GListModel, *gio.GListModel]{Name: "gdk_display_get_monitors"}
 	gdk_display_get_monitor_at_surface = cc.DlFunc[func(*Display, *Surface) *Monitor, *Monitor]{Name: "gdk_display_get_monitor_at_surface"}
 	gdk_display_map_keyval             = cc.DlFunc[func(*Display, uint32, **KeymapKey, *int32) int32, int32]{Name: "gdk_display_map_keyval"}
@@ -264,7 +264,7 @@ var (
 	gdk_display_manager_get                 = cc.DlFunc[func() *DisplayManager, *DisplayManager]{Name: "gdk_display_manager_get"}
 	gdk_display_manager_get_default_display = cc.DlFunc[func(*DisplayManager) *Display, *Display]{Name: "gdk_display_manager_get_default_display"}
 	gdk_display_manager_set_default_display = cc.DlFunc[func(*DisplayManager, *Display), cc.Void]{Name: "gdk_display_manager_set_default_display"}
-	gdk_display_manager_list_displays       = cc.DlFunc[func(*DisplayManager) *glib.GSList, *glib.GSList]{Name: "gdk_display_manager_list_displays"}
+	gdk_display_manager_list_displays       = cc.DlFunc[func(*DisplayManager) uptr, uptr]{Name: "gdk_display_manager_list_displays"}
 	gdk_display_manager_open_display        = cc.DlFunc[func(*DisplayManager, cc.String) *Display, *Display]{Name: "gdk_display_manager_open_display"}
 	gdk_set_allowed_backends                = cc.DlFunc[func(cc.String), cc.Void]{Name: "gdk_set_allowed_backends"}
 	// #endregion
@@ -646,8 +646,8 @@ var (
 	gdk_seat_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_seat_get_type"}
 	gdk_seat_get_display      = cc.DlFunc[func(*Seat) *Display, *Display]{Name: "gdk_seat_get_display"}
 	gdk_seat_get_capabilities = cc.DlFunc[func(*Seat) SeatCapabilities, SeatCapabilities]{Name: "gdk_seat_get_capabilities"}
-	gdk_seat_get_devices      = cc.DlFunc[func(*Seat, SeatCapabilities) *glib.GList, *glib.GList]{Name: "gdk_seat_get_devices"}
-	gdk_seat_get_tools        = cc.DlFunc[func(*Seat) *glib.GList, *glib.GList]{Name: "gdk_seat_get_tools"}
+	gdk_seat_get_devices      = cc.DlFunc[func(*Seat, SeatCapabilities) *glib.GList[Device], *glib.GList[Device]]{Name: "gdk_seat_get_devices"}
+	gdk_seat_get_tools        = cc.DlFunc[func(*Seat) *glib.GList[DeviceTool], *glib.GList[DeviceTool]]{Name: "gdk_seat_get_tools"}
 	gdk_seat_get_pointer      = cc.DlFunc[func(*Seat) *Device, *Device]{Name: "gdk_seat_get_pointer"}
 	gdk_seat_get_keyboard     = cc.DlFunc[func(*Seat) *Device, *Device]{Name: "gdk_seat_get_keyboard"}
 	// #endregion

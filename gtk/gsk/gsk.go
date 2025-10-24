@@ -215,13 +215,21 @@ func NewRendererForSurface(surface *gdk.Surface) *Renderer {
 	return gsk_renderer_new_for_surface.Fn()(surface)
 }
 func (renderer *Renderer) GetSurface() *gdk.Surface { return gsk_renderer_get_surface.Fn()(renderer) }
-func (renderer *Renderer) Realize(surface *gdk.Surface) (ok bool, err *glib.GError) {
-	ok = gsk_renderer_realize.Fn()(renderer, surface, &err) != 0
-	return
+func (renderer *Renderer) Realize(surface *gdk.Surface) error {
+	var err *glib.GError
+	ok := gsk_renderer_realize.Fn()(renderer, surface, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
-func (renderer *Renderer) RealizeForDisplay(display *gdk.Display) (ok bool, err *glib.GError) {
-	ok = gsk_renderer_realize_for_display.Fn()(renderer, display, &err) != 0
-	return
+func (renderer *Renderer) RealizeForDisplay(display *gdk.Display) error {
+	var err *glib.GError
+	ok := gsk_renderer_realize_for_display.Fn()(renderer, display, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 func (renderer *Renderer) Unrealize()       { gsk_renderer_unrealize.Fn()(renderer) }
 func (renderer *Renderer) IsRealized() bool { return gsk_renderer_is_realized.Fn()(renderer) != 0 }
@@ -282,11 +290,15 @@ func (node *RenderNode) GetOpaqueRect() (outOpaque graphene.Rect, ok bool) {
 }
 func (node *RenderNode) Draw(cr *cairo.Context)  { render_node_draw.Fn()(node, cr) }
 func (node *RenderNode) Serialize() *glib.GBytes { return render_node_serialize.Fn()(node) }
-func (node *RenderNode) WriteToFile(filename string) (ok bool, err *glib.GError) {
+func (node *RenderNode) WriteToFile(filename string) error {
 	fn := cc.NewString(filename)
 	defer fn.Free()
-	ok = render_node_write_to_file.Fn()(node, fn, &err) != 0
-	return
+	var err *glib.GError
+	ok := render_node_write_to_file.Fn()(node, fn, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 func DeserializeRenderNode(bytes *glib.GBytes,
 	errorFunc func(start, end *ParseLocation, err *glib.GError)) *RenderNode {

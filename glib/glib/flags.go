@@ -870,3 +870,13 @@ const (
 	GUriParamsFlagsWwwForm         GUriParamsFlags = 2
 	GUriParamsFlagsParseRelaxed    GUriParamsFlags = 4
 )
+
+type GTimeSpan int64
+
+const (
+	GTimeSpanMilliSecond GTimeSpan = 1000
+	GTimeSpanSecond                = 1000000
+	GTimeSpaMinute                 = 60000000
+	GTimeSpaHour                   = 3600000000
+	GTimeSpaDay                    = 86400000000
+)

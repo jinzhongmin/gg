@@ -286,14 +286,14 @@ func (a *Accessible) RelationInitValue(relation AccessibleRelation, value *gobje
 type AccessibleList struct{}
 
 func GTypeAccessibleList() gobject.GType { return gtk_accessible_list_get_type.Fn()() }
-func (a *AccessibleList) GetObjects() []*gobject.GObject {
-	return glib.GListList[*gobject.GObject](gtk_accessible_list_get_objects.Fn()(a), nil)
+func (a *AccessibleList) GetObjects() *glib.GList[Accessible] {
+	return gtk_accessible_list_get_objects.Fn()(a)
 }
 func NewAccessibleListFromList(list []AccessibleIface) *AccessibleList {
-	lst := glib.NewGList()
+	lst := glib.NewGList[Accessible]()
 	defer lst.Free()
 	for _, a := range list {
-		lst = lst.Append(UPtr(GetAccessibleIface(a)))
+		lst = lst.Append(GetAccessibleIface(a))
 	}
 	return gtk_accessible_list_new_from_list.Fn()(lst)
 }
@@ -645,8 +645,8 @@ func (a *Application) AddWindow(window WindowIface) {
 func (a *Application) RemoveWindow(window WindowIface) {
 	gtk_application_remove_window.Fn()(a, GetWindowIface(window))
 }
-func (a *Application) GetWindows() []*Window {
-	return glib.GListList[*Window](gtk_application_get_windows.Fn()(a), nil)
+func (a *Application) GetWindows() *glib.GList[Window] {
+	return gtk_application_get_windows.Fn()(a)
 }
 func (a *Application) GetMenubar() *gio.GMenuModel { return gtk_application_get_menubar.Fn()(a) }
 func (a *Application) SetMenubar(menubar *gio.GMenuModel) {
@@ -1139,8 +1139,8 @@ func (b *Builder) GetObject(name string) *gobject.GObject {
 	defer cstr.Free()
 	return gtk_builder_get_object.Fn()(b, cstr)
 }
-func (b *Builder) GetObjects() []*gobject.GObject {
-	return glib.GSListList[*gobject.GObject](gtk_builder_get_objects.Fn()(b), nil)
+func (b *Builder) GetObjects() *glib.GSList[gobject.GObject] {
+	return (*glib.GSList[gobject.GObject])(gtk_builder_get_objects.Fn()(b))
 }
 func (b *Builder) ExposeObject(name string, object *gobject.GObject) {
 	cstr := cc.NewString(name)
@@ -1225,8 +1225,8 @@ type BuilderListItemFactory struct{ ListItemFactory }
 func GTypeBuilderListItemFactory() gobject.GType {
 	return gtk_builder_list_item_factory_get_type.Fn()()
 }
-func NewBuilderListItemFactoryFromBytes(scope *BuilderScope, bytes string) *BuilderListItemFactory {
-	bts := glib.NewBytesFromString(bytes)
+func NewBuilderListItemFactoryFromBytes(scope *BuilderScope, bytes []byte) *BuilderListItemFactory {
+	bts := glib.NewGBytes(bytes)
 	defer bts.Unref()
 	return gtk_builder_list_item_factory_new_from_bytes.Fn()(scope, bts)
 }
@@ -3576,8 +3576,8 @@ func (f *FlowBox) SelectedForeach(
 	foreachFunc func(box *FlowBox, child *FlowBoxChild, _ UPtr), data interface{}) {
 	gtk_flow_box_selected_foreach.Fn()(f, vcbu(foreachFunc), anyptr(data))
 }
-func (f *FlowBox) GetSelectedChildren() []*Widget {
-	return glib.GListList[*Widget](gtk_flow_box_get_selected_children.Fn()(f), nil)
+func (f *FlowBox) GetSelectedChildren() *glib.GList[Widget] {
+	return gtk_flow_box_get_selected_children.Fn()(f)
 }
 func (f *FlowBox) SelectChild(child *FlowBoxChild)     { gtk_flow_box_select_child.Fn()(f, child) }
 func (f *FlowBox) UnselectChild(child *FlowBoxChild)   { gtk_flow_box_unselect_child.Fn()(f, child) }
@@ -3865,8 +3865,8 @@ func (g *Gesture) GetSequenceState(sequence *gdk.EventSequence) EventSequenceSta
 func (g *Gesture) SetSequenceState(sequence *gdk.EventSequence, state EventSequenceState) bool {
 	return gtk_gesture_set_sequence_state.Fn()(g, sequence, state)
 }
-func (g *Gesture) GetSequences() []*gdk.EventSequence {
-	return glib.GListList[*gdk.EventSequence](gtk_gesture_get_sequences.Fn()(g), nil)
+func (g *Gesture) GetSequences() *glib.GList[gdk.EventSequence] {
+	return gtk_gesture_get_sequences.Fn()(g)
 }
 func (g *Gesture) GetLastUpdatedSequence() *gdk.EventSequence {
 	return gtk_gesture_get_last_updated_sequence.Fn()(g)
@@ -3894,8 +3894,8 @@ func (g *Gesture) Group(groupGesture GestureIface) {
 	gtk_gesture_group.Fn()(GetGestureIface(groupGesture), g)
 }
 func (g *Gesture) Ungroup() { gtk_gesture_ungroup.Fn()(g) }
-func (g *Gesture) GetGroup() []*Gesture {
-	return glib.GListList[*Gesture](gtk_gesture_get_group.Fn()(g), nil)
+func (g *Gesture) GetGroup() *glib.GList[Gesture] {
+	return gtk_gesture_get_group.Fn()(g)
 }
 func (g *Gesture) IsGroupedWith(other GestureIface) bool {
 	return gtk_gesture_is_grouped_with.Fn()(g, GetGestureIface(other))
@@ -4185,7 +4185,7 @@ func (a *GLArea) GetContext() *gdk.GLContext    { return gtk_gl_area_get_context
 func (a *GLArea) MakeCurrent()                  { gtk_gl_area_make_current.Fn()(a) }
 func (a *GLArea) AttachBuffers()                { gtk_gl_area_attach_buffers.Fn()(a) }
 func (a *GLArea) SetError(domain glib.GQuark, code int32, msg string) {
-	e := glib.NewError(domain, code, msg)
+	e := glib.NewGError(domain, code, msg)
 	defer e.Free()
 	gtk_gl_area_set_error.Fn()(a, e)
 }
@@ -5176,8 +5176,8 @@ func (b *ListBox) GetAdjustment() *Adjustment { return gtk_list_box_get_adjustme
 func (b *ListBox) SelectedForeach(fn func(box *ListBox, row *ListBoxRow)) {
 	gtk_list_box_selected_foreach.Fn()(b, vcbu(fn), nil)
 }
-func (b *ListBox) GetSelectedRows() []*ListBoxRow {
-	return glib.GListList[*ListBoxRow](gtk_list_box_get_selected_rows.Fn()(b), nil)
+func (b *ListBox) GetSelectedRows() *glib.GList[ListBoxRow] {
+	return gtk_list_box_get_selected_rows.Fn()(b)
 }
 func (b *ListBox) UnselectRow(row *ListBoxRow)         { gtk_list_box_unselect_row.Fn()(b, row) }
 func (b *ListBox) SelectAll()                          { gtk_list_box_select_all.Fn()(b) }
@@ -6647,13 +6647,8 @@ func (m *RecentManager) MoveItem(uri, newUri string) error {
 	}
 	return nil
 }
-func (m *RecentManager) GetItems() []*RecentInfo {
-	return glib.GListList[*RecentInfo](gtk_recent_manager_get_items.Fn()(m),
-		func(g *glib.GList) {
-			g.FreeFull(func(data UPtr) {
-				(*RecentInfo)(data).Unref()
-			})
-		})
+func (m *RecentManager) GetItems() *glib.GList[RecentInfo] {
+	return gtk_recent_manager_get_items.Fn()(m)
 }
 func (m *RecentManager) PurgeItems() (int32, error) {
 	var gerr *glib.GError
@@ -7649,8 +7644,8 @@ func (sg *SizeGroup) AddWidget(widget WidgetIface) {
 func (sg *SizeGroup) RemoveWidget(widget WidgetIface) {
 	gtk_size_group_remove_widget.Fn()(sg, GetWidgetIface(widget))
 }
-func (sg *SizeGroup) GetWidgets() []*Widget {
-	return glib.GSListList[*Widget](gtk_size_group_get_widgets.Fn()(sg), nil)
+func (sg *SizeGroup) GetWidgets() *glib.GSList[Widget] {
+	return (*glib.GSList[Widget])(gtk_size_group_get_widgets.Fn()(sg))
 }
 
 // #endregion
@@ -8858,19 +8853,19 @@ func (start *TextIter) GetVisibleText(end *TextIter) string {
 	return ptr.String()
 }
 func (i *TextIter) GetPaintable() *gdk.Paintable { return gtk_text_iter_get_paintable.Fn()(i) }
-func (i *TextIter) GetMarks() []*TextMark {
-	return glib.GSListList[*TextMark](gtk_text_iter_get_marks.Fn()(i), nil)
+func (i *TextIter) GetMarks() *glib.GSList[TextMark] {
+	return (*glib.GSList[TextMark])(gtk_text_iter_get_marks.Fn()(i))
 }
 func (i *TextIter) GetChildAnchor() *TextChildAnchor { return gtk_text_iter_get_child_anchor.Fn()(i) }
-func (i *TextIter) GetToggledTags(toggledOn bool) []*TextTag {
-	return glib.GSListList[*TextTag](gtk_text_iter_get_toggled_tags.Fn()(i, toggledOn), nil)
+func (i *TextIter) GetToggledTags(toggledOn bool) *glib.GSList[TextTag] {
+	return (*glib.GSList[TextTag])(gtk_text_iter_get_toggled_tags.Fn()(i, toggledOn))
 }
 func (i *TextIter) StartsTag(tag *TextTag) bool  { return gtk_text_iter_starts_tag.Fn()(i, tag) }
 func (i *TextIter) EndsTag(tag *TextTag) bool    { return gtk_text_iter_ends_tag.Fn()(i, tag) }
 func (i *TextIter) TogglesTag(tag *TextTag) bool { return gtk_text_iter_toggles_tag.Fn()(i, tag) }
 func (i *TextIter) HasTag(tag *TextTag) bool     { return gtk_text_iter_has_tag.Fn()(i, tag) }
-func (i *TextIter) GetTags() []*TextTag {
-	return glib.GSListList[*TextTag](gtk_text_iter_get_tags.Fn()(i), nil)
+func (i *TextIter) GetTags() *glib.GSList[TextTag] {
+	return (*glib.GSList[TextTag])(gtk_text_iter_get_tags.Fn()(i))
 }
 func (i *TextIter) Editable(defaultSetting bool) bool {
 	return gtk_text_iter_editable.Fn()(i, defaultSetting)
@@ -9942,8 +9937,8 @@ func (w *Widget) SetCursorFromName(name string) {
 	gtk_widget_set_cursor_from_name.Fn()(w, cName)
 }
 func (w *Widget) GetCursor() *gdk.Cursor { return gtk_widget_get_cursor.Fn()(w) }
-func (w *Widget) ListMnemonicLabels() []*Widget {
-	return glib.GListList[*Widget](gtk_widget_list_mnemonic_labels.Fn()(w), nil)
+func (w *Widget) ListMnemonicLabels() *glib.GList[Widget] {
+	return gtk_widget_list_mnemonic_labels.Fn()(w)
 }
 func (w *Widget) AddMnemonicLabel(label WidgetIface) {
 	gtk_widget_add_mnemonic_label.Fn()(w, GetWidgetIface(label))
@@ -10250,8 +10245,8 @@ func GetToplevels() []*Window {
 	// }
 	return gio.GListModelList[*Window](gtk_window_get_toplevels.Fn()())
 }
-func ListToplevels() []*Window {
-	return glib.GListList[*Window](gtk_window_list_toplevels.Fn()(), nil)
+func ListToplevels() *glib.GList[Widget] {
+	return gtk_window_list_toplevels.Fn()()
 }
 func (w *Window) Present()      { gtk_window_present.Fn()(w) }
 func (w *Window) Minimize()     { gtk_window_minimize.Fn()(w) }
@@ -10356,8 +10351,8 @@ func (wg *WindowGroup) AddWindow(window WindowIface) {
 func (wg *WindowGroup) RemoveWindow(window WindowIface) {
 	gtk_window_group_remove_window.Fn()(wg, GetWindowIface(window))
 }
-func (wg *WindowGroup) ListWindows() []*Window {
-	return glib.GListList[*Window](gtk_window_group_list_windows.Fn()(wg), nil)
+func (wg *WindowGroup) ListWindows() *glib.GList[Window] {
+	return gtk_window_group_list_windows.Fn()(wg)
 }
 
 // #endregion

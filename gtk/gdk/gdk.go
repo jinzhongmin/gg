@@ -98,9 +98,13 @@ func (cb *Clipboard) StoreAsync(ioPriority int32, cancellable *gio.GCancellable,
 	})
 	gdk_clipboard_store_async.Fn()(cb, ioPriority, cancellable, cbk, nil)
 }
-func (cb *Clipboard) StoreFinish(res *gio.GAsyncResult) (ok bool, err *glib.GError) {
-	ok = gdk_clipboard_store_finish.Fn()(cb, res, &err) != 0
-	return
+func (cb *Clipboard) StoreFinish(res *gio.GAsyncResult) error {
+	var err *glib.GError
+	ok := gdk_clipboard_store_finish.Fn()(cb, res, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 
 func (cb *Clipboard) ReadAsync(mimeTypes []string, ioPriority int32, cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
@@ -115,10 +119,12 @@ func (cb *Clipboard) ReadAsync(mimeTypes []string, ioPriority int32, cancellable
 	})
 	gdk_clipboard_read_async.Fn()(cb, cMimeTypes, ioPriority, cancellable, cbk, nil)
 }
-func (cb *Clipboard) ReadFinish(res *gio.GAsyncResult) (mimeType string, stream *gio.GInputStream, err *glib.GError) {
+func (cb *Clipboard) ReadFinish(res *gio.GAsyncResult) (mimeType string, stream *gio.GInputStream, err error) {
 	var mt cc.String
-	stream = gdk_clipboard_read_finish.Fn()(cb, res, &mt, &err)
+	var gerr *glib.GError
+	stream = gdk_clipboard_read_finish.Fn()(cb, res, &mt, &gerr)
 	mimeType = mt.String()
+	err = gerr.TakeError()
 	return
 }
 func (cb *Clipboard) ReadValueAsync(typ gobject.GType, ioPriority int32, cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
@@ -131,8 +137,9 @@ func (cb *Clipboard) ReadValueAsync(typ gobject.GType, ioPriority int32, cancell
 	})
 	gdk_clipboard_read_value_async.Fn()(cb, typ, ioPriority, cancellable, cbk, nil)
 }
-func (cb *Clipboard) ReadValueFinish(res *gio.GAsyncResult) (val *gobject.GValue, err *glib.GError) {
-	val = gdk_clipboard_read_value_finish.Fn()(cb, res, &err)
+func (cb *Clipboard) ReadValueFinish(res *gio.GAsyncResult) (val *gobject.GValue, err error) {
+	var gerr *glib.GError
+	val, err = gdk_clipboard_read_value_finish.Fn()(cb, res, &gerr), gerr.TakeError()
 	return
 }
 
@@ -146,8 +153,9 @@ func (cb *Clipboard) ReadTextureAsync(cancellable *gio.GCancellable, callback fu
 	})
 	gdk_clipboard_read_texture_async.Fn()(cb, cancellable, cbk, nil)
 }
-func (cb *Clipboard) ReadTextureFinish(res *gio.GAsyncResult) (tex *Texture, err *glib.GError) {
-	tex = gdk_clipboard_read_texture_finish.Fn()(cb, res, &err)
+func (cb *Clipboard) ReadTextureFinish(res *gio.GAsyncResult) (tex *Texture, err error) {
+	var gerr *glib.GError
+	tex, err = gdk_clipboard_read_texture_finish.Fn()(cb, res, &gerr), gerr.TakeError()
 	return
 }
 
@@ -161,8 +169,9 @@ func (cb *Clipboard) ReadTextAsync(cancellable *gio.GCancellable, callback func(
 	})
 	gdk_clipboard_read_text_async.Fn()(cb, cancellable, cbk, nil)
 }
-func (cb *Clipboard) ReadTextFinish(res *gio.GAsyncResult) (txt string, err *glib.GError) {
-	txt = gdk_clipboard_read_text_finish.Fn()(cb, res, &err).String()
+func (cb *Clipboard) ReadTextFinish(res *gio.GAsyncResult) (txt string, err error) {
+	var gerr *glib.GError
+	txt, err = gdk_clipboard_read_text_finish.Fn()(cb, res, &gerr).TakeString(), gerr.TakeError()
 	return
 }
 
@@ -283,9 +292,13 @@ func ContentDeserializeAsync(stream *gio.GInputStream, mimeType string, typ gobj
 	})
 	gdk_content_deserialize_async.Fn()(stream, cMimeType, typ, ioPriority, cancellable, cbk, nil)
 }
-func ContentDeserializeFinish(result *gio.GAsyncResult, value *gobject.GValue) (ok bool, err *glib.GError) {
-	ok = gdk_content_deserialize_finish.Fn()(result, value, &err) != 0
-	return
+func ContentDeserializeFinish(result *gio.GAsyncResult, value *gobject.GValue) error {
+	var err *glib.GError
+	ok := gdk_content_deserialize_finish.Fn()(result, value, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 
 // #endregion
@@ -386,9 +399,11 @@ func (b *ContentFormatsBuilder) AddGtype(typ gobject.GType) {
 
 type FileList struct{}
 
-func (fl *FileList) GetFiles() *glib.GSList { return gdk_file_list_get_files.Fn()(fl) }
-func FileListNewFromList(files *glib.GSList) *FileList {
-	return gdk_file_list_new_from_list.Fn()(files)
+func (fl *FileList) GetFiles() *glib.GSList[gio.GFile] {
+	return (*glib.GSList[gio.GFile])(gdk_file_list_get_files.Fn()(fl))
+}
+func FileListNewFromList(files *glib.GSList[gio.GFile]) *FileList {
+	return gdk_file_list_new_from_list.Fn()(uptr(files))
 }
 func FileListNewFromArray(files []*gio.GFile) *FileList {
 	file, nFiles := (**gio.GFile)(nil), uint64(len(files))
@@ -458,14 +473,22 @@ func (provider *ContentProvider) WriteMimeTypeAsync(mime_type string, stream *gi
 	defer cMimeType.Free()
 	gdk_content_provider_write_mime_type_async.Fn()(provider, cMimeType, stream, io_priority, cancellable, cbk, nil)
 }
-func (provider *ContentProvider) WriteMimeTypeFinish(res *gio.GAsyncResult) (ok bool, err *glib.GError) {
-	ok = gdk_content_provider_write_mime_type_finish.Fn()(provider, res, &err) != 0
-	return
+func (provider *ContentProvider) WriteMimeTypeFinish(res *gio.GAsyncResult) error {
+	var err *glib.GError
+	ok := gdk_content_provider_write_mime_type_finish.Fn()(provider, res, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
-func (provider *ContentProvider) GetValue() (value *gobject.GValue, ok bool, err *glib.GError) {
-	v := gobject.GValue{}
-	ok = gdk_content_provider_get_value.Fn()(provider, &v, &err) != 0
-	value = &v
+func (provider *ContentProvider) GetValue() (value *gobject.GValue, err error) {
+	value = new(gobject.GValue)
+	var gerr *glib.GError
+	ok := gdk_content_provider_get_value.Fn()(provider, value, &gerr) != 0
+	if ok {
+		err = gerr.TakeError()
+		return
+	}
 	return
 }
 func (cp *ContentProvider) ConnectContentchanged(sig func(cp *ContentProvider)) uint64 {
@@ -555,10 +578,13 @@ func ContentSerializeAsync(stream *gio.GOutputStream, mimeType string, value *go
 	defer cMimeType.Free()
 	gdk_content_serialize_async.Fn()(stream, cMimeType, value, ioPriority, cancellable, cbk, nil)
 }
-func ContentSerializeFinish(result *gio.GAsyncResult) (bool, *glib.GError) {
+func ContentSerializeFinish(result *gio.GAsyncResult) error {
 	var err *glib.GError
-	res := gdk_content_serialize_finish.Fn()(result, &err)
-	return res != 0, err
+	ok := gdk_content_serialize_finish.Fn()(result, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 
 // #endregion
@@ -719,12 +745,17 @@ func (d *Display) IsComposited() bool        { return gdk_display_is_composited.
 func (d *Display) IsRGBA() bool              { return gdk_display_is_rgba.Fn()(d) != 0 }
 func (d *Display) SupportsShadowWidth() bool { return gdk_display_supports_shadow_width.Fn()(d) != 0 }
 func (d *Display) SupportsInputShapes() bool { return gdk_display_supports_input_shapes.Fn()(d) != 0 }
-func (d *Display) PrepareGL() (ok bool, err *glib.GError) {
-	ok = gdk_display_prepare_gl.Fn()(d, &err) != 0
-	return
+func (d *Display) PrepareGL() error {
+	var err *glib.GError
+	ok := gdk_display_prepare_gl.Fn()(d, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
-func (d *Display) CreateGLContext() (ctx *GLContext, err *glib.GError) {
-	ctx = gdk_display_create_gl_context.Fn()(d, &err)
+func (d *Display) CreateGLContext() (ctx *GLContext, err error) {
+	var gerr *glib.GError
+	ctx, err = gdk_display_create_gl_context.Fn()(d, &gerr), gerr.TakeError()
 	return
 }
 func GetDisplayDefault() *Display                  { return gdk_display_get_default.Fn()() }
@@ -734,7 +765,7 @@ func (d *Display) GetAppLaunchContext() *AppLaunchContext {
 	return gdk_display_get_app_launch_context.Fn()(d)
 }
 func (d *Display) GetDefaultSeat() *Seat        { return gdk_display_get_default_seat.Fn()(d) }
-func (d *Display) ListSeats() *glib.GList       { return gdk_display_list_seats.Fn()(d) }
+func (d *Display) ListSeats() *glib.GList[Seat] { return gdk_display_list_seats.Fn()(d) }
 func (d *Display) GetMonitors() *gio.GListModel { return gdk_display_get_monitors.Fn()(d) }
 func (d *Display) GetMonitorAtSurface(surface *Surface) *Monitor {
 	return gdk_display_get_monitor_at_surface.Fn()(d, surface)
@@ -756,7 +787,7 @@ func (d *Display) MapKeyval(keyval uint32) (keys []KeymapKey, ok bool) {
 
 	keys = make([]KeymapKey, nKeys)
 	copy(keys, unsafe.Slice(cKeys, nKeys))
-	defer glib.GFree(uptr(cKeys))
+	defer glib.GFree(cKeys)
 	return
 }
 
@@ -769,8 +800,8 @@ func (d *Display) MapKeycode(keycode uint32) (keys []KeymapKey, keyvals []uint32
 		return nil, nil, false
 	}
 	defer func() {
-		glib.GFree(uptr(cKeys))
-		glib.GFree(uptr(cKeyvals))
+		glib.GFree(cKeys)
+		glib.GFree(cKeyvals)
 	}()
 
 	keys = make([]KeymapKey, nEntries)
@@ -829,8 +860,8 @@ func (d *DisplayManager) GetDefaultDisplay() *Display {
 func (d *DisplayManager) SetDefaultDisplay(display *Display) {
 	gdk_display_manager_set_default_display.Fn()(d, display)
 }
-func (d *DisplayManager) ListDisplays() *glib.GSList {
-	return gdk_display_manager_list_displays.Fn()(d)
+func (d *DisplayManager) ListDisplays() *glib.GSList[Display] {
+	return (*glib.GSList[Display])(gdk_display_manager_list_displays.Fn()(d))
 }
 func (d *DisplayManager) OpenDisplay(name string) *Display {
 	cName := cc.NewString(name)
@@ -962,7 +993,7 @@ func (b *DmabufTextureBuilder) GetUpdateRegion() *cairo.Region {
 func (b *DmabufTextureBuilder) SetUpdateRegion(region *cairo.Region) {
 	gdk_dmabuf_texture_builder_set_update_region.Fn()(b, region)
 }
-func (b *DmabufTextureBuilder) Build(destroy func()) (tex *Texture, err *glib.GError) {
+func (b *DmabufTextureBuilder) Build(destroy func()) (tex *Texture, err error) {
 	var des = uptr(nil)
 	if destroy != nil {
 		des = vcbu(func(_ uptr) {
@@ -970,8 +1001,8 @@ func (b *DmabufTextureBuilder) Build(destroy func()) (tex *Texture, err *glib.GE
 			cc.CbkCloseLate(des)
 		})
 	}
-
-	tex = gdk_dmabuf_texture_builder_build.Fn()(b, des, nil, &err)
+	var gerr *glib.GError
+	tex, err = gdk_dmabuf_texture_builder_build.Fn()(b, des, nil, &gerr), gerr.TakeError()
 	return
 }
 
@@ -1095,10 +1126,11 @@ func (d *Drop) ReadAsync(mimeTypes []string, ioPriority int32, cancellable *gio.
 	gdk_drop_read_async.Fn()(d, ctypes, ioPriority, cancellable, cbk, nil)
 }
 
-func (d *Drop) ReadFinish(res *gio.GAsyncResult) (stream *gio.GInputStream, mimeType string, err *glib.GError) {
+func (d *Drop) ReadFinish(res *gio.GAsyncResult) (stream *gio.GInputStream, mimeType string, err error) {
 	var cMimeType cc.String
-	stream = gdk_drop_read_finish.Fn()(d, res, &cMimeType, &err)
-	mimeType = cMimeType.String()
+	var gerr *glib.GError
+	stream = gdk_drop_read_finish.Fn()(d, res, &cMimeType, &gerr)
+	mimeType, err = cMimeType.String(), gerr.TakeError()
 	return
 }
 
@@ -1113,8 +1145,9 @@ func (d *Drop) ReadValueAsync(typ gobject.GType, ioPriority int32, cancellable *
 	gdk_drop_read_value_async.Fn()(d, typ, ioPriority, cancellable, cbk, nil)
 }
 
-func (d *Drop) ReadValueFinish(res *gio.GAsyncResult) (value *gobject.GValue, err *glib.GError) {
-	value = gdk_drop_read_value_finish.Fn()(d, res, &err)
+func (d *Drop) ReadValueFinish(res *gio.GAsyncResult) (value *gobject.GValue, err error) {
+	var gerr *glib.GError
+	value, err = gdk_drop_read_value_finish.Fn()(d, res, &gerr), gerr.TakeError()
 	return
 }
 
@@ -1335,9 +1368,13 @@ func (ctx *GLContext) GetAllowedAPIs() GLAPI     { return gdk_gl_context_get_all
 func (ctx *GLContext) GetAPI() GLAPI             { return gdk_gl_context_get_api.Fn()(ctx) }
 func (ctx *GLContext) SetUseES(useEs int)        { gdk_gl_context_set_use_es.Fn()(ctx, useEs) }
 func (ctx *GLContext) GetUseES() bool            { return gdk_gl_context_get_use_es.Fn()(ctx) != 0 }
-func (ctx *GLContext) Realize() (ok bool, err *glib.GError) {
-	ok = gdk_gl_context_realize.Fn()(ctx, &err) != 0
-	return
+func (ctx *GLContext) Realize() error {
+	var err *glib.GError
+	ok := gdk_gl_context_realize.Fn()(ctx, &err) != 0
+	if ok {
+		return nil
+	}
+	return err.TakeError()
 }
 func (ctx *GLContext) MakeCurrent()   { gdk_gl_context_make_current.Fn()(ctx) }
 func GLContextGetCurrent() *GLContext { return gdk_gl_context_get_current.Fn()() }
@@ -1825,12 +1862,12 @@ type Seat struct{ gobject.GObjectCore }
 func GTypeSeat() gobject.GType                       { return gdk_seat_get_type.Fn()() }
 func (seat *Seat) GetDisplay() *Display              { return gdk_seat_get_display.Fn()(seat) }
 func (seat *Seat) GetCapabilities() SeatCapabilities { return gdk_seat_get_capabilities.Fn()(seat) }
-func (seat *Seat) GetDevices(capabilities SeatCapabilities) *glib.GList {
+func (seat *Seat) GetDevices(capabilities SeatCapabilities) *glib.GList[Device] {
 	return gdk_seat_get_devices.Fn()(seat, capabilities)
 }
-func (seat *Seat) GetTools() *glib.GList { return gdk_seat_get_tools.Fn()(seat) }
-func (seat *Seat) GetPointer() *Device   { return gdk_seat_get_pointer.Fn()(seat) }
-func (seat *Seat) GetKeyboard() *Device  { return gdk_seat_get_keyboard.Fn()(seat) }
+func (seat *Seat) GetTools() *glib.GList[DeviceTool] { return gdk_seat_get_tools.Fn()(seat) }
+func (seat *Seat) GetPointer() *Device               { return gdk_seat_get_pointer.Fn()(seat) }
+func (seat *Seat) GetKeyboard() *Device              { return gdk_seat_get_keyboard.Fn()(seat) }
 
 func (seat *Seat) ConnectDeviceAdded(sig func(seat *Seat, device *Device)) uint64 {
 	return seat.SignalConnect("device-added", sig, nil)
@@ -1903,8 +1940,9 @@ func (surface *Surface) SetOpaqueRegion(region *cairo.Region) {
 func (surface *Surface) CreateCairoContext() *cairo.Context {
 	return gdk_surface_create_cairo_context.Fn()(surface)
 }
-func (surface *Surface) CreateGLContext() (ctx *GLContext, err *glib.GError) {
-	ctx = gdk_surface_create_gl_context.Fn()(surface, &err)
+func (surface *Surface) CreateGLContext() (ctx *GLContext, err error) {
+	var gerr *glib.GError
+	ctx, err = gdk_surface_create_gl_context.Fn()(surface, &gerr), gerr.TakeError()
 	return
 }
 
@@ -1942,16 +1980,19 @@ func NewTextureForPixbuf(pixbuf *Pixbuf) *Texture { return gdk_texture_new_for_p
 func NewTextureFromResource(resourcePath string) *Texture {
 	return gdk_texture_new_from_resource.Fn()(cc.NewString(resourcePath))
 }
-func NewTextureFromFile(file *gio.GFile) (tex *Texture, err *glib.GError) {
-	tex = gdk_texture_new_from_file.Fn()(file, &err)
+func NewTextureFromFile(file *gio.GFile) (tex *Texture, err error) {
+	var gerr *glib.GError
+	tex, err = gdk_texture_new_from_file.Fn()(file, &gerr), gerr.TakeError()
 	return
 }
-func NewTextureFromFilename(path string) (tex *Texture, err *glib.GError) {
-	tex = gdk_texture_new_from_filename.Fn()(cc.NewString(path), &err)
+func NewTextureFromFilename(path string) (tex *Texture, err error) {
+	var gerr *glib.GError
+	tex, err = gdk_texture_new_from_filename.Fn()(cc.NewString(path), &gerr), gerr.TakeError()
 	return
 }
-func NewTextureFromBytes(bytes *glib.GBytes) (tex *Texture, err *glib.GError) {
-	tex = gdk_texture_new_from_bytes.Fn()(bytes, &err)
+func NewTextureFromBytes(bytes *glib.GBytes) (tex *Texture, err error) {
+	var gerr *glib.GError
+	tex, err = gdk_texture_new_from_bytes.Fn()(bytes, &gerr), gerr.TakeError()
 	return
 }
 func (t *Texture) GetWidth() int32                   { return gdk_texture_get_width.Fn()(t) }
