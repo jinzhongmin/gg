@@ -1,6 +1,8 @@
 package gio
 
 import (
+	"unsafe"
+
 	"github.com/jinzhongmin/gg/cc"
 	"github.com/jinzhongmin/gg/glib/glib"
 	"github.com/jinzhongmin/gg/glib/gobject"
@@ -295,7 +297,11 @@ func (app *GApplication) UnbindBusyProperty(object uptr, property string) {
 	g_application_unbind_busy_property.Fn()(app, object, property)
 }
 func (app *GApplication) ConnectActivate(sig func(a *GApplication)) uint64 {
-	return app.SignalConnect("activate", sig, nil)
+	return gobject.GSignalConnectDataRaw[func(a *GApplication), int32](app, "activate", func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 1)
+		sig(*(**GApplication)(is[0]))
+	}, nil, nil, 0)
+	// return app.SignalConnect("activate", sig, nil)
 }
 func (app *GApplication) ConnectCommandLine(
 	sig func(a *GApplication, commandLine, _ uptr) int32) uint64 {

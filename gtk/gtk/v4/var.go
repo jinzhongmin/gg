@@ -14,12 +14,12 @@ import (
 	"github.com/jinzhongmin/gg/pango"
 )
 
-type UPtr = unsafe.Pointer
-type IPtr = uintptr
+type uptr = unsafe.Pointer
+type iptr = uintptr
 
-func vcbu(fn interface{}) UPtr  { return cc.Cbk(fn) }
-func slice(p UPtr, n int) UPtr  { return UPtr(&[2]UPtr{UPtr(p), UPtr(IPtr(n))}) }
-func anyptr(a interface{}) UPtr { return (*(*[2]UPtr)(UPtr(&a)))[1] }
+// func vcbu(fn interface{}) UPtr  { return cc.Cbk(fn) }
+
+func anyptr(a interface{}) uptr { return (*(*[2]uptr)(uptr(&a)))[1] }
 func carry[T any](arry []T) *T {
 	if len(arry) == 0 {
 		return nil
@@ -32,7 +32,7 @@ func gobjGet(a gobject.GObjectIface) *gobject.GObject { return gobject.GetGObjec
 type gobjCore = gobject.GObjectCore
 type GobjIface = gobject.GObjectIface
 
-func init() { cc.Open("libgtk-4*") }
+// func init() { cc.Open("libgtk-4*") }
 
 var (
 	// #region AboutDialog
@@ -51,8 +51,8 @@ var (
 	gtk_about_dialog_set_license            = cc.DlFunc[func(about *AboutDialog, license cc.String), cc.Void]{Name: "gtk_about_dialog_set_license"}
 	gtk_about_dialog_set_license_type       = cc.DlFunc[func(about *AboutDialog, licenseType License), cc.Void]{Name: "gtk_about_dialog_set_license_type"}
 	gtk_about_dialog_get_license_type       = cc.DlFunc[func(about *AboutDialog) License, License]{Name: "gtk_about_dialog_get_license_type"}
-	gtk_about_dialog_get_wrap_license       = cc.DlFunc[func(about *AboutDialog) bool, bool]{Name: "gtk_about_dialog_get_wrap_license"}
-	gtk_about_dialog_set_wrap_license       = cc.DlFunc[func(about *AboutDialog, wrapLicense bool), cc.Void]{Name: "gtk_about_dialog_set_wrap_license"}
+	gtk_about_dialog_get_wrap_license       = cc.DlFunc[func(about *AboutDialog) int32, int32]{Name: "gtk_about_dialog_get_wrap_license"}
+	gtk_about_dialog_set_wrap_license       = cc.DlFunc[func(about *AboutDialog, wrapLicense int32), cc.Void]{Name: "gtk_about_dialog_set_wrap_license"}
 	gtk_about_dialog_get_system_information = cc.DlFunc[func(about *AboutDialog) cc.String, cc.String]{Name: "gtk_about_dialog_get_system_information"}
 	gtk_about_dialog_set_system_information = cc.DlFunc[func(about *AboutDialog, systemInformation cc.String), cc.Void]{Name: "gtk_about_dialog_set_system_information"}
 	gtk_about_dialog_get_website            = cc.DlFunc[func(about *AboutDialog) cc.String, cc.String]{Name: "gtk_about_dialog_get_website"}
@@ -75,9 +75,9 @@ var (
 	// #endregion
 
 	// #region Accelerator
-	gtk_accelerator_valid                  = cc.DlFunc[func(keyval uint32, modifiers gdk.ModifierType) bool, bool]{Name: "gtk_accelerator_valid"}
-	gtk_accelerator_parse                  = cc.DlFunc[func(accelerator string, acceleratorKey *uint32, acceleratorMods *gdk.ModifierType) bool, bool]{Name: "gtk_accelerator_parse"}
-	gtk_accelerator_parse_with_keycode     = cc.DlFunc[func(accelerator string, display *gdk.Display, acceleratorKey *uint32, acceleratorCodes **uint32, acceleratorMods *gdk.ModifierType) bool, bool]{Name: "gtk_accelerator_parse_with_keycode"}
+	gtk_accelerator_valid                  = cc.DlFunc[func(keyval uint32, modifiers gdk.ModifierType) int32, int32]{Name: "gtk_accelerator_valid"}
+	gtk_accelerator_parse                  = cc.DlFunc[func(accelerator cc.String, acceleratorKey *uint32, acceleratorMods *gdk.ModifierType) int32, int32]{Name: "gtk_accelerator_parse"}
+	gtk_accelerator_parse_with_keycode     = cc.DlFunc[func(accelerator cc.String, display *gdk.Display, acceleratorKey *uint32, acceleratorCodes **uint32, acceleratorMods *gdk.ModifierType) int32, int32]{Name: "gtk_accelerator_parse_with_keycode"}
 	gtk_accelerator_name                   = cc.DlFunc[func(acceleratorKey uint32, acceleratorMods gdk.ModifierType) cc.String, cc.String]{Name: "gtk_accelerator_name"}
 	gtk_accelerator_name_with_keycode      = cc.DlFunc[func(display *gdk.Display, acceleratorKey uint32, keycode uint32, acceleratorMods gdk.ModifierType) cc.String, cc.String]{Name: "gtk_accelerator_name_with_keycode"}
 	gtk_accelerator_get_label              = cc.DlFunc[func(acceleratorKey uint32, acceleratorMods gdk.ModifierType) cc.String, cc.String]{Name: "gtk_accelerator_get_label"}
@@ -87,13 +87,13 @@ var (
 
 	// #region Accessible
 	gtk_accessible_get_at_context                 = cc.DlFunc[func(self *Accessible) *ATContext, *ATContext]{Name: "gtk_accessible_get_at_context"}
-	gtk_accessible_get_platform_state             = cc.DlFunc[func(self *Accessible, state AccessiblePlatformState) bool, bool]{Name: "gtk_accessible_get_platform_state"}
+	gtk_accessible_get_platform_state             = cc.DlFunc[func(self *Accessible, state AccessiblePlatformState) int32, int32]{Name: "gtk_accessible_get_platform_state"}
 	gtk_accessible_get_accessible_parent          = cc.DlFunc[func(self *Accessible) *Accessible, *Accessible]{Name: "gtk_accessible_get_accessible_parent"}
 	gtk_accessible_set_accessible_parent          = cc.DlFunc[func(self *Accessible, parent *Accessible, nextSibling *Accessible), cc.Void]{Name: "gtk_accessible_set_accessible_parent"}
 	gtk_accessible_get_first_accessible_child     = cc.DlFunc[func(self *Accessible) *Accessible, *Accessible]{Name: "gtk_accessible_get_first_accessible_child"}
 	gtk_accessible_get_next_accessible_sibling    = cc.DlFunc[func(self *Accessible) *Accessible, *Accessible]{Name: "gtk_accessible_get_next_accessible_sibling"}
 	gtk_accessible_update_next_accessible_sibling = cc.DlFunc[func(self *Accessible, newSibling *Accessible), cc.Void]{Name: "gtk_accessible_update_next_accessible_sibling"}
-	gtk_accessible_get_bounds                     = cc.DlFunc[func(self *Accessible, x, y, width, height *int32) bool, bool]{Name: "gtk_accessible_get_bounds"}
+	gtk_accessible_get_bounds                     = cc.DlFunc[func(self *Accessible, x, y, width, height *int32) int32, int32]{Name: "gtk_accessible_get_bounds"}
 	gtk_accessible_get_accessible_role            = cc.DlFunc[func(a *Accessible) AccessibleRole, AccessibleRole]{Name: "gtk_accessible_get_accessible_role"}
 	gtk_accessible_update_state                   = cc.DlFunc[func(a *Accessible, firstState AccessibleState, args ...interface{}), cc.Void]{Name: "gtk_accessible_update_state", Va: true}
 	gtk_accessible_update_property                = cc.DlFunc[func(a *Accessible, firstProperty AccessibleProperty, args ...interface{}), cc.Void]{Name: "gtk_accessible_update_property", Va: true}
@@ -111,13 +111,13 @@ var (
 	gtk_accessible_list_get_objects               = cc.DlFunc[func(accessibleList *AccessibleList) *glib.GList[Accessible], *glib.GList[Accessible]]{Name: "gtk_accessible_list_get_objects"}
 	gtk_accessible_list_new_from_list             = cc.DlFunc[func(list *glib.GList[Accessible]) *AccessibleList, *AccessibleList]{Name: "gtk_accessible_list_new_from_list"}
 	gtk_accessible_list_new_from_array            = cc.DlFunc[func(accessibles **Accessible, nAccessibles uint64) *AccessibleList, *AccessibleList]{Name: "gtk_accessible_list_new_from_array"}
-	gtk_accessible_announce                       = cc.DlFunc[func(a *Accessible, message string, priority AccessibleAnnouncementPriority), cc.Void]{Name: "gtk_accessible_announce"}
+	gtk_accessible_announce                       = cc.DlFunc[func(a *Accessible, message cc.String, priority AccessibleAnnouncementPriority), cc.Void]{Name: "gtk_accessible_announce"}
 	gtk_accessible_update_platform_state          = cc.DlFunc[func(a *Accessible, state AccessiblePlatformState), cc.Void]{Name: "gtk_accessible_update_platform_state"}
 	// #endregion
 
 	// #region AccessibleRange
 	gtk_accessible_range_get_type          = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_accessible_range_get_type"}
-	gtk_accessible_range_set_current_value = cc.DlFunc[func(*AccessibleRange, float64) bool, bool]{Name: "gtk_accessible_range_set_current_value"}
+	gtk_accessible_range_set_current_value = cc.DlFunc[func(*AccessibleRange, float64) int32, int32]{Name: "gtk_accessible_range_set_current_value"}
 	// #endregion
 
 	// #region AccessibleTextRange
@@ -128,11 +128,11 @@ var (
 	gtk_accessible_text_get_contents           = cc.DlFunc[func(*AccessibleText, uint32, uint32) *glib.GBytes, *glib.GBytes]{Name: "gtk_accessible_text_get_contents"}
 	gtk_accessible_text_get_contents_at        = cc.DlFunc[func(*AccessibleText, uint32, AccessibleTextGranularity, *uint32, *uint32) *glib.GBytes, *glib.GBytes]{Name: "gtk_accessible_text_get_contents_at"}
 	gtk_accessible_text_get_caret_position     = cc.DlFunc[func(*AccessibleText) uint32, uint32]{Name: "gtk_accessible_text_get_caret_position"}
-	gtk_accessible_text_get_selection          = cc.DlFunc[func(*AccessibleText, *uint64, **AccessibleTextRange) bool, bool]{Name: "gtk_accessible_text_get_selection"}
-	gtk_accessible_text_get_attributes         = cc.DlFunc[func(*AccessibleText, uint32, *uint64, **AccessibleTextRange, *cc.Strings, *cc.Strings) bool, bool]{Name: "gtk_accessible_text_get_attributes"}
+	gtk_accessible_text_get_selection          = cc.DlFunc[func(*AccessibleText, *uint64, **AccessibleTextRange) int32, int32]{Name: "gtk_accessible_text_get_selection"}
+	gtk_accessible_text_get_attributes         = cc.DlFunc[func(*AccessibleText, uint32, *uint64, **AccessibleTextRange, *cc.Strings, *cc.Strings) int32, int32]{Name: "gtk_accessible_text_get_attributes"}
 	gtk_accessible_text_get_default_attributes = cc.DlFunc[func(*AccessibleText, *cc.Strings, *cc.Strings), cc.Void]{Name: "gtk_accessible_text_get_default_attributes"}
-	gtk_accessible_text_get_extents            = cc.DlFunc[func(*AccessibleText, uint32, uint32, *graphene.Rect) bool, bool]{Name: "gtk_accessible_text_get_extents"}
-	gtk_accessible_text_get_offset             = cc.DlFunc[func(*AccessibleText, *graphene.Point, *uint32) bool, bool]{Name: "gtk_accessible_text_get_offset"}
+	gtk_accessible_text_get_extents            = cc.DlFunc[func(*AccessibleText, uint32, uint32, *graphene.Rect) int32, int32]{Name: "gtk_accessible_text_get_extents"}
+	gtk_accessible_text_get_offset             = cc.DlFunc[func(*AccessibleText, *graphene.Point, *uint32) int32, int32]{Name: "gtk_accessible_text_get_offset"}
 	// #endregion
 
 	// #region Actionable
@@ -153,8 +153,8 @@ var (
 	gtk_action_bar_pack_start        = cc.DlFunc[func(*ActionBar, *Widget), cc.Void]{Name: "gtk_action_bar_pack_start"}
 	gtk_action_bar_pack_end          = cc.DlFunc[func(*ActionBar, *Widget), cc.Void]{Name: "gtk_action_bar_pack_end"}
 	gtk_action_bar_remove            = cc.DlFunc[func(*ActionBar, *Widget), cc.Void]{Name: "gtk_action_bar_remove"}
-	gtk_action_bar_set_revealed      = cc.DlFunc[func(*ActionBar, bool), cc.Void]{Name: "gtk_action_bar_set_revealed"}
-	gtk_action_bar_get_revealed      = cc.DlFunc[func(*ActionBar) bool, bool]{Name: "gtk_action_bar_get_revealed"}
+	gtk_action_bar_set_revealed      = cc.DlFunc[func(*ActionBar, int32), cc.Void]{Name: "gtk_action_bar_set_revealed"}
+	gtk_action_bar_get_revealed      = cc.DlFunc[func(*ActionBar) int32, int32]{Name: "gtk_action_bar_get_revealed"}
 	// #endregion
 
 	// #region Adjustment
@@ -179,8 +179,8 @@ var (
 
 	// #region AlertDialog
 	gtk_alert_dialog_new                = cc.DlFunc[func(format cc.String, args ...interface{}) *AlertDialog, *AlertDialog]{Name: "gtk_alert_dialog_new", Va: true}
-	gtk_alert_dialog_get_modal          = cc.DlFunc[func(self *AlertDialog) bool, bool]{Name: "gtk_alert_dialog_get_modal"}
-	gtk_alert_dialog_set_modal          = cc.DlFunc[func(self *AlertDialog, modal bool), cc.Void]{Name: "gtk_alert_dialog_set_modal"}
+	gtk_alert_dialog_get_modal          = cc.DlFunc[func(self *AlertDialog) int32, int32]{Name: "gtk_alert_dialog_get_modal"}
+	gtk_alert_dialog_set_modal          = cc.DlFunc[func(self *AlertDialog, modal int32), cc.Void]{Name: "gtk_alert_dialog_set_modal"}
 	gtk_alert_dialog_get_message        = cc.DlFunc[func(self *AlertDialog) cc.String, cc.String]{Name: "gtk_alert_dialog_get_message"}
 	gtk_alert_dialog_set_message        = cc.DlFunc[func(self *AlertDialog, message cc.String), cc.Void]{Name: "gtk_alert_dialog_set_message"}
 	gtk_alert_dialog_get_detail         = cc.DlFunc[func(self *AlertDialog) cc.String, cc.String]{Name: "gtk_alert_dialog_get_detail"}
@@ -192,7 +192,7 @@ var (
 	gtk_alert_dialog_set_cancel_button  = cc.DlFunc[func(self *AlertDialog, button int32), cc.Void]{Name: "gtk_alert_dialog_set_cancel_button"}
 	gtk_alert_dialog_get_default_button = cc.DlFunc[func(self *AlertDialog) int32, int32]{Name: "gtk_alert_dialog_get_default_button"}
 	gtk_alert_dialog_set_default_button = cc.DlFunc[func(self *AlertDialog, button int32), cc.Void]{Name: "gtk_alert_dialog_set_default_button"}
-	gtk_alert_dialog_choose             = cc.DlFunc[func(self *AlertDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_alert_dialog_choose"}
+	gtk_alert_dialog_choose             = cc.DlFunc[func(self *AlertDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_alert_dialog_choose"}
 	gtk_alert_dialog_choose_finish      = cc.DlFunc[func(self *AlertDialog, result *gio.GAsyncResult, err **glib.GError) int32, int32]{Name: "gtk_alert_dialog_choose_finish"}
 	gtk_alert_dialog_show               = cc.DlFunc[func(self *AlertDialog, parent *Window), cc.Void]{Name: "gtk_alert_dialog_show"}
 	// #endregion
@@ -219,22 +219,22 @@ var (
 	// #region ApplicationWindow
 	gtk_application_window_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_application_window_get_type"}
 	gtk_application_window_new              = cc.DlFunc[func(application *Application) *ApplicationWindow, *ApplicationWindow]{Name: "gtk_application_window_new"}
-	gtk_application_window_set_show_menubar = cc.DlFunc[func(window *ApplicationWindow, show bool), cc.Void]{Name: "gtk_application_window_set_show_menubar"}
-	gtk_application_window_get_show_menubar = cc.DlFunc[func(window *ApplicationWindow) bool, bool]{Name: "gtk_application_window_get_show_menubar"}
+	gtk_application_window_set_show_menubar = cc.DlFunc[func(window *ApplicationWindow, show int32), cc.Void]{Name: "gtk_application_window_set_show_menubar"}
+	gtk_application_window_get_show_menubar = cc.DlFunc[func(window *ApplicationWindow) int32, int32]{Name: "gtk_application_window_get_show_menubar"}
 	gtk_application_window_get_id           = cc.DlFunc[func(window *ApplicationWindow) uint32, uint32]{Name: "gtk_application_window_get_id"}
 	// #endregion
 
 	// #region AspectFrame
 	gtk_aspect_frame_get_type       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_aspect_frame_get_type"}
-	gtk_aspect_frame_new            = cc.DlFunc[func(xalign, yalign, ratio float32, obeyChild bool) *AspectFrame, *AspectFrame]{Name: "gtk_aspect_frame_new"}
+	gtk_aspect_frame_new            = cc.DlFunc[func(xalign, yalign, ratio float32, obeyChild int32) *AspectFrame, *AspectFrame]{Name: "gtk_aspect_frame_new"}
 	gtk_aspect_frame_set_xalign     = cc.DlFunc[func(self *AspectFrame, xalign float32), cc.Void]{Name: "gtk_aspect_frame_set_xalign"}
 	gtk_aspect_frame_get_xalign     = cc.DlFunc[func(self *AspectFrame) float32, float32]{Name: "gtk_aspect_frame_get_xalign"}
 	gtk_aspect_frame_set_yalign     = cc.DlFunc[func(self *AspectFrame, yalign float32), cc.Void]{Name: "gtk_aspect_frame_set_yalign"}
 	gtk_aspect_frame_get_yalign     = cc.DlFunc[func(self *AspectFrame) float32, float32]{Name: "gtk_aspect_frame_get_yalign"}
 	gtk_aspect_frame_set_ratio      = cc.DlFunc[func(self *AspectFrame, ratio float32), cc.Void]{Name: "gtk_aspect_frame_set_ratio"}
 	gtk_aspect_frame_get_ratio      = cc.DlFunc[func(self *AspectFrame) float32, float32]{Name: "gtk_aspect_frame_get_ratio"}
-	gtk_aspect_frame_set_obey_child = cc.DlFunc[func(self *AspectFrame, obeyChild bool), cc.Void]{Name: "gtk_aspect_frame_set_obey_child"}
-	gtk_aspect_frame_get_obey_child = cc.DlFunc[func(self *AspectFrame) bool, bool]{Name: "gtk_aspect_frame_get_obey_child"}
+	gtk_aspect_frame_set_obey_child = cc.DlFunc[func(self *AspectFrame, obeyChild int32), cc.Void]{Name: "gtk_aspect_frame_set_obey_child"}
+	gtk_aspect_frame_get_obey_child = cc.DlFunc[func(self *AspectFrame) int32, int32]{Name: "gtk_aspect_frame_get_obey_child"}
 	gtk_aspect_frame_set_child      = cc.DlFunc[func(self *AspectFrame, child *Widget), cc.Void]{Name: "gtk_aspect_frame_set_child"}
 	gtk_aspect_frame_get_child      = cc.DlFunc[func(self *AspectFrame) *Widget, *Widget]{Name: "gtk_aspect_frame_get_child"}
 	// #endregion
@@ -254,9 +254,9 @@ var (
 	gtk_bitset_get_type            = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_bitset_get_type"}
 	gtk_bitset_ref                 = cc.DlFunc[func(self *Bitset) *Bitset, *Bitset]{Name: "gtk_bitset_ref"}
 	gtk_bitset_unref               = cc.DlFunc[func(self *Bitset), cc.Void]{Name: "gtk_bitset_unref"}
-	gtk_bitset_contains            = cc.DlFunc[func(self *Bitset, value uint32) bool, bool]{Name: "gtk_bitset_contains"}
-	gtk_bitset_is_empty            = cc.DlFunc[func(self *Bitset) bool, bool]{Name: "gtk_bitset_is_empty"}
-	gtk_bitset_equals              = cc.DlFunc[func(self *Bitset, other *Bitset) bool, bool]{Name: "gtk_bitset_equals"}
+	gtk_bitset_contains            = cc.DlFunc[func(self *Bitset, value uint32) int32, int32]{Name: "gtk_bitset_contains"}
+	gtk_bitset_is_empty            = cc.DlFunc[func(self *Bitset) int32, int32]{Name: "gtk_bitset_is_empty"}
+	gtk_bitset_equals              = cc.DlFunc[func(self *Bitset, other *Bitset) int32, int32]{Name: "gtk_bitset_equals"}
 	gtk_bitset_get_size            = cc.DlFunc[func(self *Bitset) uint64, uint64]{Name: "gtk_bitset_get_size"}
 	gtk_bitset_get_size_in_range   = cc.DlFunc[func(self *Bitset, first, last uint32) uint64, uint64]{Name: "gtk_bitset_get_size_in_range"}
 	gtk_bitset_get_nth             = cc.DlFunc[func(self *Bitset, nth uint32) uint32, uint32]{Name: "gtk_bitset_get_nth"}
@@ -266,8 +266,8 @@ var (
 	gtk_bitset_copy                = cc.DlFunc[func(self *Bitset) *Bitset, *Bitset]{Name: "gtk_bitset_copy"}
 	gtk_bitset_new_range           = cc.DlFunc[func(start, nItems uint32) *Bitset, *Bitset]{Name: "gtk_bitset_new_range"}
 	gtk_bitset_remove_all          = cc.DlFunc[func(self *Bitset), cc.Void]{Name: "gtk_bitset_remove_all"}
-	gtk_bitset_add                 = cc.DlFunc[func(self *Bitset, value uint32) bool, bool]{Name: "gtk_bitset_add"}
-	gtk_bitset_remove              = cc.DlFunc[func(self *Bitset, value uint32) bool, bool]{Name: "gtk_bitset_remove"}
+	gtk_bitset_add                 = cc.DlFunc[func(self *Bitset, value uint32) int32, int32]{Name: "gtk_bitset_add"}
+	gtk_bitset_remove              = cc.DlFunc[func(self *Bitset, value uint32) int32, int32]{Name: "gtk_bitset_remove"}
 	gtk_bitset_add_range           = cc.DlFunc[func(self *Bitset, start, nItems uint32), cc.Void]{Name: "gtk_bitset_add_range"}
 	gtk_bitset_remove_range        = cc.DlFunc[func(self *Bitset, start, nItems uint32), cc.Void]{Name: "gtk_bitset_remove_range"}
 	gtk_bitset_add_range_closed    = cc.DlFunc[func(self *Bitset, first, last uint32), cc.Void]{Name: "gtk_bitset_add_range_closed"}
@@ -282,13 +282,13 @@ var (
 	gtk_bitset_shift_right         = cc.DlFunc[func(self *Bitset, amount uint32), cc.Void]{Name: "gtk_bitset_shift_right"}
 	gtk_bitset_splice              = cc.DlFunc[func(self *Bitset, position, removed, added uint32), cc.Void]{Name: "gtk_bitset_splice"}
 	gtk_bitset_iter_get_type       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_bitset_iter_get_type"}
-	gtk_bitset_iter_init_first     = cc.DlFunc[func(iter *BitsetIter, set *Bitset, value *uint32) bool, bool]{Name: "gtk_bitset_iter_init_first"}
-	gtk_bitset_iter_init_last      = cc.DlFunc[func(iter *BitsetIter, set *Bitset, value *uint32) bool, bool]{Name: "gtk_bitset_iter_init_last"}
-	gtk_bitset_iter_init_at        = cc.DlFunc[func(iter *BitsetIter, set *Bitset, target uint32, value *uint32) bool, bool]{Name: "gtk_bitset_iter_init_at"}
-	gtk_bitset_iter_next           = cc.DlFunc[func(iter *BitsetIter, value *uint32) bool, bool]{Name: "gtk_bitset_iter_next"}
-	gtk_bitset_iter_previous       = cc.DlFunc[func(iter *BitsetIter, value *uint32) bool, bool]{Name: "gtk_bitset_iter_previous"}
+	gtk_bitset_iter_init_first     = cc.DlFunc[func(iter *BitsetIter, set *Bitset, value *uint32) int32, int32]{Name: "gtk_bitset_iter_init_first"}
+	gtk_bitset_iter_init_last      = cc.DlFunc[func(iter *BitsetIter, set *Bitset, value *uint32) int32, int32]{Name: "gtk_bitset_iter_init_last"}
+	gtk_bitset_iter_init_at        = cc.DlFunc[func(iter *BitsetIter, set *Bitset, target uint32, value *uint32) int32, int32]{Name: "gtk_bitset_iter_init_at"}
+	gtk_bitset_iter_next           = cc.DlFunc[func(iter *BitsetIter, value *uint32) int32, int32]{Name: "gtk_bitset_iter_next"}
+	gtk_bitset_iter_previous       = cc.DlFunc[func(iter *BitsetIter, value *uint32) int32, int32]{Name: "gtk_bitset_iter_previous"}
 	gtk_bitset_iter_get_value      = cc.DlFunc[func(iter *BitsetIter) uint32, uint32]{Name: "gtk_bitset_iter_get_value"}
-	gtk_bitset_iter_is_valid       = cc.DlFunc[func(iter *BitsetIter) bool, bool]{Name: "gtk_bitset_iter_is_valid"}
+	gtk_bitset_iter_is_valid       = cc.DlFunc[func(iter *BitsetIter) int32, int32]{Name: "gtk_bitset_iter_is_valid"}
 	// #endregion
 
 	// #region BookmarkList
@@ -298,7 +298,7 @@ var (
 	gtk_bookmark_list_get_attributes  = cc.DlFunc[func(self *BookmarkList) cc.String, cc.String]{Name: "gtk_bookmark_list_get_attributes"}
 	gtk_bookmark_list_set_io_priority = cc.DlFunc[func(self *BookmarkList, ioPriority int32), cc.Void]{Name: "gtk_bookmark_list_set_io_priority"}
 	gtk_bookmark_list_get_io_priority = cc.DlFunc[func(self *BookmarkList) int32, int32]{Name: "gtk_bookmark_list_get_io_priority"}
-	gtk_bookmark_list_is_loading      = cc.DlFunc[func(self *BookmarkList) bool, bool]{Name: "gtk_bookmark_list_is_loading"}
+	gtk_bookmark_list_is_loading      = cc.DlFunc[func(self *BookmarkList) int32, int32]{Name: "gtk_bookmark_list_is_loading"}
 	gtk_bookmark_list_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_bookmark_list_get_type"}
 	// #endregion
 
@@ -307,8 +307,8 @@ var (
 	gtk_bool_filter_new            = cc.DlFunc[func(expression *Expression) *BoolFilter, *BoolFilter]{Name: "gtk_bool_filter_new"}
 	gtk_bool_filter_get_expression = cc.DlFunc[func(self *BoolFilter) *Expression, *Expression]{Name: "gtk_bool_filter_get_expression"}
 	gtk_bool_filter_set_expression = cc.DlFunc[func(self *BoolFilter, expression *Expression), cc.Void]{Name: "gtk_bool_filter_set_expression"}
-	gtk_bool_filter_get_invert     = cc.DlFunc[func(self *BoolFilter) bool, bool]{Name: "gtk_bool_filter_get_invert"}
-	gtk_bool_filter_set_invert     = cc.DlFunc[func(self *BoolFilter, invert bool), cc.Void]{Name: "gtk_bool_filter_set_invert"}
+	gtk_bool_filter_get_invert     = cc.DlFunc[func(self *BoolFilter) int32, int32]{Name: "gtk_bool_filter_get_invert"}
+	gtk_bool_filter_set_invert     = cc.DlFunc[func(self *BoolFilter, invert int32), cc.Void]{Name: "gtk_bool_filter_set_invert"}
 	// #endregion
 
 	// #region Border
@@ -321,8 +321,8 @@ var (
 	// #region Box
 	gtk_box_get_type              = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_box_get_type"}
 	gtk_box_new                   = cc.DlFunc[func(orientation Orientation, spacing int32) *Box, *Box]{Name: "gtk_box_new"}
-	gtk_box_set_homogeneous       = cc.DlFunc[func(box *Box, homogeneous bool), cc.Void]{Name: "gtk_box_set_homogeneous"}
-	gtk_box_get_homogeneous       = cc.DlFunc[func(box *Box) bool, bool]{Name: "gtk_box_get_homogeneous"}
+	gtk_box_set_homogeneous       = cc.DlFunc[func(box *Box, homogeneous int32), cc.Void]{Name: "gtk_box_set_homogeneous"}
+	gtk_box_get_homogeneous       = cc.DlFunc[func(box *Box) int32, int32]{Name: "gtk_box_get_homogeneous"}
 	gtk_box_set_spacing           = cc.DlFunc[func(box *Box, spacing int32), cc.Void]{Name: "gtk_box_set_spacing"}
 	gtk_box_get_spacing           = cc.DlFunc[func(box *Box) int32, int32]{Name: "gtk_box_get_spacing"}
 	gtk_box_set_baseline_position = cc.DlFunc[func(box *Box, position BaselinePosition), cc.Void]{Name: "gtk_box_set_baseline_position"}
@@ -339,8 +339,8 @@ var (
 	// #region BoxLayout
 	gtk_box_layout_get_type              = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_box_layout_get_type"}
 	gtk_box_layout_new                   = cc.DlFunc[func(orientation Orientation) *BoxLayout, *BoxLayout]{Name: "gtk_box_layout_new"}
-	gtk_box_layout_set_homogeneous       = cc.DlFunc[func(boxLayout *BoxLayout, homogeneous bool), cc.Void]{Name: "gtk_box_layout_set_homogeneous"}
-	gtk_box_layout_get_homogeneous       = cc.DlFunc[func(boxLayout *BoxLayout) bool, bool]{Name: "gtk_box_layout_get_homogeneous"}
+	gtk_box_layout_set_homogeneous       = cc.DlFunc[func(boxLayout *BoxLayout, homogeneous int32), cc.Void]{Name: "gtk_box_layout_set_homogeneous"}
+	gtk_box_layout_get_homogeneous       = cc.DlFunc[func(boxLayout *BoxLayout) int32, int32]{Name: "gtk_box_layout_get_homogeneous"}
 	gtk_box_layout_set_spacing           = cc.DlFunc[func(boxLayout *BoxLayout, spacing uint32), cc.Void]{Name: "gtk_box_layout_set_spacing"}
 	gtk_box_layout_get_spacing           = cc.DlFunc[func(boxLayout *BoxLayout) uint32, uint32]{Name: "gtk_box_layout_get_spacing"}
 	gtk_box_layout_set_baseline_position = cc.DlFunc[func(boxLayout *BoxLayout, position BaselinePosition), cc.Void]{Name: "gtk_box_layout_set_baseline_position"}
@@ -352,10 +352,10 @@ var (
 	// #region Buildable
 	gtk_buildable_get_type                        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_buildable_get_type"}
 	gtk_buildable_get_buildable_id                = cc.DlFunc[func(b *Buildable) cc.String, cc.String]{Name: "gtk_buildable_get_buildable_id"}
-	gtk_buildable_parse_context_push              = cc.DlFunc[func(context *BuildableParseContext, parser *BuildableParser, userData UPtr), cc.Void]{Name: "gtk_buildable_parse_context_push"}
-	gtk_buildable_parse_context_pop               = cc.DlFunc[func(context *BuildableParseContext) UPtr, UPtr]{Name: "gtk_buildable_parse_context_pop"}
+	gtk_buildable_parse_context_push              = cc.DlFunc[func(context *BuildableParseContext, parser *BuildableParser, userData uptr), cc.Void]{Name: "gtk_buildable_parse_context_push"}
+	gtk_buildable_parse_context_pop               = cc.DlFunc[func(context *BuildableParseContext) uptr, uptr]{Name: "gtk_buildable_parse_context_pop"}
 	gtk_buildable_parse_context_get_element       = cc.DlFunc[func(context *BuildableParseContext) cc.String, cc.String]{Name: "gtk_buildable_parse_context_get_element"}
-	gtk_buildable_parse_context_get_element_stack = cc.DlFunc[func(context *BuildableParseContext) cc.String, cc.String]{Name: "gtk_buildable_parse_context_get_element_stack"}
+	gtk_buildable_parse_context_get_element_stack = cc.DlFunc[func(context *BuildableParseContext) *glib.GPtrArray[cc.String], *glib.GPtrArray[cc.String]]{Name: "gtk_buildable_parse_context_get_element_stack"}
 	gtk_buildable_parse_context_get_position      = cc.DlFunc[func(context *BuildableParseContext, lineNumber, charNumber *int32), cc.Void]{Name: "gtk_buildable_parse_context_get_position"}
 	// #endregion
 
@@ -363,14 +363,14 @@ var (
 	gtk_builder_error_quark               = cc.DlFunc[func() glib.GQuark, glib.GQuark]{Name: "gtk_builder_error_quark"}
 	gtk_builder_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_builder_get_type"}
 	gtk_builder_new                       = cc.DlFunc[func() *Builder, *Builder]{Name: "gtk_builder_new"}
-	gtk_builder_add_from_file             = cc.DlFunc[func(builder *Builder, filename cc.String, err **glib.GError) bool, bool]{Name: "gtk_builder_add_from_file"}
-	gtk_builder_add_from_resource         = cc.DlFunc[func(builder *Builder, resourcePath cc.String, err **glib.GError) bool, bool]{Name: "gtk_builder_add_from_resource"}
-	gtk_builder_add_from_string           = cc.DlFunc[func(builder *Builder, buffer cc.String, length int64, err **glib.GError) bool, bool]{Name: "gtk_builder_add_from_string"}
-	gtk_builder_add_objects_from_file     = cc.DlFunc[func(builder *Builder, filename cc.String, objectIds cc.Strings, err **glib.GError) bool, bool]{Name: "gtk_builder_add_objects_from_file"}
-	gtk_builder_add_objects_from_resource = cc.DlFunc[func(builder *Builder, resourcePath cc.String, objectIds cc.Strings, err **glib.GError) bool, bool]{Name: "gtk_builder_add_objects_from_resource"}
-	gtk_builder_add_objects_from_string   = cc.DlFunc[func(builder *Builder, buffer cc.String, length int64, objectIds cc.Strings, err **glib.GError) bool, bool]{Name: "gtk_builder_add_objects_from_string"}
+	gtk_builder_add_from_file             = cc.DlFunc[func(builder *Builder, filename cc.String, err **glib.GError) int32, int32]{Name: "gtk_builder_add_from_file"}
+	gtk_builder_add_from_resource         = cc.DlFunc[func(builder *Builder, resourcePath cc.String, err **glib.GError) int32, int32]{Name: "gtk_builder_add_from_resource"}
+	gtk_builder_add_from_string           = cc.DlFunc[func(builder *Builder, buffer cc.String, length int64, err **glib.GError) int32, int32]{Name: "gtk_builder_add_from_string"}
+	gtk_builder_add_objects_from_file     = cc.DlFunc[func(builder *Builder, filename cc.String, objectIds cc.Strings, err **glib.GError) int32, int32]{Name: "gtk_builder_add_objects_from_file"}
+	gtk_builder_add_objects_from_resource = cc.DlFunc[func(builder *Builder, resourcePath cc.String, objectIds cc.Strings, err **glib.GError) int32, int32]{Name: "gtk_builder_add_objects_from_resource"}
+	gtk_builder_add_objects_from_string   = cc.DlFunc[func(builder *Builder, buffer cc.String, length int64, objectIds cc.Strings, err **glib.GError) int32, int32]{Name: "gtk_builder_add_objects_from_string"}
 	gtk_builder_get_object                = cc.DlFunc[func(builder *Builder, name cc.String) *gobject.GObject, *gobject.GObject]{Name: "gtk_builder_get_object"}
-	gtk_builder_get_objects               = cc.DlFunc[func(builder *Builder) UPtr, UPtr]{Name: "gtk_builder_get_objects"}
+	gtk_builder_get_objects               = cc.DlFunc[func(builder *Builder) uptr, uptr]{Name: "gtk_builder_get_objects"}
 	gtk_builder_expose_object             = cc.DlFunc[func(builder *Builder, name cc.String, object *gobject.GObject), cc.Void]{Name: "gtk_builder_expose_object"}
 	gtk_builder_get_current_object        = cc.DlFunc[func(builder *Builder) *gobject.GObject, *gobject.GObject]{Name: "gtk_builder_get_current_object"}
 	gtk_builder_set_current_object        = cc.DlFunc[func(builder *Builder, currentObject *gobject.GObject), cc.Void]{Name: "gtk_builder_set_current_object"}
@@ -379,8 +379,8 @@ var (
 	gtk_builder_get_scope                 = cc.DlFunc[func(builder *Builder) *BuilderScope, *BuilderScope]{Name: "gtk_builder_get_scope"}
 	gtk_builder_set_scope                 = cc.DlFunc[func(builder *Builder, scope *BuilderScope), cc.Void]{Name: "gtk_builder_set_scope"}
 	gtk_builder_get_type_from_name        = cc.DlFunc[func(builder *Builder, typeName cc.String) gobject.GType, gobject.GType]{Name: "gtk_builder_get_type_from_name"}
-	gtk_builder_value_from_string         = cc.DlFunc[func(builder *Builder, pspec *gobject.GParamSpec, str cc.String, value *gobject.GValue, gerr **glib.GError) bool, bool]{Name: "gtk_builder_value_from_string"}
-	gtk_builder_value_from_string_type    = cc.DlFunc[func(builder *Builder, typ gobject.GType, str cc.String, value *gobject.GValue, gerr **glib.GError) bool, bool]{Name: "gtk_builder_value_from_string_type"}
+	gtk_builder_value_from_string         = cc.DlFunc[func(builder *Builder, pspec *gobject.GParamSpec, str cc.String, value *gobject.GValue, gerr **glib.GError) int32, int32]{Name: "gtk_builder_value_from_string"}
+	gtk_builder_value_from_string_type    = cc.DlFunc[func(builder *Builder, typ gobject.GType, str cc.String, value *gobject.GValue, gerr **glib.GError) int32, int32]{Name: "gtk_builder_value_from_string_type"}
 	gtk_builder_new_from_file             = cc.DlFunc[func(filename cc.String) *Builder, *Builder]{Name: "gtk_builder_new_from_file"}
 	gtk_builder_new_from_resource         = cc.DlFunc[func(resourcePath cc.String) *Builder, *Builder]{Name: "gtk_builder_new_from_resource"}
 	gtk_builder_new_from_string           = cc.DlFunc[func(str cc.String, length int64) *Builder, *Builder]{Name: "gtk_builder_new_from_string"}
@@ -399,9 +399,9 @@ var (
 	// #region BuilderScope
 	gtk_builder_cscope_get_type            = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_builder_cscope_get_type"}
 	gtk_builder_cscope_new                 = cc.DlFunc[func() *BuilderCScope, *BuilderCScope]{Name: "gtk_builder_cscope_new"}
-	gtk_builder_cscope_add_callback_symbol = cc.DlFunc[func(self *BuilderCScope, callbackName string, callbackSymbol UPtr), cc.Void]{Name: "gtk_builder_cscope_add_callback_symbol"}
+	gtk_builder_cscope_add_callback_symbol = cc.DlFunc[func(self *BuilderCScope, callbackName cc.String, callbackSymbol uptr), cc.Void]{Name: "gtk_builder_cscope_add_callback_symbol"}
 	// gtk_builder_cscope_add_callback_symbols   func(self *BuilderCScope, firstCallbackName string, firstCallbackSymbol uptr, args ...interface{})
-	gtk_builder_cscope_lookup_callback_symbol = cc.DlFunc[func(self *BuilderCScope, callbackName string) uintptr, uintptr]{Name: "gtk_builder_cscope_lookup_callback_symbol"}
+	gtk_builder_cscope_lookup_callback_symbol = cc.DlFunc[func(self *BuilderCScope, callbackName cc.String) uintptr, uintptr]{Name: "gtk_builder_cscope_lookup_callback_symbol"}
 	// #endregion
 
 	// #region Button
@@ -410,18 +410,18 @@ var (
 	gtk_button_new_with_label     = cc.DlFunc[func(label cc.String) *Button, *Button]{Name: "gtk_button_new_with_label"}
 	gtk_button_new_from_icon_name = cc.DlFunc[func(iconName cc.String) *Button, *Button]{Name: "gtk_button_new_from_icon_name"}
 	gtk_button_new_with_mnemonic  = cc.DlFunc[func(label cc.String) *Button, *Button]{Name: "gtk_button_new_with_mnemonic"}
-	gtk_button_set_has_frame      = cc.DlFunc[func(button *Button, hasFrame bool), cc.Void]{Name: "gtk_button_set_has_frame"}
-	gtk_button_get_has_frame      = cc.DlFunc[func(button *Button) bool, bool]{Name: "gtk_button_get_has_frame"}
+	gtk_button_set_has_frame      = cc.DlFunc[func(button *Button, hasFrame int32), cc.Void]{Name: "gtk_button_set_has_frame"}
+	gtk_button_get_has_frame      = cc.DlFunc[func(button *Button) int32, int32]{Name: "gtk_button_get_has_frame"}
 	gtk_button_set_label          = cc.DlFunc[func(button *Button, label cc.String), cc.Void]{Name: "gtk_button_set_label"}
 	gtk_button_get_label          = cc.DlFunc[func(button *Button) cc.String, cc.String]{Name: "gtk_button_get_label"}
-	gtk_button_set_use_underline  = cc.DlFunc[func(button *Button, useUnderline bool), cc.Void]{Name: "gtk_button_set_use_underline"}
-	gtk_button_get_use_underline  = cc.DlFunc[func(button *Button) bool, bool]{Name: "gtk_button_get_use_underline"}
+	gtk_button_set_use_underline  = cc.DlFunc[func(button *Button, useUnderline int32), cc.Void]{Name: "gtk_button_set_use_underline"}
+	gtk_button_get_use_underline  = cc.DlFunc[func(button *Button) int32, int32]{Name: "gtk_button_get_use_underline"}
 	gtk_button_set_icon_name      = cc.DlFunc[func(button *Button, iconName cc.String), cc.Void]{Name: "gtk_button_set_icon_name"}
 	gtk_button_get_icon_name      = cc.DlFunc[func(button *Button) cc.String, cc.String]{Name: "gtk_button_get_icon_name"}
 	gtk_button_set_child          = cc.DlFunc[func(button *Button, child *Widget), cc.Void]{Name: "gtk_button_set_child"}
 	gtk_button_get_child          = cc.DlFunc[func(button *Button) *Widget, *Widget]{Name: "gtk_button_get_child"}
-	gtk_button_set_can_shrink     = cc.DlFunc[func(button *Button, canShrink bool), cc.Void]{Name: "gtk_button_set_can_shrink"}
-	gtk_button_get_can_shrink     = cc.DlFunc[func(button *Button) bool, bool]{Name: "gtk_button_get_can_shrink"}
+	gtk_button_set_can_shrink     = cc.DlFunc[func(button *Button, canShrink int32), cc.Void]{Name: "gtk_button_set_can_shrink"}
+	gtk_button_get_can_shrink     = cc.DlFunc[func(button *Button) int32, int32]{Name: "gtk_button_get_can_shrink"}
 	// #endregion
 
 	// #region Calendar
@@ -431,12 +431,12 @@ var (
 	gtk_calendar_mark_day              = cc.DlFunc[func(calendar *Calendar, day uint32), cc.Void]{Name: "gtk_calendar_mark_day"}
 	gtk_calendar_unmark_day            = cc.DlFunc[func(calendar *Calendar, day uint32), cc.Void]{Name: "gtk_calendar_unmark_day"}
 	gtk_calendar_clear_marks           = cc.DlFunc[func(calendar *Calendar), cc.Void]{Name: "gtk_calendar_clear_marks"}
-	gtk_calendar_set_show_week_numbers = cc.DlFunc[func(self *Calendar, value bool), cc.Void]{Name: "gtk_calendar_set_show_week_numbers"}
-	gtk_calendar_get_show_week_numbers = cc.DlFunc[func(self *Calendar) bool, bool]{Name: "gtk_calendar_get_show_week_numbers"}
-	gtk_calendar_set_show_heading      = cc.DlFunc[func(self *Calendar, value bool), cc.Void]{Name: "gtk_calendar_set_show_heading"}
-	gtk_calendar_get_show_heading      = cc.DlFunc[func(self *Calendar) bool, bool]{Name: "gtk_calendar_get_show_heading"}
-	gtk_calendar_set_show_day_names    = cc.DlFunc[func(self *Calendar, value bool), cc.Void]{Name: "gtk_calendar_set_show_day_names"}
-	gtk_calendar_get_show_day_names    = cc.DlFunc[func(self *Calendar) bool, bool]{Name: "gtk_calendar_get_show_day_names"}
+	gtk_calendar_set_show_week_numbers = cc.DlFunc[func(self *Calendar, value int32), cc.Void]{Name: "gtk_calendar_set_show_week_numbers"}
+	gtk_calendar_get_show_week_numbers = cc.DlFunc[func(self *Calendar) int32, int32]{Name: "gtk_calendar_get_show_week_numbers"}
+	gtk_calendar_set_show_heading      = cc.DlFunc[func(self *Calendar, value int32), cc.Void]{Name: "gtk_calendar_set_show_heading"}
+	gtk_calendar_get_show_heading      = cc.DlFunc[func(self *Calendar) int32, int32]{Name: "gtk_calendar_get_show_heading"}
+	gtk_calendar_set_show_day_names    = cc.DlFunc[func(self *Calendar, value int32), cc.Void]{Name: "gtk_calendar_set_show_day_names"}
+	gtk_calendar_get_show_day_names    = cc.DlFunc[func(self *Calendar) int32, int32]{Name: "gtk_calendar_get_show_day_names"}
 	gtk_calendar_set_day               = cc.DlFunc[func(self *Calendar, day int32), cc.Void]{Name: "gtk_calendar_set_day"}
 	gtk_calendar_get_day               = cc.DlFunc[func(self *Calendar) int32, int32]{Name: "gtk_calendar_get_day"}
 	gtk_calendar_set_month             = cc.DlFunc[func(self *Calendar, month int32), cc.Void]{Name: "gtk_calendar_set_month"}
@@ -444,7 +444,7 @@ var (
 	gtk_calendar_set_year              = cc.DlFunc[func(self *Calendar, year int32), cc.Void]{Name: "gtk_calendar_set_year"}
 	gtk_calendar_get_year              = cc.DlFunc[func(self *Calendar) int32, int32]{Name: "gtk_calendar_get_year"}
 	gtk_calendar_get_date              = cc.DlFunc[func(self *Calendar) *glib.GDateTime, *glib.GDateTime]{Name: "gtk_calendar_get_date"}
-	gtk_calendar_get_day_is_marked     = cc.DlFunc[func(calendar *Calendar, day uint32) bool, bool]{Name: "gtk_calendar_get_day_is_marked"}
+	gtk_calendar_get_day_is_marked     = cc.DlFunc[func(calendar *Calendar, day uint32) int32, int32]{Name: "gtk_calendar_get_day_is_marked"}
 	// #endregion
 
 	// #region CenterBox
@@ -458,8 +458,8 @@ var (
 	gtk_center_box_get_end_widget         = cc.DlFunc[func(self *CenterBox) *Widget, *Widget]{Name: "gtk_center_box_get_end_widget"}
 	gtk_center_box_set_baseline_position  = cc.DlFunc[func(self *CenterBox, position BaselinePosition), cc.Void]{Name: "gtk_center_box_set_baseline_position"}
 	gtk_center_box_get_baseline_position  = cc.DlFunc[func(self *CenterBox) BaselinePosition, BaselinePosition]{Name: "gtk_center_box_get_baseline_position"}
-	gtk_center_box_set_shrink_center_last = cc.DlFunc[func(self *CenterBox, shrinkCenterLast bool), cc.Void]{Name: "gtk_center_box_set_shrink_center_last"}
-	gtk_center_box_get_shrink_center_last = cc.DlFunc[func(self *CenterBox) bool, bool]{Name: "gtk_center_box_get_shrink_center_last"}
+	gtk_center_box_set_shrink_center_last = cc.DlFunc[func(self *CenterBox, shrinkCenterLast int32), cc.Void]{Name: "gtk_center_box_set_shrink_center_last"}
+	gtk_center_box_get_shrink_center_last = cc.DlFunc[func(self *CenterBox) int32, int32]{Name: "gtk_center_box_get_shrink_center_last"}
 	// #endregion
 
 	// #region CenterLayout
@@ -475,8 +475,8 @@ var (
 	gtk_center_layout_get_center_widget      = cc.DlFunc[func(*CenterLayout) *Widget, *Widget]{Name: "gtk_center_layout_get_center_widget"}
 	gtk_center_layout_set_end_widget         = cc.DlFunc[func(*CenterLayout, *Widget), cc.Void]{Name: "gtk_center_layout_set_end_widget"}
 	gtk_center_layout_get_end_widget         = cc.DlFunc[func(*CenterLayout) *Widget, *Widget]{Name: "gtk_center_layout_get_end_widget"}
-	gtk_center_layout_set_shrink_center_last = cc.DlFunc[func(*CenterLayout, bool), cc.Void]{Name: "gtk_center_layout_set_shrink_center_last"}
-	gtk_center_layout_get_shrink_center_last = cc.DlFunc[func(*CenterLayout) bool, bool]{Name: "gtk_center_layout_get_shrink_center_last"}
+	gtk_center_layout_set_shrink_center_last = cc.DlFunc[func(*CenterLayout, int32), cc.Void]{Name: "gtk_center_layout_set_shrink_center_last"}
+	gtk_center_layout_get_shrink_center_last = cc.DlFunc[func(*CenterLayout) int32, int32]{Name: "gtk_center_layout_get_shrink_center_last"}
 	// #endregion
 
 	// #region CheckButton
@@ -484,15 +484,15 @@ var (
 	gtk_check_button_new               = cc.DlFunc[func() *CheckButton, *CheckButton]{Name: "gtk_check_button_new"}
 	gtk_check_button_new_with_label    = cc.DlFunc[func(label cc.String) *CheckButton, *CheckButton]{Name: "gtk_check_button_new_with_label"}
 	gtk_check_button_new_with_mnemonic = cc.DlFunc[func(label cc.String) *CheckButton, *CheckButton]{Name: "gtk_check_button_new_with_mnemonic"}
-	gtk_check_button_set_inconsistent  = cc.DlFunc[func(checkButton *CheckButton, inconsistent bool), cc.Void]{Name: "gtk_check_button_set_inconsistent"}
-	gtk_check_button_get_inconsistent  = cc.DlFunc[func(checkButton *CheckButton) bool, bool]{Name: "gtk_check_button_get_inconsistent"}
-	gtk_check_button_get_active        = cc.DlFunc[func(checkButton *CheckButton) bool, bool]{Name: "gtk_check_button_get_active"}
-	gtk_check_button_set_active        = cc.DlFunc[func(checkButton *CheckButton, setting bool), cc.Void]{Name: "gtk_check_button_set_active"}
+	gtk_check_button_set_inconsistent  = cc.DlFunc[func(checkButton *CheckButton, inconsistent int32), cc.Void]{Name: "gtk_check_button_set_inconsistent"}
+	gtk_check_button_get_inconsistent  = cc.DlFunc[func(checkButton *CheckButton) int32, int32]{Name: "gtk_check_button_get_inconsistent"}
+	gtk_check_button_get_active        = cc.DlFunc[func(checkButton *CheckButton) int32, int32]{Name: "gtk_check_button_get_active"}
+	gtk_check_button_set_active        = cc.DlFunc[func(checkButton *CheckButton, setting int32), cc.Void]{Name: "gtk_check_button_set_active"}
 	gtk_check_button_get_label         = cc.DlFunc[func(*CheckButton) cc.String, cc.String]{Name: "gtk_check_button_get_label"}
 	gtk_check_button_set_label         = cc.DlFunc[func(*CheckButton, cc.String), cc.Void]{Name: "gtk_check_button_set_label"}
 	gtk_check_button_set_group         = cc.DlFunc[func(*CheckButton, *CheckButton), cc.Void]{Name: "gtk_check_button_set_group"}
-	gtk_check_button_get_use_underline = cc.DlFunc[func(*CheckButton) bool, bool]{Name: "gtk_check_button_get_use_underline"}
-	gtk_check_button_set_use_underline = cc.DlFunc[func(*CheckButton, bool), cc.Void]{Name: "gtk_check_button_set_use_underline"}
+	gtk_check_button_get_use_underline = cc.DlFunc[func(*CheckButton) int32, int32]{Name: "gtk_check_button_get_use_underline"}
+	gtk_check_button_set_use_underline = cc.DlFunc[func(*CheckButton, int32), cc.Void]{Name: "gtk_check_button_set_use_underline"}
 	gtk_check_button_get_child         = cc.DlFunc[func(*CheckButton) *Widget, *Widget]{Name: "gtk_check_button_get_child"}
 	gtk_check_button_set_child         = cc.DlFunc[func(*CheckButton, *Widget), cc.Void]{Name: "gtk_check_button_set_child"}
 	// #endregion
@@ -502,11 +502,11 @@ var (
 	gtk_color_dialog_new                = cc.DlFunc[func() *ColorDialog, *ColorDialog]{Name: "gtk_color_dialog_new"}
 	gtk_color_dialog_get_title          = cc.DlFunc[func(*ColorDialog) cc.String, cc.String]{Name: "gtk_color_dialog_get_title"}
 	gtk_color_dialog_set_title          = cc.DlFunc[func(*ColorDialog, cc.String), cc.Void]{Name: "gtk_color_dialog_set_title"}
-	gtk_color_dialog_get_modal          = cc.DlFunc[func(*ColorDialog) bool, bool]{Name: "gtk_color_dialog_get_modal"}
-	gtk_color_dialog_set_modal          = cc.DlFunc[func(*ColorDialog, bool), cc.Void]{Name: "gtk_color_dialog_set_modal"}
-	gtk_color_dialog_get_with_alpha     = cc.DlFunc[func(*ColorDialog) bool, bool]{Name: "gtk_color_dialog_get_with_alpha"}
-	gtk_color_dialog_set_with_alpha     = cc.DlFunc[func(*ColorDialog, bool), cc.Void]{Name: "gtk_color_dialog_set_with_alpha"}
-	gtk_color_dialog_choose_rgba        = cc.DlFunc[func(*ColorDialog, *Window, *gdk.RGBA, *gio.GCancellable, UPtr, UPtr), cc.Void]{Name: "gtk_color_dialog_choose_rgba"}
+	gtk_color_dialog_get_modal          = cc.DlFunc[func(*ColorDialog) int32, int32]{Name: "gtk_color_dialog_get_modal"}
+	gtk_color_dialog_set_modal          = cc.DlFunc[func(*ColorDialog, int32), cc.Void]{Name: "gtk_color_dialog_set_modal"}
+	gtk_color_dialog_get_with_alpha     = cc.DlFunc[func(*ColorDialog) int32, int32]{Name: "gtk_color_dialog_get_with_alpha"}
+	gtk_color_dialog_set_with_alpha     = cc.DlFunc[func(*ColorDialog, int32), cc.Void]{Name: "gtk_color_dialog_set_with_alpha"}
+	gtk_color_dialog_choose_rgba        = cc.DlFunc[func(*ColorDialog, *Window, *gdk.RGBA, *gio.GCancellable, uptr, uptr), cc.Void]{Name: "gtk_color_dialog_choose_rgba"}
 	gtk_color_dialog_choose_rgba_finish = cc.DlFunc[func(*ColorDialog, *gio.GAsyncResult, **glib.GError) *gdk.RGBA, *gdk.RGBA]{Name: "gtk_color_dialog_choose_rgba_finish"}
 	// #endregion
 
@@ -530,18 +530,18 @@ var (
 	gtk_column_view_insert_column              = cc.DlFunc[func(self *ColumnView, position uint32, column *ColumnViewColumn), cc.Void]{Name: "gtk_column_view_insert_column"}
 	gtk_column_view_get_model                  = cc.DlFunc[func(self *ColumnView) *SelectionModel, *SelectionModel]{Name: "gtk_column_view_get_model"}
 	gtk_column_view_set_model                  = cc.DlFunc[func(self *ColumnView, model *SelectionModel), cc.Void]{Name: "gtk_column_view_set_model"}
-	gtk_column_view_get_show_row_separators    = cc.DlFunc[func(self *ColumnView) bool, bool]{Name: "gtk_column_view_get_show_row_separators"}
-	gtk_column_view_set_show_row_separators    = cc.DlFunc[func(self *ColumnView, showRowSeparators bool), cc.Void]{Name: "gtk_column_view_set_show_row_separators"}
-	gtk_column_view_get_show_column_separators = cc.DlFunc[func(self *ColumnView) bool, bool]{Name: "gtk_column_view_get_show_column_separators"}
-	gtk_column_view_set_show_column_separators = cc.DlFunc[func(self *ColumnView, showColumnSeparators bool), cc.Void]{Name: "gtk_column_view_set_show_column_separators"}
+	gtk_column_view_get_show_row_separators    = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_show_row_separators"}
+	gtk_column_view_set_show_row_separators    = cc.DlFunc[func(self *ColumnView, showRowSeparators int32), cc.Void]{Name: "gtk_column_view_set_show_row_separators"}
+	gtk_column_view_get_show_column_separators = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_show_column_separators"}
+	gtk_column_view_set_show_column_separators = cc.DlFunc[func(self *ColumnView, showColumnSeparators int32), cc.Void]{Name: "gtk_column_view_set_show_column_separators"}
 	gtk_column_view_get_sorter                 = cc.DlFunc[func(self *ColumnView) *Sorter, *Sorter]{Name: "gtk_column_view_get_sorter"}
 	gtk_column_view_sort_by_column             = cc.DlFunc[func(self *ColumnView, column *ColumnViewColumn, direction SortType), cc.Void]{Name: "gtk_column_view_sort_by_column"}
-	gtk_column_view_set_single_click_activate  = cc.DlFunc[func(self *ColumnView, singleClickActivate bool), cc.Void]{Name: "gtk_column_view_set_single_click_activate"}
-	gtk_column_view_get_single_click_activate  = cc.DlFunc[func(self *ColumnView) bool, bool]{Name: "gtk_column_view_get_single_click_activate"}
-	gtk_column_view_set_reorderable            = cc.DlFunc[func(self *ColumnView, reorderable bool), cc.Void]{Name: "gtk_column_view_set_reorderable"}
-	gtk_column_view_get_reorderable            = cc.DlFunc[func(self *ColumnView) bool, bool]{Name: "gtk_column_view_get_reorderable"}
-	gtk_column_view_set_enable_rubberband      = cc.DlFunc[func(self *ColumnView, enableRubberband bool), cc.Void]{Name: "gtk_column_view_set_enable_rubberband"}
-	gtk_column_view_get_enable_rubberband      = cc.DlFunc[func(self *ColumnView) bool, bool]{Name: "gtk_column_view_get_enable_rubberband"}
+	gtk_column_view_set_single_click_activate  = cc.DlFunc[func(self *ColumnView, singleClickActivate int32), cc.Void]{Name: "gtk_column_view_set_single_click_activate"}
+	gtk_column_view_get_single_click_activate  = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_single_click_activate"}
+	gtk_column_view_set_reorderable            = cc.DlFunc[func(self *ColumnView, reorderable int32), cc.Void]{Name: "gtk_column_view_set_reorderable"}
+	gtk_column_view_get_reorderable            = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_reorderable"}
+	gtk_column_view_set_enable_rubberband      = cc.DlFunc[func(self *ColumnView, enableRubberband int32), cc.Void]{Name: "gtk_column_view_set_enable_rubberband"}
+	gtk_column_view_get_enable_rubberband      = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_enable_rubberband"}
 	gtk_column_view_set_tab_behavior           = cc.DlFunc[func(self *ColumnView, tabBehavior ListTabBehavior), cc.Void]{Name: "gtk_column_view_set_tab_behavior"}
 	gtk_column_view_get_tab_behavior           = cc.DlFunc[func(self *ColumnView) ListTabBehavior, ListTabBehavior]{Name: "gtk_column_view_get_tab_behavior"}
 	gtk_column_view_set_row_factory            = cc.DlFunc[func(self *ColumnView, factory *ListItemFactory), cc.Void]{Name: "gtk_column_view_set_row_factory"}
@@ -553,11 +553,11 @@ var (
 
 	// #region ColumnViewCell
 	gtk_column_view_cell_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_column_view_cell_get_type"}
-	gtk_column_view_cell_get_item      = cc.DlFunc[func(*ColumnViewCell) UPtr, UPtr]{Name: "gtk_column_view_cell_get_item"}
+	gtk_column_view_cell_get_item      = cc.DlFunc[func(*ColumnViewCell) uptr, uptr]{Name: "gtk_column_view_cell_get_item"}
 	gtk_column_view_cell_get_position  = cc.DlFunc[func(*ColumnViewCell) uint32, uint32]{Name: "gtk_column_view_cell_get_position"}
-	gtk_column_view_cell_get_selected  = cc.DlFunc[func(*ColumnViewCell) bool, bool]{Name: "gtk_column_view_cell_get_selected"}
-	gtk_column_view_cell_get_focusable = cc.DlFunc[func(*ColumnViewCell) bool, bool]{Name: "gtk_column_view_cell_get_focusable"}
-	gtk_column_view_cell_set_focusable = cc.DlFunc[func(*ColumnViewCell, bool), cc.Void]{Name: "gtk_column_view_cell_set_focusable"}
+	gtk_column_view_cell_get_selected  = cc.DlFunc[func(*ColumnViewCell) int32, int32]{Name: "gtk_column_view_cell_get_selected"}
+	gtk_column_view_cell_get_focusable = cc.DlFunc[func(*ColumnViewCell) int32, int32]{Name: "gtk_column_view_cell_get_focusable"}
+	gtk_column_view_cell_set_focusable = cc.DlFunc[func(*ColumnViewCell, int32), cc.Void]{Name: "gtk_column_view_cell_set_focusable"}
 	gtk_column_view_cell_set_child     = cc.DlFunc[func(*ColumnViewCell, *Widget), cc.Void]{Name: "gtk_column_view_cell_set_child"}
 	gtk_column_view_cell_get_child     = cc.DlFunc[func(*ColumnViewCell) *Widget, *Widget]{Name: "gtk_column_view_cell_get_child"}
 	// #endregion
@@ -572,31 +572,31 @@ var (
 	gtk_column_view_column_get_title       = cc.DlFunc[func(self *ColumnViewColumn) cc.String, cc.String]{Name: "gtk_column_view_column_get_title"}
 	gtk_column_view_column_set_sorter      = cc.DlFunc[func(self *ColumnViewColumn, sorter *Sorter), cc.Void]{Name: "gtk_column_view_column_set_sorter"}
 	gtk_column_view_column_get_sorter      = cc.DlFunc[func(self *ColumnViewColumn) *Sorter, *Sorter]{Name: "gtk_column_view_column_get_sorter"}
-	gtk_column_view_column_set_visible     = cc.DlFunc[func(self *ColumnViewColumn, visible bool), cc.Void]{Name: "gtk_column_view_column_set_visible"}
-	gtk_column_view_column_get_visible     = cc.DlFunc[func(self *ColumnViewColumn) bool, bool]{Name: "gtk_column_view_column_get_visible"}
+	gtk_column_view_column_set_visible     = cc.DlFunc[func(self *ColumnViewColumn, visible int32), cc.Void]{Name: "gtk_column_view_column_set_visible"}
+	gtk_column_view_column_get_visible     = cc.DlFunc[func(self *ColumnViewColumn) int32, int32]{Name: "gtk_column_view_column_get_visible"}
 	gtk_column_view_column_set_header_menu = cc.DlFunc[func(self *ColumnViewColumn, menu *gio.GMenuModel), cc.Void]{Name: "gtk_column_view_column_set_header_menu"}
 	gtk_column_view_column_get_header_menu = cc.DlFunc[func(self *ColumnViewColumn) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_column_view_column_get_header_menu"}
 	gtk_column_view_column_set_fixed_width = cc.DlFunc[func(self *ColumnViewColumn, fixedWidth int32), cc.Void]{Name: "gtk_column_view_column_set_fixed_width"}
 	gtk_column_view_column_get_fixed_width = cc.DlFunc[func(self *ColumnViewColumn) int32, int32]{Name: "gtk_column_view_column_get_fixed_width"}
-	gtk_column_view_column_set_resizable   = cc.DlFunc[func(self *ColumnViewColumn, resizable bool), cc.Void]{Name: "gtk_column_view_column_set_resizable"}
-	gtk_column_view_column_get_resizable   = cc.DlFunc[func(self *ColumnViewColumn) bool, bool]{Name: "gtk_column_view_column_get_resizable"}
-	gtk_column_view_column_set_expand      = cc.DlFunc[func(self *ColumnViewColumn, expand bool), cc.Void]{Name: "gtk_column_view_column_set_expand"}
-	gtk_column_view_column_get_expand      = cc.DlFunc[func(self *ColumnViewColumn) bool, bool]{Name: "gtk_column_view_column_get_expand"}
+	gtk_column_view_column_set_resizable   = cc.DlFunc[func(self *ColumnViewColumn, resizable int32), cc.Void]{Name: "gtk_column_view_column_set_resizable"}
+	gtk_column_view_column_get_resizable   = cc.DlFunc[func(self *ColumnViewColumn) int32, int32]{Name: "gtk_column_view_column_get_resizable"}
+	gtk_column_view_column_set_expand      = cc.DlFunc[func(self *ColumnViewColumn, expand int32), cc.Void]{Name: "gtk_column_view_column_set_expand"}
+	gtk_column_view_column_get_expand      = cc.DlFunc[func(self *ColumnViewColumn) int32, int32]{Name: "gtk_column_view_column_get_expand"}
 	gtk_column_view_column_set_id          = cc.DlFunc[func(self *ColumnViewColumn, id cc.String), cc.Void]{Name: "gtk_column_view_column_set_id"}
 	gtk_column_view_column_get_id          = cc.DlFunc[func(self *ColumnViewColumn) cc.String, cc.String]{Name: "gtk_column_view_column_get_id"}
 	// #endregion
 
 	// #region ColumnViewRow
 	gtk_column_view_row_get_type                   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_column_view_row_get_type"}
-	gtk_column_view_row_get_item                   = cc.DlFunc[func(*ColumnViewRow) UPtr, UPtr]{Name: "gtk_column_view_row_get_item"}
+	gtk_column_view_row_get_item                   = cc.DlFunc[func(*ColumnViewRow) uptr, uptr]{Name: "gtk_column_view_row_get_item"}
 	gtk_column_view_row_get_position               = cc.DlFunc[func(*ColumnViewRow) uint32, uint32]{Name: "gtk_column_view_row_get_position"}
-	gtk_column_view_row_get_selected               = cc.DlFunc[func(*ColumnViewRow) bool, bool]{Name: "gtk_column_view_row_get_selected"}
-	gtk_column_view_row_get_selectable             = cc.DlFunc[func(*ColumnViewRow) bool, bool]{Name: "gtk_column_view_row_get_selectable"}
-	gtk_column_view_row_set_selectable             = cc.DlFunc[func(*ColumnViewRow, bool), cc.Void]{Name: "gtk_column_view_row_set_selectable"}
-	gtk_column_view_row_get_activatable            = cc.DlFunc[func(*ColumnViewRow) bool, bool]{Name: "gtk_column_view_row_get_activatable"}
-	gtk_column_view_row_set_activatable            = cc.DlFunc[func(*ColumnViewRow, bool), cc.Void]{Name: "gtk_column_view_row_set_activatable"}
-	gtk_column_view_row_get_focusable              = cc.DlFunc[func(*ColumnViewRow) bool, bool]{Name: "gtk_column_view_row_get_focusable"}
-	gtk_column_view_row_set_focusable              = cc.DlFunc[func(*ColumnViewRow, bool), cc.Void]{Name: "gtk_column_view_row_set_focusable"}
+	gtk_column_view_row_get_selected               = cc.DlFunc[func(*ColumnViewRow) int32, int32]{Name: "gtk_column_view_row_get_selected"}
+	gtk_column_view_row_get_selectable             = cc.DlFunc[func(*ColumnViewRow) int32, int32]{Name: "gtk_column_view_row_get_selectable"}
+	gtk_column_view_row_set_selectable             = cc.DlFunc[func(*ColumnViewRow, int32), cc.Void]{Name: "gtk_column_view_row_set_selectable"}
+	gtk_column_view_row_get_activatable            = cc.DlFunc[func(*ColumnViewRow) int32, int32]{Name: "gtk_column_view_row_get_activatable"}
+	gtk_column_view_row_set_activatable            = cc.DlFunc[func(*ColumnViewRow, int32), cc.Void]{Name: "gtk_column_view_row_set_activatable"}
+	gtk_column_view_row_get_focusable              = cc.DlFunc[func(*ColumnViewRow) int32, int32]{Name: "gtk_column_view_row_get_focusable"}
+	gtk_column_view_row_set_focusable              = cc.DlFunc[func(*ColumnViewRow, int32), cc.Void]{Name: "gtk_column_view_row_set_focusable"}
 	gtk_column_view_row_get_accessible_description = cc.DlFunc[func(*ColumnViewRow) cc.String, cc.String]{Name: "gtk_column_view_row_get_accessible_description"}
 	gtk_column_view_row_set_accessible_description = cc.DlFunc[func(*ColumnViewRow, cc.String), cc.Void]{Name: "gtk_column_view_row_set_accessible_description"}
 	gtk_column_view_row_get_accessible_label       = cc.DlFunc[func(*ColumnViewRow) cc.String, cc.String]{Name: "gtk_column_view_row_get_accessible_label"}
@@ -622,9 +622,9 @@ var (
 	gtk_constraint_get_multiplier       = cc.DlFunc[func(constraint *Constraint) float64, float64]{Name: "gtk_constraint_get_multiplier"}
 	gtk_constraint_get_constant         = cc.DlFunc[func(constraint *Constraint) float64, float64]{Name: "gtk_constraint_get_constant"}
 	gtk_constraint_get_strength         = cc.DlFunc[func(constraint *Constraint) int32, int32]{Name: "gtk_constraint_get_strength"}
-	gtk_constraint_is_required          = cc.DlFunc[func(constraint *Constraint) bool, bool]{Name: "gtk_constraint_is_required"}
-	gtk_constraint_is_attached          = cc.DlFunc[func(constraint *Constraint) bool, bool]{Name: "gtk_constraint_is_attached"}
-	gtk_constraint_is_constant          = cc.DlFunc[func(constraint *Constraint) bool, bool]{Name: "gtk_constraint_is_constant"}
+	gtk_constraint_is_required          = cc.DlFunc[func(constraint *Constraint) int32, int32]{Name: "gtk_constraint_is_required"}
+	gtk_constraint_is_attached          = cc.DlFunc[func(constraint *Constraint) int32, int32]{Name: "gtk_constraint_is_attached"}
+	gtk_constraint_is_constant          = cc.DlFunc[func(constraint *Constraint) int32, int32]{Name: "gtk_constraint_is_constant"}
 	// #endregion
 
 	// #region ConstraintGuide
@@ -638,7 +638,7 @@ var (
 	gtk_constraint_guide_get_max_size = cc.DlFunc[func(*ConstraintGuide, *int32, *int32), cc.Void]{Name: "gtk_constraint_guide_get_max_size"}
 	gtk_constraint_guide_get_strength = cc.DlFunc[func(*ConstraintGuide) ConstraintStrength, ConstraintStrength]{Name: "gtk_constraint_guide_get_strength"}
 	gtk_constraint_guide_set_strength = cc.DlFunc[func(*ConstraintGuide, ConstraintStrength), cc.Void]{Name: "gtk_constraint_guide_set_strength"}
-	gtk_constraint_guide_set_name     = cc.DlFunc[func(*ConstraintGuide, string), cc.Void]{Name: "gtk_constraint_guide_set_name"}
+	gtk_constraint_guide_set_name     = cc.DlFunc[func(*ConstraintGuide, cc.String), cc.Void]{Name: "gtk_constraint_guide_set_name"}
 	gtk_constraint_guide_get_name     = cc.DlFunc[func(*ConstraintGuide) cc.String, cc.String]{Name: "gtk_constraint_guide_get_name"}
 	// #endregion
 
@@ -656,7 +656,7 @@ var (
 	gtk_css_provider_get_type           = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_css_provider_get_type"}
 	gtk_css_provider_new                = cc.DlFunc[func() *CssProvider, *CssProvider]{Name: "gtk_css_provider_new"}
 	gtk_css_provider_to_string          = cc.DlFunc[func(provider *CssProvider) cc.String, cc.String]{Name: "gtk_css_provider_to_string"}
-	gtk_css_provider_load_from_data     = cc.DlFunc[func(provider *CssProvider, data UPtr, length int64), cc.Void]{Name: "gtk_css_provider_load_from_data"}
+	gtk_css_provider_load_from_data     = cc.DlFunc[func(provider *CssProvider, data uptr, length int64), cc.Void]{Name: "gtk_css_provider_load_from_data"}
 	gtk_css_provider_load_from_string   = cc.DlFunc[func(provider *CssProvider, str cc.String), cc.Void]{Name: "gtk_css_provider_load_from_string"}
 	gtk_css_provider_load_from_path     = cc.DlFunc[func(provider *CssProvider, path cc.String), cc.Void]{Name: "gtk_css_provider_load_from_path"}
 	gtk_css_provider_load_from_resource = cc.DlFunc[func(provider *CssProvider, resourcePath cc.String), cc.Void]{Name: "gtk_css_provider_load_from_resource"}
@@ -665,19 +665,19 @@ var (
 
 	// #region CustomFilter
 	gtk_custom_filter_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_custom_filter_get_type"}
-	gtk_custom_filter_new             = cc.DlFunc[func(matchFunc, userData UPtr, userDestroy UPtr) *CustomFilter, *CustomFilter]{Name: "gtk_custom_filter_new"}
-	gtk_custom_filter_set_filter_func = cc.DlFunc[func(cf *CustomFilter, uptr, userData, userDestroy UPtr), cc.Void]{Name: "gtk_custom_filter_set_filter_func"}
+	gtk_custom_filter_new             = cc.DlFunc[func(matchFunc, userData uptr, userDestroy uptr) *CustomFilter, *CustomFilter]{Name: "gtk_custom_filter_new"}
+	gtk_custom_filter_set_filter_func = cc.DlFunc[func(cf *CustomFilter, uptr, userData, userDestroy uptr), cc.Void]{Name: "gtk_custom_filter_set_filter_func"}
 	// #endregion
 
 	// #region CustomLayout
 	gtk_custom_layout_get_type = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_custom_layout_get_type"}
-	gtk_custom_layout_new      = cc.DlFunc[func(requestMode UPtr, measure UPtr, allocate UPtr) *LayoutManager, *LayoutManager]{Name: "gtk_custom_layout_new"}
+	gtk_custom_layout_new      = cc.DlFunc[func(requestMode uptr, measure uptr, allocate uptr) *CustomLayout, *CustomLayout]{Name: "gtk_custom_layout_new"}
 	// #endregion
 
 	// #region CustomSorter
 	gtk_custom_sorter_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_custom_sorter_get_type"}
-	gtk_custom_sorter_new           = cc.DlFunc[func(sortFunc UPtr, userData UPtr, userDestroy UPtr) *CustomSorter, *CustomSorter]{Name: "gtk_custom_sorter_new"}
-	gtk_custom_sorter_set_sort_func = cc.DlFunc[func(sorter *CustomSorter, sortFunc UPtr, userData UPtr, userDestroy UPtr), cc.Void]{Name: "gtk_custom_sorter_set_sort_func"}
+	gtk_custom_sorter_new           = cc.DlFunc[func(sortFunc uptr, userData uptr, userDestroy uptr) *CustomSorter, *CustomSorter]{Name: "gtk_custom_sorter_new"}
+	gtk_custom_sorter_set_sort_func = cc.DlFunc[func(sorter *CustomSorter, sortFunc uptr, userData uptr, userDestroy uptr), cc.Void]{Name: "gtk_custom_sorter_set_sort_func"}
 	// #endregion
 
 	// #region DebugFlags
@@ -698,10 +698,10 @@ var (
 	gtk_directory_list_get_attributes  = cc.DlFunc[func(dl *DirectoryList) cc.String, cc.String]{Name: "gtk_directory_list_get_attributes"}
 	gtk_directory_list_set_io_priority = cc.DlFunc[func(dl *DirectoryList, ioPriority int32), cc.Void]{Name: "gtk_directory_list_set_io_priority"}
 	gtk_directory_list_get_io_priority = cc.DlFunc[func(dl *DirectoryList) int32, int32]{Name: "gtk_directory_list_get_io_priority"}
-	gtk_directory_list_is_loading      = cc.DlFunc[func(dl *DirectoryList) bool, bool]{Name: "gtk_directory_list_is_loading"}
+	gtk_directory_list_is_loading      = cc.DlFunc[func(dl *DirectoryList) int32, int32]{Name: "gtk_directory_list_is_loading"}
 	gtk_directory_list_get_error       = cc.DlFunc[func(dl *DirectoryList) *glib.GError, *glib.GError]{Name: "gtk_directory_list_get_error"}
-	gtk_directory_list_set_monitored   = cc.DlFunc[func(dl *DirectoryList, monitored bool), cc.Void]{Name: "gtk_directory_list_set_monitored"}
-	gtk_directory_list_get_monitored   = cc.DlFunc[func(dl *DirectoryList) bool, bool]{Name: "gtk_directory_list_get_monitored"}
+	gtk_directory_list_set_monitored   = cc.DlFunc[func(dl *DirectoryList, monitored int32), cc.Void]{Name: "gtk_directory_list_set_monitored"}
+	gtk_directory_list_get_monitored   = cc.DlFunc[func(dl *DirectoryList) int32, int32]{Name: "gtk_directory_list_get_monitored"}
 	// #endregion
 
 	// #region DragIcon
@@ -723,7 +723,7 @@ var (
 	gtk_drag_source_set_icon    = cc.DlFunc[func(source *DragSource, paintable *gdk.Paintable, hotX, hotY int32), cc.Void]{Name: "gtk_drag_source_set_icon"}
 	gtk_drag_source_drag_cancel = cc.DlFunc[func(source *DragSource), cc.Void]{Name: "gtk_drag_source_drag_cancel"}
 	gtk_drag_source_get_drag    = cc.DlFunc[func(source *DragSource) *gdk.Drag, *gdk.Drag]{Name: "gtk_drag_source_get_drag"}
-	gtk_drag_check_threshold    = cc.DlFunc[func(widget *Widget, startX, startY, currentX, currentY int32) bool, bool]{Name: "gtk_drag_check_threshold"}
+	gtk_drag_check_threshold    = cc.DlFunc[func(widget *Widget, startX, startY, currentX, currentY int32) int32, int32]{Name: "gtk_drag_check_threshold"}
 	// #endregion
 
 	// #region DrawingArea
@@ -733,15 +733,15 @@ var (
 	gtk_drawing_area_get_content_width  = cc.DlFunc[func(da *DrawingArea) int32, int32]{Name: "gtk_drawing_area_get_content_width"}
 	gtk_drawing_area_set_content_height = cc.DlFunc[func(da *DrawingArea, height int32), cc.Void]{Name: "gtk_drawing_area_set_content_height"}
 	gtk_drawing_area_get_content_height = cc.DlFunc[func(da *DrawingArea) int32, int32]{Name: "gtk_drawing_area_get_content_height"}
-	gtk_drawing_area_set_draw_func      = cc.DlFunc[func(da *DrawingArea, drawFunc UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_drawing_area_set_draw_func"}
+	gtk_drawing_area_set_draw_func      = cc.DlFunc[func(da *DrawingArea, drawFunc uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_drawing_area_set_draw_func"}
 	// #endregion
 
 	// #region DropControllerMotion
 	gtk_drop_controller_motion_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_drop_controller_motion_get_type"}
 	gtk_drop_controller_motion_new              = cc.DlFunc[func() *DropControllerMotion, *DropControllerMotion]{Name: "gtk_drop_controller_motion_new"}
-	gtk_drop_controller_motion_contains_pointer = cc.DlFunc[func(controller *DropControllerMotion) bool, bool]{Name: "gtk_drop_controller_motion_contains_pointer"}
+	gtk_drop_controller_motion_contains_pointer = cc.DlFunc[func(controller *DropControllerMotion) int32, int32]{Name: "gtk_drop_controller_motion_contains_pointer"}
 	gtk_drop_controller_motion_get_drop         = cc.DlFunc[func(controller *DropControllerMotion) *gdk.Drop, *gdk.Drop]{Name: "gtk_drop_controller_motion_get_drop"}
-	gtk_drop_controller_motion_is_pointer       = cc.DlFunc[func(controller *DropControllerMotion) bool, bool]{Name: "gtk_drop_controller_motion_is_pointer"}
+	gtk_drop_controller_motion_is_pointer       = cc.DlFunc[func(controller *DropControllerMotion) int32, int32]{Name: "gtk_drop_controller_motion_is_pointer"}
 	// #endregion
 
 	// #region DropDown
@@ -752,7 +752,7 @@ var (
 	gtk_drop_down_get_model             = cc.DlFunc[func(dd *DropDown) *gio.GListModel, *gio.GListModel]{Name: "gtk_drop_down_get_model"}
 	gtk_drop_down_set_selected          = cc.DlFunc[func(dd *DropDown, position uint32), cc.Void]{Name: "gtk_drop_down_set_selected"}
 	gtk_drop_down_get_selected          = cc.DlFunc[func(dd *DropDown) uint32, uint32]{Name: "gtk_drop_down_get_selected"}
-	gtk_drop_down_get_selected_item     = cc.DlFunc[func(dd *DropDown) UPtr, UPtr]{Name: "gtk_drop_down_get_selected_item"}
+	gtk_drop_down_get_selected_item     = cc.DlFunc[func(dd *DropDown) uptr, uptr]{Name: "gtk_drop_down_get_selected_item"}
 	gtk_drop_down_set_factory           = cc.DlFunc[func(dd *DropDown, factory *ListItemFactory), cc.Void]{Name: "gtk_drop_down_set_factory"}
 	gtk_drop_down_get_factory           = cc.DlFunc[func(dd *DropDown) *ListItemFactory, *ListItemFactory]{Name: "gtk_drop_down_get_factory"}
 	gtk_drop_down_set_list_factory      = cc.DlFunc[func(dd *DropDown, factory *ListItemFactory), cc.Void]{Name: "gtk_drop_down_set_list_factory"}
@@ -761,10 +761,10 @@ var (
 	gtk_drop_down_get_header_factory    = cc.DlFunc[func(dd *DropDown) *ListItemFactory, *ListItemFactory]{Name: "gtk_drop_down_get_header_factory"}
 	gtk_drop_down_set_expression        = cc.DlFunc[func(dd *DropDown, expression *Expression), cc.Void]{Name: "gtk_drop_down_set_expression"}
 	gtk_drop_down_get_expression        = cc.DlFunc[func(dd *DropDown) *Expression, *Expression]{Name: "gtk_drop_down_get_expression"}
-	gtk_drop_down_set_enable_search     = cc.DlFunc[func(dd *DropDown, enableSearch bool), cc.Void]{Name: "gtk_drop_down_set_enable_search"}
-	gtk_drop_down_get_enable_search     = cc.DlFunc[func(dd *DropDown) bool, bool]{Name: "gtk_drop_down_get_enable_search"}
-	gtk_drop_down_set_show_arrow        = cc.DlFunc[func(dd *DropDown, showArrow bool), cc.Void]{Name: "gtk_drop_down_set_show_arrow"}
-	gtk_drop_down_get_show_arrow        = cc.DlFunc[func(dd *DropDown) bool, bool]{Name: "gtk_drop_down_get_show_arrow"}
+	gtk_drop_down_set_enable_search     = cc.DlFunc[func(dd *DropDown, enableSearch int32), cc.Void]{Name: "gtk_drop_down_set_enable_search"}
+	gtk_drop_down_get_enable_search     = cc.DlFunc[func(dd *DropDown) int32, int32]{Name: "gtk_drop_down_get_enable_search"}
+	gtk_drop_down_set_show_arrow        = cc.DlFunc[func(dd *DropDown, showArrow int32), cc.Void]{Name: "gtk_drop_down_set_show_arrow"}
+	gtk_drop_down_get_show_arrow        = cc.DlFunc[func(dd *DropDown) int32, int32]{Name: "gtk_drop_down_get_show_arrow"}
 	gtk_drop_down_set_search_match_mode = cc.DlFunc[func(dd *DropDown, matchMode StringFilterMatchMode), cc.Void]{Name: "gtk_drop_down_set_search_match_mode"}
 	gtk_drop_down_get_search_match_mode = cc.DlFunc[func(dd *DropDown) StringFilterMatchMode, StringFilterMatchMode]{Name: "gtk_drop_down_get_search_match_mode"}
 	// #endregion
@@ -777,8 +777,8 @@ var (
 	gtk_drop_target_get_formats      = cc.DlFunc[func(target *DropTarget) *gdk.ContentFormats, *gdk.ContentFormats]{Name: "gtk_drop_target_get_formats"}
 	gtk_drop_target_set_actions      = cc.DlFunc[func(target *DropTarget, actions gdk.DragAction), cc.Void]{Name: "gtk_drop_target_set_actions"}
 	gtk_drop_target_get_actions      = cc.DlFunc[func(target *DropTarget) gdk.DragAction, gdk.DragAction]{Name: "gtk_drop_target_get_actions"}
-	gtk_drop_target_set_preload      = cc.DlFunc[func(target *DropTarget, preload bool), cc.Void]{Name: "gtk_drop_target_set_preload"}
-	gtk_drop_target_get_preload      = cc.DlFunc[func(target *DropTarget) bool, bool]{Name: "gtk_drop_target_get_preload"}
+	gtk_drop_target_set_preload      = cc.DlFunc[func(target *DropTarget, preload int32), cc.Void]{Name: "gtk_drop_target_set_preload"}
+	gtk_drop_target_get_preload      = cc.DlFunc[func(target *DropTarget) int32, int32]{Name: "gtk_drop_target_get_preload"}
 	gtk_drop_target_get_current_drop = cc.DlFunc[func(target *DropTarget) *gdk.Drop, *gdk.Drop]{Name: "gtk_drop_target_get_current_drop"}
 	gtk_drop_target_get_value        = cc.DlFunc[func(target *DropTarget) *gobject.GValue, *gobject.GValue]{Name: "gtk_drop_target_get_value"}
 	gtk_drop_target_reject           = cc.DlFunc[func(target *DropTarget), cc.Void]{Name: "gtk_drop_target_reject"}
@@ -801,36 +801,36 @@ var (
 	gtk_editable_get_chars                              = cc.DlFunc[func(e *Editable, startPos, endPos int32) cc.String, cc.String]{Name: "gtk_editable_get_chars"}
 	gtk_editable_insert_text                            = cc.DlFunc[func(e *Editable, text cc.String, length int32, position *int32), cc.Void]{Name: "gtk_editable_insert_text"}
 	gtk_editable_delete_text                            = cc.DlFunc[func(e *Editable, startPos, endPos int32), cc.Void]{Name: "gtk_editable_delete_text"}
-	gtk_editable_get_selection_bounds                   = cc.DlFunc[func(e *Editable, startPos, endPos *int32) bool, bool]{Name: "gtk_editable_get_selection_bounds"}
+	gtk_editable_get_selection_bounds                   = cc.DlFunc[func(e *Editable, startPos, endPos *int32) int32, int32]{Name: "gtk_editable_get_selection_bounds"}
 	gtk_editable_delete_selection                       = cc.DlFunc[func(e *Editable), cc.Void]{Name: "gtk_editable_delete_selection"}
 	gtk_editable_select_region                          = cc.DlFunc[func(e *Editable, startPos, endPos int32), cc.Void]{Name: "gtk_editable_select_region"}
 	gtk_editable_set_position                           = cc.DlFunc[func(e *Editable, position int32), cc.Void]{Name: "gtk_editable_set_position"}
 	gtk_editable_get_position                           = cc.DlFunc[func(e *Editable) int32, int32]{Name: "gtk_editable_get_position"}
-	gtk_editable_get_editable                           = cc.DlFunc[func(e *Editable) bool, bool]{Name: "gtk_editable_get_editable"}
-	gtk_editable_set_editable                           = cc.DlFunc[func(e *Editable, isEditable bool), cc.Void]{Name: "gtk_editable_set_editable"}
+	gtk_editable_get_editable                           = cc.DlFunc[func(e *Editable) int32, int32]{Name: "gtk_editable_get_editable"}
+	gtk_editable_set_editable                           = cc.DlFunc[func(e *Editable, isEditable int32), cc.Void]{Name: "gtk_editable_set_editable"}
 	gtk_editable_get_alignment                          = cc.DlFunc[func(e *Editable) float32, float32]{Name: "gtk_editable_get_alignment"}
 	gtk_editable_set_alignment                          = cc.DlFunc[func(e *Editable, xalign float32), cc.Void]{Name: "gtk_editable_set_alignment"}
 	gtk_editable_get_width_chars                        = cc.DlFunc[func(e *Editable) int32, int32]{Name: "gtk_editable_get_width_chars"}
 	gtk_editable_set_width_chars                        = cc.DlFunc[func(e *Editable, nChars int32), cc.Void]{Name: "gtk_editable_set_width_chars"}
 	gtk_editable_get_max_width_chars                    = cc.DlFunc[func(e *Editable) int32, int32]{Name: "gtk_editable_get_max_width_chars"}
 	gtk_editable_set_max_width_chars                    = cc.DlFunc[func(e *Editable, nChars int32), cc.Void]{Name: "gtk_editable_set_max_width_chars"}
-	gtk_editable_get_enable_undo                        = cc.DlFunc[func(e *Editable) bool, bool]{Name: "gtk_editable_get_enable_undo"}
-	gtk_editable_set_enable_undo                        = cc.DlFunc[func(e *Editable, enableUndo bool), cc.Void]{Name: "gtk_editable_set_enable_undo"}
+	gtk_editable_get_enable_undo                        = cc.DlFunc[func(e *Editable) int32, int32]{Name: "gtk_editable_get_enable_undo"}
+	gtk_editable_set_enable_undo                        = cc.DlFunc[func(e *Editable, enableUndo int32), cc.Void]{Name: "gtk_editable_set_enable_undo"}
 	gtk_editable_install_properties                     = cc.DlFunc[func(objectClass *gobject.GObjectClass, firstProp uint32) uint32, uint32]{Name: "gtk_editable_install_properties"}
 	gtk_editable_get_delegate                           = cc.DlFunc[func(editable *Editable) *Editable, *Editable]{Name: "gtk_editable_get_delegate"}
 	gtk_editable_init_delegate                          = cc.DlFunc[func(editable *Editable), cc.Void]{Name: "gtk_editable_init_delegate"}
 	gtk_editable_finish_delegate                        = cc.DlFunc[func(editable *Editable), cc.Void]{Name: "gtk_editable_finish_delegate"}
-	gtk_editable_delegate_set_property                  = cc.DlFunc[func(object *gobject.GObject, propId uint32, value *gobject.GValue, pspec *gobject.GParamSpec) bool, bool]{Name: "gtk_editable_delegate_set_property"}
-	gtk_editable_delegate_get_property                  = cc.DlFunc[func(object *gobject.GObject, propId uint32, value *gobject.GValue, pspec *gobject.GParamSpec) bool, bool]{Name: "gtk_editable_delegate_get_property"}
-	gtk_editable_delegate_get_accessible_platform_state = cc.DlFunc[func(editable *Editable, state AccessiblePlatformState) bool, bool]{Name: "gtk_editable_delegate_get_accessible_platform_state"}
+	gtk_editable_delegate_set_property                  = cc.DlFunc[func(object *gobject.GObject, propId uint32, value *gobject.GValue, pspec *gobject.GParamSpec) int32, int32]{Name: "gtk_editable_delegate_set_property"}
+	gtk_editable_delegate_get_property                  = cc.DlFunc[func(object *gobject.GObject, propId uint32, value *gobject.GValue, pspec *gobject.GParamSpec) int32, int32]{Name: "gtk_editable_delegate_get_property"}
+	gtk_editable_delegate_get_accessible_platform_state = cc.DlFunc[func(editable *Editable, state AccessiblePlatformState) int32, int32]{Name: "gtk_editable_delegate_get_accessible_platform_state"}
 	// #endregion
 
 	// #region EditableLabel
 	g_editable_label_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "g_editable_label_get_type"}
 	g_editable_label_new           = cc.DlFunc[func(str cc.String) *EditableLabel, *EditableLabel]{Name: "g_editable_label_new"}
-	g_editable_label_get_editing   = cc.DlFunc[func(label *EditableLabel) bool, bool]{Name: "g_editable_label_get_editing"}
+	g_editable_label_get_editing   = cc.DlFunc[func(label *EditableLabel) int32, int32]{Name: "g_editable_label_get_editing"}
 	g_editable_label_start_editing = cc.DlFunc[func(label *EditableLabel), cc.Void]{Name: "g_editable_label_start_editing"}
-	g_editable_label_stop_editing  = cc.DlFunc[func(label *EditableLabel, commit bool), cc.Void]{Name: "g_editable_label_stop_editing"}
+	g_editable_label_stop_editing  = cc.DlFunc[func(label *EditableLabel, commit int32), cc.Void]{Name: "g_editable_label_stop_editing"}
 	// #endregion
 
 	// #region EmojiChooser
@@ -844,20 +844,20 @@ var (
 	gtk_entry_new_with_buffer              = cc.DlFunc[func(buffer *EntryBuffer) *Entry, *Entry]{Name: "gtk_entry_new_with_buffer"}
 	gtk_entry_get_buffer                   = cc.DlFunc[func(e *Entry) *EntryBuffer, *EntryBuffer]{Name: "gtk_entry_get_buffer"}
 	gtk_entry_set_buffer                   = cc.DlFunc[func(e *Entry, buffer *EntryBuffer), cc.Void]{Name: "gtk_entry_set_buffer"}
-	gtk_entry_set_visibility               = cc.DlFunc[func(e *Entry, visible bool), cc.Void]{Name: "gtk_entry_set_visibility"}
-	gtk_entry_get_visibility               = cc.DlFunc[func(e *Entry) bool, bool]{Name: "gtk_entry_get_visibility"}
+	gtk_entry_set_visibility               = cc.DlFunc[func(e *Entry, visible int32), cc.Void]{Name: "gtk_entry_set_visibility"}
+	gtk_entry_get_visibility               = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_get_visibility"}
 	gtk_entry_set_invisible_char           = cc.DlFunc[func(e *Entry, ch uint32), cc.Void]{Name: "gtk_entry_set_invisible_char"}
 	gtk_entry_get_invisible_char           = cc.DlFunc[func(e *Entry) uint32, uint32]{Name: "gtk_entry_get_invisible_char"}
 	gtk_entry_unset_invisible_char         = cc.DlFunc[func(e *Entry), cc.Void]{Name: "gtk_entry_unset_invisible_char"}
-	gtk_entry_set_has_frame                = cc.DlFunc[func(e *Entry, setting bool), cc.Void]{Name: "gtk_entry_set_has_frame"}
-	gtk_entry_get_has_frame                = cc.DlFunc[func(e *Entry) bool, bool]{Name: "gtk_entry_get_has_frame"}
-	gtk_entry_set_overwrite_mode           = cc.DlFunc[func(e *Entry, overwrite bool), cc.Void]{Name: "gtk_entry_set_overwrite_mode"}
-	gtk_entry_get_overwrite_mode           = cc.DlFunc[func(e *Entry) bool, bool]{Name: "gtk_entry_get_overwrite_mode"}
+	gtk_entry_set_has_frame                = cc.DlFunc[func(e *Entry, setting int32), cc.Void]{Name: "gtk_entry_set_has_frame"}
+	gtk_entry_get_has_frame                = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_get_has_frame"}
+	gtk_entry_set_overwrite_mode           = cc.DlFunc[func(e *Entry, overwrite int32), cc.Void]{Name: "gtk_entry_set_overwrite_mode"}
+	gtk_entry_get_overwrite_mode           = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_get_overwrite_mode"}
 	gtk_entry_set_max_length               = cc.DlFunc[func(e *Entry, max int32), cc.Void]{Name: "gtk_entry_set_max_length"}
 	gtk_entry_get_max_length               = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_get_max_length"}
 	gtk_entry_get_text_length              = cc.DlFunc[func(e *Entry) uint16, uint16]{Name: "gtk_entry_get_text_length"}
-	gtk_entry_set_activates_default        = cc.DlFunc[func(e *Entry, setting bool), cc.Void]{Name: "gtk_entry_set_activates_default"}
-	gtk_entry_get_activates_default        = cc.DlFunc[func(e *Entry) bool, bool]{Name: "gtk_entry_get_activates_default"}
+	gtk_entry_set_activates_default        = cc.DlFunc[func(e *Entry, setting int32), cc.Void]{Name: "gtk_entry_set_activates_default"}
+	gtk_entry_get_activates_default        = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_get_activates_default"}
 	gtk_entry_set_alignment                = cc.DlFunc[func(e *Entry, xalign float32), cc.Void]{Name: "gtk_entry_set_alignment"}
 	gtk_entry_get_alignment                = cc.DlFunc[func(e *Entry) float32, float32]{Name: "gtk_entry_get_alignment"}
 	gtk_entry_set_progress_fraction        = cc.DlFunc[func(e *Entry, fraction float64), cc.Void]{Name: "gtk_entry_set_progress_fraction"}
@@ -874,10 +874,10 @@ var (
 	gtk_entry_get_icon_paintable           = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) *gdk.Paintable, *gdk.Paintable]{Name: "gtk_entry_get_icon_paintable"}
 	gtk_entry_get_icon_name                = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) cc.String, cc.String]{Name: "gtk_entry_get_icon_name"}
 	gtk_entry_get_icon_gicon               = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) *gio.GIcon, *gio.GIcon]{Name: "gtk_entry_get_icon_gicon"}
-	gtk_entry_set_icon_activatable         = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition, activatable bool), cc.Void]{Name: "gtk_entry_set_icon_activatable"}
-	gtk_entry_get_icon_activatable         = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) bool, bool]{Name: "gtk_entry_get_icon_activatable"}
-	gtk_entry_set_icon_sensitive           = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition, sensitive bool), cc.Void]{Name: "gtk_entry_set_icon_sensitive"}
-	gtk_entry_get_icon_sensitive           = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) bool, bool]{Name: "gtk_entry_get_icon_sensitive"}
+	gtk_entry_set_icon_activatable         = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition, activatable int32), cc.Void]{Name: "gtk_entry_set_icon_activatable"}
+	gtk_entry_get_icon_activatable         = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) int32, int32]{Name: "gtk_entry_get_icon_activatable"}
+	gtk_entry_set_icon_sensitive           = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition, sensitive int32), cc.Void]{Name: "gtk_entry_set_icon_sensitive"}
+	gtk_entry_get_icon_sensitive           = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) int32, int32]{Name: "gtk_entry_get_icon_sensitive"}
 	gtk_entry_get_icon_at_pos              = cc.DlFunc[func(e *Entry, x, y int32) int32, int32]{Name: "gtk_entry_get_icon_at_pos"}
 	gtk_entry_set_icon_tooltip_text        = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition, tooltip cc.String), cc.Void]{Name: "gtk_entry_set_icon_tooltip_text"}
 	gtk_entry_get_icon_tooltip_text        = cc.DlFunc[func(e *Entry, iconPos EntryIconPosition) cc.String, cc.String]{Name: "gtk_entry_get_icon_tooltip_text"}
@@ -895,7 +895,7 @@ var (
 	gtk_entry_get_attributes               = cc.DlFunc[func(e *Entry) *pango.AttrList, *pango.AttrList]{Name: "gtk_entry_get_attributes"}
 	gtk_entry_set_tabs                     = cc.DlFunc[func(e *Entry, tabs *pango.TabArray), cc.Void]{Name: "gtk_entry_set_tabs"}
 	gtk_entry_get_tabs                     = cc.DlFunc[func(e *Entry) *pango.TabArray, *pango.TabArray]{Name: "gtk_entry_get_tabs"}
-	gtk_entry_grab_focus_without_selecting = cc.DlFunc[func(e *Entry) bool, bool]{Name: "gtk_entry_grab_focus_without_selecting"}
+	gtk_entry_grab_focus_without_selecting = cc.DlFunc[func(e *Entry) int32, int32]{Name: "gtk_entry_grab_focus_without_selecting"}
 	gtk_entry_set_extra_menu               = cc.DlFunc[func(e *Entry, model *gio.GMenuModel), cc.Void]{Name: "gtk_entry_set_extra_menu"}
 	gtk_entry_get_extra_menu               = cc.DlFunc[func(e *Entry) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_entry_get_extra_menu"}
 	// #endregion
@@ -935,8 +935,8 @@ var (
 	// #region EventControllerFocus
 	gtk_event_controller_focus_get_type       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_event_controller_focus_get_type"}
 	gtk_event_controller_focus_new            = cc.DlFunc[func() *EventControllerFocus, *EventControllerFocus]{Name: "gtk_event_controller_focus_new"}
-	gtk_event_controller_focus_contains_focus = cc.DlFunc[func(controller *EventControllerFocus) bool, bool]{Name: "gtk_event_controller_focus_contains_focus"}
-	gtk_event_controller_focus_is_focus       = cc.DlFunc[func(controller *EventControllerFocus) bool, bool]{Name: "gtk_event_controller_focus_is_focus"}
+	gtk_event_controller_focus_contains_focus = cc.DlFunc[func(controller *EventControllerFocus) int32, int32]{Name: "gtk_event_controller_focus_contains_focus"}
+	gtk_event_controller_focus_is_focus       = cc.DlFunc[func(controller *EventControllerFocus) int32, int32]{Name: "gtk_event_controller_focus_is_focus"}
 	// #endregion
 
 	// #region EventControllerKey
@@ -944,7 +944,7 @@ var (
 	gtk_event_controller_key_new            = cc.DlFunc[func() *EventControllerKey, *EventControllerKey]{Name: "gtk_event_controller_key_new"}
 	gtk_event_controller_key_set_im_context = cc.DlFunc[func(controller *EventControllerKey, imContext *IMContext), cc.Void]{Name: "gtk_event_controller_key_set_im_context"}
 	gtk_event_controller_key_get_im_context = cc.DlFunc[func(controller *EventControllerKey) *IMContext, *IMContext]{Name: "gtk_event_controller_key_get_im_context"}
-	gtk_event_controller_key_forward        = cc.DlFunc[func(controller *EventControllerKey, widget *Widget) bool, bool]{Name: "gtk_event_controller_key_forward"}
+	gtk_event_controller_key_forward        = cc.DlFunc[func(controller *EventControllerKey, widget *Widget) int32, int32]{Name: "gtk_event_controller_key_forward"}
 	gtk_event_controller_key_get_group      = cc.DlFunc[func(controller *EventControllerKey) uint32, uint32]{Name: "gtk_event_controller_key_get_group"}
 	// #endregion
 
@@ -956,8 +956,8 @@ var (
 	// #region EventControllerMotion
 	gtk_event_controller_motion_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_event_controller_motion_get_type"}
 	gtk_event_controller_motion_new              = cc.DlFunc[func() *EventControllerMotion, *EventControllerMotion]{Name: "gtk_event_controller_motion_new"}
-	gtk_event_controller_motion_contains_pointer = cc.DlFunc[func(controller *EventControllerMotion) bool, bool]{Name: "gtk_event_controller_motion_contains_pointer"}
-	gtk_event_controller_motion_is_pointer       = cc.DlFunc[func(controller *EventControllerMotion) bool, bool]{Name: "gtk_event_controller_motion_is_pointer"}
+	gtk_event_controller_motion_contains_pointer = cc.DlFunc[func(controller *EventControllerMotion) int32, int32]{Name: "gtk_event_controller_motion_contains_pointer"}
+	gtk_event_controller_motion_is_pointer       = cc.DlFunc[func(controller *EventControllerMotion) int32, int32]{Name: "gtk_event_controller_motion_is_pointer"}
 	// #endregion
 
 	// #region EventControllerScroll
@@ -972,18 +972,18 @@ var (
 	gtk_expander_get_type            = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_expander_get_type"}
 	gtk_expander_new                 = cc.DlFunc[func(label cc.String) *Expander, *Expander]{Name: "gtk_expander_new"}
 	gtk_expander_new_with_mnemonic   = cc.DlFunc[func(label cc.String) *Expander, *Expander]{Name: "gtk_expander_new_with_mnemonic"}
-	gtk_expander_set_expanded        = cc.DlFunc[func(e *Expander, expanded bool), cc.Void]{Name: "gtk_expander_set_expanded"}
-	gtk_expander_get_expanded        = cc.DlFunc[func(e *Expander) bool, bool]{Name: "gtk_expander_get_expanded"}
+	gtk_expander_set_expanded        = cc.DlFunc[func(e *Expander, expanded int32), cc.Void]{Name: "gtk_expander_set_expanded"}
+	gtk_expander_get_expanded        = cc.DlFunc[func(e *Expander) int32, int32]{Name: "gtk_expander_get_expanded"}
 	gtk_expander_set_label           = cc.DlFunc[func(e *Expander, label cc.String), cc.Void]{Name: "gtk_expander_set_label"}
 	gtk_expander_get_label           = cc.DlFunc[func(e *Expander) cc.String, cc.String]{Name: "gtk_expander_get_label"}
-	gtk_expander_set_use_underline   = cc.DlFunc[func(e *Expander, useUnderline bool), cc.Void]{Name: "gtk_expander_set_use_underline"}
-	gtk_expander_get_use_underline   = cc.DlFunc[func(e *Expander) bool, bool]{Name: "gtk_expander_get_use_underline"}
-	gtk_expander_set_use_markup      = cc.DlFunc[func(e *Expander, useMarkup bool), cc.Void]{Name: "gtk_expander_set_use_markup"}
-	gtk_expander_get_use_markup      = cc.DlFunc[func(e *Expander) bool, bool]{Name: "gtk_expander_get_use_markup"}
+	gtk_expander_set_use_underline   = cc.DlFunc[func(e *Expander, useUnderline int32), cc.Void]{Name: "gtk_expander_set_use_underline"}
+	gtk_expander_get_use_underline   = cc.DlFunc[func(e *Expander) int32, int32]{Name: "gtk_expander_get_use_underline"}
+	gtk_expander_set_use_markup      = cc.DlFunc[func(e *Expander, useMarkup int32), cc.Void]{Name: "gtk_expander_set_use_markup"}
+	gtk_expander_get_use_markup      = cc.DlFunc[func(e *Expander) int32, int32]{Name: "gtk_expander_get_use_markup"}
 	gtk_expander_set_label_widget    = cc.DlFunc[func(e *Expander, labelWidget *Widget), cc.Void]{Name: "gtk_expander_set_label_widget"}
 	gtk_expander_get_label_widget    = cc.DlFunc[func(e *Expander) *Widget, *Widget]{Name: "gtk_expander_get_label_widget"}
-	gtk_expander_set_resize_toplevel = cc.DlFunc[func(e *Expander, resizeToplevel bool), cc.Void]{Name: "gtk_expander_set_resize_toplevel"}
-	gtk_expander_get_resize_toplevel = cc.DlFunc[func(e *Expander) bool, bool]{Name: "gtk_expander_get_resize_toplevel"}
+	gtk_expander_set_resize_toplevel = cc.DlFunc[func(e *Expander, resizeToplevel int32), cc.Void]{Name: "gtk_expander_set_resize_toplevel"}
+	gtk_expander_get_resize_toplevel = cc.DlFunc[func(e *Expander) int32, int32]{Name: "gtk_expander_get_resize_toplevel"}
 	gtk_expander_set_child           = cc.DlFunc[func(e *Expander, child *Widget), cc.Void]{Name: "gtk_expander_set_child"}
 	gtk_expander_get_child           = cc.DlFunc[func(e *Expander) *Widget, *Widget]{Name: "gtk_expander_get_child"}
 	// #endregion
@@ -993,14 +993,14 @@ var (
 	gtk_expression_ref                     = cc.DlFunc[func(self *Expression) *Expression, *Expression]{Name: "gtk_expression_ref"}
 	gtk_expression_unref                   = cc.DlFunc[func(self *Expression), cc.Void]{Name: "gtk_expression_unref"}
 	gtk_expression_get_value_type          = cc.DlFunc[func(self *Expression) gobject.GType, gobject.GType]{Name: "gtk_expression_get_value_type"}
-	gtk_expression_is_static               = cc.DlFunc[func(self *Expression) bool, bool]{Name: "gtk_expression_is_static"}
-	gtk_expression_evaluate                = cc.DlFunc[func(self *Expression, this_ *gobject.GObject, value *gobject.GValue) bool, bool]{Name: "gtk_expression_evaluate"}
-	gtk_expression_watch                   = cc.DlFunc[func(self *Expression, this_ *gobject.GObject, notify UPtr, userData UPtr, userDestroy UPtr) *ExpressionWatch, *ExpressionWatch]{Name: "gtk_expression_watch"}
+	gtk_expression_is_static               = cc.DlFunc[func(self *Expression) int32, int32]{Name: "gtk_expression_is_static"}
+	gtk_expression_evaluate                = cc.DlFunc[func(self *Expression, this_ *gobject.GObject, value *gobject.GValue) int32, int32]{Name: "gtk_expression_evaluate"}
+	gtk_expression_watch                   = cc.DlFunc[func(self *Expression, this_ *gobject.GObject, notify uptr, userData uptr, userDestroy uptr) *ExpressionWatch, *ExpressionWatch]{Name: "gtk_expression_watch"}
 	gtk_expression_bind                    = cc.DlFunc[func(self *Expression, target *gobject.GObject, property cc.String, this *gobject.GObject) *ExpressionWatch, *ExpressionWatch]{Name: "gtk_expression_bind"}
 	gtk_expression_watch_get_type          = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_expression_watch_get_type"}
 	gtk_expression_watch_ref               = cc.DlFunc[func(watch *ExpressionWatch) *ExpressionWatch, *ExpressionWatch]{Name: "gtk_expression_watch_ref"}
 	gtk_expression_watch_unref             = cc.DlFunc[func(watch *ExpressionWatch), cc.Void]{Name: "gtk_expression_watch_unref"}
-	gtk_expression_watch_evaluate          = cc.DlFunc[func(watch *ExpressionWatch, value *gobject.GValue) bool, bool]{Name: "gtk_expression_watch_evaluate"}
+	gtk_expression_watch_evaluate          = cc.DlFunc[func(watch *ExpressionWatch, value *gobject.GValue) int32, int32]{Name: "gtk_expression_watch_evaluate"}
 	gtk_expression_watch_unwatch           = cc.DlFunc[func(watch *ExpressionWatch), cc.Void]{Name: "gtk_expression_watch_unwatch"}
 	gtk_property_expression_get_type       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_property_expression_get_type"}
 	gtk_property_expression_new            = cc.DlFunc[func(thisType gobject.GType, expression *Expression, propertyName cc.String) *PropertyExpression, *PropertyExpression]{Name: "gtk_property_expression_new"}
@@ -1021,8 +1021,8 @@ var (
 	gtk_file_dialog_new                             = cc.DlFunc[func() *FileDialog, *FileDialog]{Name: "gtk_file_dialog_new"}
 	gtk_file_dialog_get_title                       = cc.DlFunc[func(fd *FileDialog) cc.String, cc.String]{Name: "gtk_file_dialog_get_title"}
 	gtk_file_dialog_set_title                       = cc.DlFunc[func(fd *FileDialog, title cc.String), cc.Void]{Name: "gtk_file_dialog_set_title"}
-	gtk_file_dialog_get_modal                       = cc.DlFunc[func(fd *FileDialog) bool, bool]{Name: "gtk_file_dialog_get_modal"}
-	gtk_file_dialog_set_modal                       = cc.DlFunc[func(fd *FileDialog, modal bool), cc.Void]{Name: "gtk_file_dialog_set_modal"}
+	gtk_file_dialog_get_modal                       = cc.DlFunc[func(fd *FileDialog) int32, int32]{Name: "gtk_file_dialog_get_modal"}
+	gtk_file_dialog_set_modal                       = cc.DlFunc[func(fd *FileDialog, modal int32), cc.Void]{Name: "gtk_file_dialog_set_modal"}
 	gtk_file_dialog_get_filters                     = cc.DlFunc[func(fd *FileDialog) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_get_filters"}
 	gtk_file_dialog_set_filters                     = cc.DlFunc[func(fd *FileDialog, filters *gio.GListModel), cc.Void]{Name: "gtk_file_dialog_set_filters"}
 	gtk_file_dialog_get_default_filter              = cc.DlFunc[func(fd *FileDialog) *FileFilter, *FileFilter]{Name: "gtk_file_dialog_get_default_filter"}
@@ -1035,21 +1035,21 @@ var (
 	gtk_file_dialog_set_initial_file                = cc.DlFunc[func(fd *FileDialog, file *gio.GFile), cc.Void]{Name: "gtk_file_dialog_set_initial_file"}
 	gtk_file_dialog_get_accept_label                = cc.DlFunc[func(fd *FileDialog) cc.String, cc.String]{Name: "gtk_file_dialog_get_accept_label"}
 	gtk_file_dialog_set_accept_label                = cc.DlFunc[func(fd *FileDialog, acceptLabel cc.String), cc.Void]{Name: "gtk_file_dialog_set_accept_label"}
-	gtk_file_dialog_open                            = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_open"}
+	gtk_file_dialog_open                            = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open"}
 	gtk_file_dialog_open_finish                     = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_open_finish"}
-	gtk_file_dialog_select_folder                   = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_select_folder"}
+	gtk_file_dialog_select_folder                   = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_select_folder"}
 	gtk_file_dialog_select_folder_finish            = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_select_folder_finish"}
-	gtk_file_dialog_save                            = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_save"}
+	gtk_file_dialog_save                            = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_save"}
 	gtk_file_dialog_save_finish                     = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_save_finish"}
-	gtk_file_dialog_open_multiple                   = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_open_multiple"}
+	gtk_file_dialog_open_multiple                   = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_multiple"}
 	gtk_file_dialog_open_multiple_finish            = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_open_multiple_finish"}
-	gtk_file_dialog_select_multiple_folders         = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_select_multiple_folders"}
+	gtk_file_dialog_select_multiple_folders         = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_select_multiple_folders"}
 	gtk_file_dialog_select_multiple_folders_finish  = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_select_multiple_folders_finish"}
-	gtk_file_dialog_open_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_open_text_file"}
+	gtk_file_dialog_open_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_text_file"}
 	gtk_file_dialog_open_text_file_finish           = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_open_text_file_finish"}
-	gtk_file_dialog_open_multiple_text_files        = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_open_multiple_text_files"}
+	gtk_file_dialog_open_multiple_text_files        = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_multiple_text_files"}
 	gtk_file_dialog_open_multiple_text_files_finish = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_open_multiple_text_files_finish"}
-	gtk_file_dialog_save_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_dialog_save_text_file"}
+	gtk_file_dialog_save_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_save_text_file"}
 	gtk_file_dialog_save_text_file_finish           = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, lineEnding *cc.String, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_save_text_file_finish"}
 	// #endregion
 
@@ -1072,18 +1072,18 @@ var (
 	gtk_file_launcher_new                           = cc.DlFunc[func(file *gio.GFile) *FileLauncher, *FileLauncher]{Name: "gtk_file_launcher_new"}
 	gtk_file_launcher_get_file                      = cc.DlFunc[func(fl *FileLauncher) *gio.GFile, *gio.GFile]{Name: "gtk_file_launcher_get_file"}
 	gtk_file_launcher_set_file                      = cc.DlFunc[func(fl *FileLauncher, file *gio.GFile), cc.Void]{Name: "gtk_file_launcher_set_file"}
-	gtk_file_launcher_get_always_ask                = cc.DlFunc[func(fl *FileLauncher) bool, bool]{Name: "gtk_file_launcher_get_always_ask"}
-	gtk_file_launcher_set_always_ask                = cc.DlFunc[func(fl *FileLauncher, alwaysAsk bool), cc.Void]{Name: "gtk_file_launcher_set_always_ask"}
-	gtk_file_launcher_get_writable                  = cc.DlFunc[func(fl *FileLauncher) bool, bool]{Name: "gtk_file_launcher_get_writable"}
-	gtk_file_launcher_set_writable                  = cc.DlFunc[func(fl *FileLauncher, writable bool), cc.Void]{Name: "gtk_file_launcher_set_writable"}
-	gtk_file_launcher_launch                        = cc.DlFunc[func(fl *FileLauncher, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_launcher_launch"}
-	gtk_file_launcher_launch_finish                 = cc.DlFunc[func(fl *FileLauncher, result *gio.GAsyncResult, err **glib.GError) bool, bool]{Name: "gtk_file_launcher_launch_finish"}
-	gtk_file_launcher_open_containing_folder        = cc.DlFunc[func(fl *FileLauncher, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_file_launcher_open_containing_folder"}
-	gtk_file_launcher_open_containing_folder_finish = cc.DlFunc[func(fl *FileLauncher, result *gio.GAsyncResult, err **glib.GError) bool, bool]{Name: "gtk_file_launcher_open_containing_folder_finish"}
+	gtk_file_launcher_get_always_ask                = cc.DlFunc[func(fl *FileLauncher) int32, int32]{Name: "gtk_file_launcher_get_always_ask"}
+	gtk_file_launcher_set_always_ask                = cc.DlFunc[func(fl *FileLauncher, alwaysAsk int32), cc.Void]{Name: "gtk_file_launcher_set_always_ask"}
+	gtk_file_launcher_get_writable                  = cc.DlFunc[func(fl *FileLauncher) int32, int32]{Name: "gtk_file_launcher_get_writable"}
+	gtk_file_launcher_set_writable                  = cc.DlFunc[func(fl *FileLauncher, writable int32), cc.Void]{Name: "gtk_file_launcher_set_writable"}
+	gtk_file_launcher_launch                        = cc.DlFunc[func(fl *FileLauncher, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_launcher_launch"}
+	gtk_file_launcher_launch_finish                 = cc.DlFunc[func(fl *FileLauncher, result *gio.GAsyncResult, err **glib.GError) int32, int32]{Name: "gtk_file_launcher_launch_finish"}
+	gtk_file_launcher_open_containing_folder        = cc.DlFunc[func(fl *FileLauncher, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_launcher_open_containing_folder"}
+	gtk_file_launcher_open_containing_folder_finish = cc.DlFunc[func(fl *FileLauncher, result *gio.GAsyncResult, err **glib.GError) int32, int32]{Name: "gtk_file_launcher_open_containing_folder_finish"}
 	// #endregion
 
 	// #region Filter
-	gtk_filter_match          = cc.DlFunc[func(self *Filter, item *gobject.GObject) bool, bool]{Name: "gtk_filter_match"}
+	gtk_filter_match          = cc.DlFunc[func(self *Filter, item *gobject.GObject) int32, int32]{Name: "gtk_filter_match"}
 	gtk_filter_get_strictness = cc.DlFunc[func(self *Filter) FilterMatch, FilterMatch]{Name: "gtk_filter_get_strictness"}
 	gtk_filter_changed        = cc.DlFunc[func(self *Filter, change FilterChange), cc.Void]{Name: "gtk_filter_changed"}
 	// #endregion
@@ -1095,8 +1095,8 @@ var (
 	gtk_filter_list_model_get_filter      = cc.DlFunc[func(flm *FilterListModel) *Filter, *Filter]{Name: "gtk_filter_list_model_get_filter"}
 	gtk_filter_list_model_set_model       = cc.DlFunc[func(flm *FilterListModel, model *gio.GListModel), cc.Void]{Name: "gtk_filter_list_model_set_model"}
 	gtk_filter_list_model_get_model       = cc.DlFunc[func(flm *FilterListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_filter_list_model_get_model"}
-	gtk_filter_list_model_set_incremental = cc.DlFunc[func(flm *FilterListModel, incremental bool), cc.Void]{Name: "gtk_filter_list_model_set_incremental"}
-	gtk_filter_list_model_get_incremental = cc.DlFunc[func(flm *FilterListModel) bool, bool]{Name: "gtk_filter_list_model_get_incremental"}
+	gtk_filter_list_model_set_incremental = cc.DlFunc[func(flm *FilterListModel, incremental int32), cc.Void]{Name: "gtk_filter_list_model_set_incremental"}
+	gtk_filter_list_model_get_incremental = cc.DlFunc[func(flm *FilterListModel) int32, int32]{Name: "gtk_filter_list_model_get_incremental"}
 	gtk_filter_list_model_get_pending     = cc.DlFunc[func(flm *FilterListModel) uint32, uint32]{Name: "gtk_filter_list_model_get_pending"}
 	// #endregion
 
@@ -1132,13 +1132,13 @@ var (
 	gtk_flow_box_child_set_child              = cc.DlFunc[func(f *FlowBoxChild, child *Widget), cc.Void]{Name: "gtk_flow_box_child_set_child"}
 	gtk_flow_box_child_get_child              = cc.DlFunc[func(f *FlowBoxChild) *Widget, *Widget]{Name: "gtk_flow_box_child_get_child"}
 	gtk_flow_box_child_get_index              = cc.DlFunc[func(f *FlowBoxChild) int32, int32]{Name: "gtk_flow_box_child_get_index"}
-	gtk_flow_box_child_is_selected            = cc.DlFunc[func(f *FlowBoxChild) bool, bool]{Name: "gtk_flow_box_child_is_selected"}
+	gtk_flow_box_child_is_selected            = cc.DlFunc[func(f *FlowBoxChild) int32, int32]{Name: "gtk_flow_box_child_is_selected"}
 	gtk_flow_box_child_changed                = cc.DlFunc[func(f *FlowBoxChild), cc.Void]{Name: "gtk_flow_box_child_changed"}
 	gtk_flow_box_get_type                     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_flow_box_get_type"}
 	gtk_flow_box_new                          = cc.DlFunc[func() *FlowBox, *FlowBox]{Name: "gtk_flow_box_new"}
-	gtk_flow_box_bind_model                   = cc.DlFunc[func(f *FlowBox, model *gio.GListModel, createWidgetFunc UPtr, userData UPtr, userDataFreeFunc UPtr), cc.Void]{Name: "gtk_flow_box_bind_model"}
-	gtk_flow_box_set_homogeneous              = cc.DlFunc[func(f *FlowBox, homogeneous bool), cc.Void]{Name: "gtk_flow_box_set_homogeneous"}
-	gtk_flow_box_get_homogeneous              = cc.DlFunc[func(f *FlowBox) bool, bool]{Name: "gtk_flow_box_get_homogeneous"}
+	gtk_flow_box_bind_model                   = cc.DlFunc[func(f *FlowBox, model *gio.GListModel, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_flow_box_bind_model"}
+	gtk_flow_box_set_homogeneous              = cc.DlFunc[func(f *FlowBox, homogeneous int32), cc.Void]{Name: "gtk_flow_box_set_homogeneous"}
+	gtk_flow_box_get_homogeneous              = cc.DlFunc[func(f *FlowBox) int32, int32]{Name: "gtk_flow_box_get_homogeneous"}
 	gtk_flow_box_set_row_spacing              = cc.DlFunc[func(f *FlowBox, spacing uint32), cc.Void]{Name: "gtk_flow_box_set_row_spacing"}
 	gtk_flow_box_get_row_spacing              = cc.DlFunc[func(f *FlowBox) uint32, uint32]{Name: "gtk_flow_box_get_row_spacing"}
 	gtk_flow_box_set_column_spacing           = cc.DlFunc[func(f *FlowBox, spacing uint32), cc.Void]{Name: "gtk_flow_box_set_column_spacing"}
@@ -1147,8 +1147,8 @@ var (
 	gtk_flow_box_get_min_children_per_line    = cc.DlFunc[func(f *FlowBox) uint32, uint32]{Name: "gtk_flow_box_get_min_children_per_line"}
 	gtk_flow_box_set_max_children_per_line    = cc.DlFunc[func(f *FlowBox, nChildren uint32), cc.Void]{Name: "gtk_flow_box_set_max_children_per_line"}
 	gtk_flow_box_get_max_children_per_line    = cc.DlFunc[func(f *FlowBox) uint32, uint32]{Name: "gtk_flow_box_get_max_children_per_line"}
-	gtk_flow_box_set_activate_on_single_click = cc.DlFunc[func(f *FlowBox, single bool), cc.Void]{Name: "gtk_flow_box_set_activate_on_single_click"}
-	gtk_flow_box_get_activate_on_single_click = cc.DlFunc[func(f *FlowBox) bool, bool]{Name: "gtk_flow_box_get_activate_on_single_click"}
+	gtk_flow_box_set_activate_on_single_click = cc.DlFunc[func(f *FlowBox, single int32), cc.Void]{Name: "gtk_flow_box_set_activate_on_single_click"}
+	gtk_flow_box_get_activate_on_single_click = cc.DlFunc[func(f *FlowBox) int32, int32]{Name: "gtk_flow_box_get_activate_on_single_click"}
 	gtk_flow_box_prepend                      = cc.DlFunc[func(f *FlowBox, child *Widget), cc.Void]{Name: "gtk_flow_box_prepend"}
 	gtk_flow_box_append                       = cc.DlFunc[func(f *FlowBox, child *Widget), cc.Void]{Name: "gtk_flow_box_append"}
 	gtk_flow_box_insert                       = cc.DlFunc[func(f *FlowBox, widget *Widget, position int32), cc.Void]{Name: "gtk_flow_box_insert"}
@@ -1156,7 +1156,7 @@ var (
 	gtk_flow_box_remove_all                   = cc.DlFunc[func(f *FlowBox), cc.Void]{Name: "gtk_flow_box_remove_all"}
 	gtk_flow_box_get_child_at_index           = cc.DlFunc[func(f *FlowBox, idx int32) *FlowBoxChild, *FlowBoxChild]{Name: "gtk_flow_box_get_child_at_index"}
 	gtk_flow_box_get_child_at_pos             = cc.DlFunc[func(f *FlowBox, x, y int32) *FlowBoxChild, *FlowBoxChild]{Name: "gtk_flow_box_get_child_at_pos"}
-	gtk_flow_box_selected_foreach             = cc.DlFunc[func(f *FlowBox, foreachFunc, data UPtr), cc.Void]{Name: "gtk_flow_box_selected_foreach"}
+	gtk_flow_box_selected_foreach             = cc.DlFunc[func(f *FlowBox, foreachFunc, data uptr), cc.Void]{Name: "gtk_flow_box_selected_foreach"}
 	gtk_flow_box_get_selected_children        = cc.DlFunc[func(f *FlowBox) *glib.GList[Widget], *glib.GList[Widget]]{Name: "gtk_flow_box_get_selected_children"}
 	gtk_flow_box_select_child                 = cc.DlFunc[func(f *FlowBox, child *FlowBoxChild), cc.Void]{Name: "gtk_flow_box_select_child"}
 	gtk_flow_box_unselect_child               = cc.DlFunc[func(f *FlowBox, child *FlowBoxChild), cc.Void]{Name: "gtk_flow_box_unselect_child"}
@@ -1166,9 +1166,9 @@ var (
 	gtk_flow_box_get_selection_mode           = cc.DlFunc[func(f *FlowBox) SelectionMode, SelectionMode]{Name: "gtk_flow_box_get_selection_mode"}
 	gtk_flow_box_set_hadjustment              = cc.DlFunc[func(f *FlowBox, adjustment *Adjustment), cc.Void]{Name: "gtk_flow_box_set_hadjustment"}
 	gtk_flow_box_set_vadjustment              = cc.DlFunc[func(f *FlowBox, adjustment *Adjustment), cc.Void]{Name: "gtk_flow_box_set_vadjustment"}
-	gtk_flow_box_set_filter_func              = cc.DlFunc[func(f *FlowBox, filterFunc UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_flow_box_set_filter_func"}
+	gtk_flow_box_set_filter_func              = cc.DlFunc[func(f *FlowBox, filterFunc uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_flow_box_set_filter_func"}
 	gtk_flow_box_invalidate_filter            = cc.DlFunc[func(f *FlowBox), cc.Void]{Name: "gtk_flow_box_invalidate_filter"}
-	gtk_flow_box_set_sort_func                = cc.DlFunc[func(f *FlowBox, sortFunc UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_flow_box_set_sort_func"}
+	gtk_flow_box_set_sort_func                = cc.DlFunc[func(f *FlowBox, sortFunc uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_flow_box_set_sort_func"}
 	gtk_flow_box_invalidate_sort              = cc.DlFunc[func(f *FlowBox), cc.Void]{Name: "gtk_flow_box_invalidate_sort"}
 	// #endregion
 
@@ -1177,22 +1177,22 @@ var (
 	gtk_font_dialog_new                             = cc.DlFunc[func() *FontDialog, *FontDialog]{Name: "gtk_font_dialog_new"}
 	gtk_font_dialog_get_title                       = cc.DlFunc[func(fd *FontDialog) cc.String, cc.String]{Name: "gtk_font_dialog_get_title"}
 	gtk_font_dialog_set_title                       = cc.DlFunc[func(fd *FontDialog, title cc.String), cc.Void]{Name: "gtk_font_dialog_set_title"}
-	gtk_font_dialog_get_modal                       = cc.DlFunc[func(fd *FontDialog) bool, bool]{Name: "gtk_font_dialog_get_modal"}
-	gtk_font_dialog_set_modal                       = cc.DlFunc[func(fd *FontDialog, modal bool), cc.Void]{Name: "gtk_font_dialog_set_modal"}
+	gtk_font_dialog_get_modal                       = cc.DlFunc[func(fd *FontDialog) int32, int32]{Name: "gtk_font_dialog_get_modal"}
+	gtk_font_dialog_set_modal                       = cc.DlFunc[func(fd *FontDialog, modal int32), cc.Void]{Name: "gtk_font_dialog_set_modal"}
 	gtk_font_dialog_get_language                    = cc.DlFunc[func(fd *FontDialog) *pango.Language, *pango.Language]{Name: "gtk_font_dialog_get_language"}
 	gtk_font_dialog_set_language                    = cc.DlFunc[func(fd *FontDialog, language *pango.Language), cc.Void]{Name: "gtk_font_dialog_set_language"}
 	gtk_font_dialog_get_font_map                    = cc.DlFunc[func(fd *FontDialog) *pango.FontMap, *pango.FontMap]{Name: "gtk_font_dialog_get_font_map"}
 	gtk_font_dialog_set_font_map                    = cc.DlFunc[func(fd *FontDialog, fontmap *pango.FontMap), cc.Void]{Name: "gtk_font_dialog_set_font_map"}
 	gtk_font_dialog_get_filter                      = cc.DlFunc[func(fd *FontDialog) *Filter, *Filter]{Name: "gtk_font_dialog_get_filter"}
 	gtk_font_dialog_set_filter                      = cc.DlFunc[func(fd *FontDialog, filter *Filter), cc.Void]{Name: "gtk_font_dialog_set_filter"}
-	gtk_font_dialog_choose_family                   = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontFamily, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_font_dialog_choose_family"}
+	gtk_font_dialog_choose_family                   = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontFamily, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_font_dialog_choose_family"}
 	gtk_font_dialog_choose_family_finish            = cc.DlFunc[func(fd *FontDialog, result *gio.GAsyncResult, err **glib.GError) *pango.FontFamily, *pango.FontFamily]{Name: "gtk_font_dialog_choose_family_finish"}
-	gtk_font_dialog_choose_face                     = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontFace, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_font_dialog_choose_face"}
+	gtk_font_dialog_choose_face                     = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontFace, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_font_dialog_choose_face"}
 	gtk_font_dialog_choose_face_finish              = cc.DlFunc[func(fd *FontDialog, result *gio.GAsyncResult, err **glib.GError) *pango.FontFace, *pango.FontFace]{Name: "gtk_font_dialog_choose_face_finish"}
-	gtk_font_dialog_choose_font                     = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontDescription, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_font_dialog_choose_font"}
+	gtk_font_dialog_choose_font                     = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontDescription, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_font_dialog_choose_font"}
 	gtk_font_dialog_choose_font_finish              = cc.DlFunc[func(fd *FontDialog, result *gio.GAsyncResult, err **glib.GError) *pango.FontDescription, *pango.FontDescription]{Name: "gtk_font_dialog_choose_font_finish"}
-	gtk_font_dialog_choose_font_and_features        = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontDescription, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_font_dialog_choose_font_and_features"}
-	gtk_font_dialog_choose_font_and_features_finish = cc.DlFunc[func(fd *FontDialog, result *gio.GAsyncResult, fontDesc **pango.FontDescription, fontFeatures *cc.String, language **pango.Language, err **glib.GError) bool, bool]{Name: "gtk_font_dialog_choose_font_and_features_finish"}
+	gtk_font_dialog_choose_font_and_features        = cc.DlFunc[func(fd *FontDialog, parent *Window, initialValue *pango.FontDescription, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_font_dialog_choose_font_and_features"}
+	gtk_font_dialog_choose_font_and_features_finish = cc.DlFunc[func(fd *FontDialog, result *gio.GAsyncResult, fontDesc **pango.FontDescription, fontFeatures *cc.String, language **pango.Language, err **glib.GError) int32, int32]{Name: "gtk_font_dialog_choose_font_and_features_finish"}
 	// #endregion
 
 	// #region FontDialogButton
@@ -1208,10 +1208,10 @@ var (
 	gtk_font_dialog_button_set_font_features = cc.DlFunc[func(btn *FontDialogButton, features cc.String), cc.Void]{Name: "gtk_font_dialog_button_set_font_features"}
 	gtk_font_dialog_button_get_language      = cc.DlFunc[func(btn *FontDialogButton) *pango.Language, *pango.Language]{Name: "gtk_font_dialog_button_get_language"}
 	gtk_font_dialog_button_set_language      = cc.DlFunc[func(btn *FontDialogButton, language *pango.Language), cc.Void]{Name: "gtk_font_dialog_button_set_language"}
-	gtk_font_dialog_button_get_use_font      = cc.DlFunc[func(btn *FontDialogButton) bool, bool]{Name: "gtk_font_dialog_button_get_use_font"}
-	gtk_font_dialog_button_set_use_font      = cc.DlFunc[func(btn *FontDialogButton, useFont bool), cc.Void]{Name: "gtk_font_dialog_button_set_use_font"}
-	gtk_font_dialog_button_get_use_size      = cc.DlFunc[func(btn *FontDialogButton) bool, bool]{Name: "gtk_font_dialog_button_get_use_size"}
-	gtk_font_dialog_button_set_use_size      = cc.DlFunc[func(btn *FontDialogButton, useSize bool), cc.Void]{Name: "gtk_font_dialog_button_set_use_size"}
+	gtk_font_dialog_button_get_use_font      = cc.DlFunc[func(btn *FontDialogButton) int32, int32]{Name: "gtk_font_dialog_button_get_use_font"}
+	gtk_font_dialog_button_set_use_font      = cc.DlFunc[func(btn *FontDialogButton, useFont int32), cc.Void]{Name: "gtk_font_dialog_button_set_use_font"}
+	gtk_font_dialog_button_get_use_size      = cc.DlFunc[func(btn *FontDialogButton) int32, int32]{Name: "gtk_font_dialog_button_get_use_size"}
+	gtk_font_dialog_button_set_use_size      = cc.DlFunc[func(btn *FontDialogButton, useSize int32), cc.Void]{Name: "gtk_font_dialog_button_set_use_size"}
 	// #endregion
 
 	// #region Frame
@@ -1230,22 +1230,22 @@ var (
 	// #region Gesture
 	gtk_gesture_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_gesture_get_type"}
 	gtk_gesture_get_device                = cc.DlFunc[func(gesture *Gesture) *gdk.Device, *gdk.Device]{Name: "gtk_gesture_get_device"}
-	gtk_gesture_set_state                 = cc.DlFunc[func(gesture *Gesture, state EventSequenceState) bool, bool]{Name: "gtk_gesture_set_state"}
+	gtk_gesture_set_state                 = cc.DlFunc[func(gesture *Gesture, state EventSequenceState) int32, int32]{Name: "gtk_gesture_set_state"}
 	gtk_gesture_get_sequence_state        = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence) EventSequenceState, EventSequenceState]{Name: "gtk_gesture_get_sequence_state"}
-	gtk_gesture_set_sequence_state        = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence, state EventSequenceState) bool, bool]{Name: "gtk_gesture_set_sequence_state"}
+	gtk_gesture_set_sequence_state        = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence, state EventSequenceState) int32, int32]{Name: "gtk_gesture_set_sequence_state"}
 	gtk_gesture_get_sequences             = cc.DlFunc[func(gesture *Gesture) *glib.GList[gdk.EventSequence], *glib.GList[gdk.EventSequence]]{Name: "gtk_gesture_get_sequences"}
 	gtk_gesture_get_last_updated_sequence = cc.DlFunc[func(gesture *Gesture) *gdk.EventSequence, *gdk.EventSequence]{Name: "gtk_gesture_get_last_updated_sequence"}
-	gtk_gesture_handles_sequence          = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence) bool, bool]{Name: "gtk_gesture_handles_sequence"}
+	gtk_gesture_handles_sequence          = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence) int32, int32]{Name: "gtk_gesture_handles_sequence"}
 	gtk_gesture_get_last_event            = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence) *gdk.Event, *gdk.Event]{Name: "gtk_gesture_get_last_event"}
-	gtk_gesture_get_point                 = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence, x, y *float64) bool, bool]{Name: "gtk_gesture_get_point"}
-	gtk_gesture_get_bounding_box          = cc.DlFunc[func(gesture *Gesture, rect *gdk.Rectangle) bool, bool]{Name: "gtk_gesture_get_bounding_box"}
-	gtk_gesture_get_bounding_box_center   = cc.DlFunc[func(gesture *Gesture, x, y *float64) bool, bool]{Name: "gtk_gesture_get_bounding_box_center"}
-	gtk_gesture_is_active                 = cc.DlFunc[func(gesture *Gesture) bool, bool]{Name: "gtk_gesture_is_active"}
-	gtk_gesture_is_recognized             = cc.DlFunc[func(gesture *Gesture) bool, bool]{Name: "gtk_gesture_is_recognized"}
+	gtk_gesture_get_point                 = cc.DlFunc[func(gesture *Gesture, sequence *gdk.EventSequence, x, y *float64) int32, int32]{Name: "gtk_gesture_get_point"}
+	gtk_gesture_get_bounding_box          = cc.DlFunc[func(gesture *Gesture, rect *gdk.Rectangle) int32, int32]{Name: "gtk_gesture_get_bounding_box"}
+	gtk_gesture_get_bounding_box_center   = cc.DlFunc[func(gesture *Gesture, x, y *float64) int32, int32]{Name: "gtk_gesture_get_bounding_box_center"}
+	gtk_gesture_is_active                 = cc.DlFunc[func(gesture *Gesture) int32, int32]{Name: "gtk_gesture_is_active"}
+	gtk_gesture_is_recognized             = cc.DlFunc[func(gesture *Gesture) int32, int32]{Name: "gtk_gesture_is_recognized"}
 	gtk_gesture_group                     = cc.DlFunc[func(groupGesture, gesture *Gesture), cc.Void]{Name: "gtk_gesture_group"}
 	gtk_gesture_ungroup                   = cc.DlFunc[func(gesture *Gesture), cc.Void]{Name: "gtk_gesture_ungroup"}
 	gtk_gesture_get_group                 = cc.DlFunc[func(gesture *Gesture) *glib.GList[Gesture], *glib.GList[Gesture]]{Name: "gtk_gesture_get_group"}
-	gtk_gesture_is_grouped_with           = cc.DlFunc[func(gesture, other *Gesture) bool, bool]{Name: "gtk_gesture_is_grouped_with"}
+	gtk_gesture_is_grouped_with           = cc.DlFunc[func(gesture, other *Gesture) int32, int32]{Name: "gtk_gesture_is_grouped_with"}
 	// #endregion
 
 	// #region GestureClick
@@ -1256,8 +1256,8 @@ var (
 	// #region GestureDrag
 	gtk_gesture_drag_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_gesture_drag_get_type"}
 	gtk_gesture_drag_new             = cc.DlFunc[func() *GestureDrag, *GestureDrag]{Name: "gtk_gesture_drag_new"}
-	gtk_gesture_drag_get_start_point = cc.DlFunc[func(gesture *GestureDrag, x, y *float64) bool, bool]{Name: "gtk_gesture_drag_get_start_point"}
-	gtk_gesture_drag_get_offset      = cc.DlFunc[func(gesture *GestureDrag, x, y *float64) bool, bool]{Name: "gtk_gesture_drag_get_offset"}
+	gtk_gesture_drag_get_start_point = cc.DlFunc[func(gesture *GestureDrag, x, y *float64) int32, int32]{Name: "gtk_gesture_drag_get_start_point"}
+	gtk_gesture_drag_get_offset      = cc.DlFunc[func(gesture *GestureDrag, x, y *float64) int32, int32]{Name: "gtk_gesture_drag_get_offset"}
 	// #endregion
 
 	// #region GestureLongPress
@@ -1282,10 +1282,10 @@ var (
 
 	// #region GestureSingle
 	gtk_gesture_single_get_type             = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_gesture_single_get_type"}
-	gtk_gesture_single_get_touch_only       = cc.DlFunc[func(gesture *GestureSingle) bool, bool]{Name: "gtk_gesture_single_get_touch_only"}
-	gtk_gesture_single_set_touch_only       = cc.DlFunc[func(gesture *GestureSingle, touchOnly bool), cc.Void]{Name: "gtk_gesture_single_set_touch_only"}
-	gtk_gesture_single_get_exclusive        = cc.DlFunc[func(gesture *GestureSingle) bool, bool]{Name: "gtk_gesture_single_get_exclusive"}
-	gtk_gesture_single_set_exclusive        = cc.DlFunc[func(gesture *GestureSingle, exclusive bool), cc.Void]{Name: "gtk_gesture_single_set_exclusive"}
+	gtk_gesture_single_get_touch_only       = cc.DlFunc[func(gesture *GestureSingle) int32, int32]{Name: "gtk_gesture_single_get_touch_only"}
+	gtk_gesture_single_set_touch_only       = cc.DlFunc[func(gesture *GestureSingle, touchOnly int32), cc.Void]{Name: "gtk_gesture_single_set_touch_only"}
+	gtk_gesture_single_get_exclusive        = cc.DlFunc[func(gesture *GestureSingle) int32, int32]{Name: "gtk_gesture_single_get_exclusive"}
+	gtk_gesture_single_set_exclusive        = cc.DlFunc[func(gesture *GestureSingle, exclusive int32), cc.Void]{Name: "gtk_gesture_single_set_exclusive"}
 	gtk_gesture_single_get_button           = cc.DlFunc[func(gesture *GestureSingle) uint32, uint32]{Name: "gtk_gesture_single_get_button"}
 	gtk_gesture_single_set_button           = cc.DlFunc[func(gesture *GestureSingle, button uint32), cc.Void]{Name: "gtk_gesture_single_set_button"}
 	gtk_gesture_single_get_current_button   = cc.DlFunc[func(gesture *GestureSingle) uint32, uint32]{Name: "gtk_gesture_single_get_current_button"}
@@ -1295,18 +1295,18 @@ var (
 	// #region GestureStylus
 	gtk_gesture_stylus_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_gesture_stylus_get_type"}
 	gtk_gesture_stylus_new             = cc.DlFunc[func() *GestureStylus, *GestureStylus]{Name: "gtk_gesture_stylus_new"}
-	gtk_gesture_stylus_get_stylus_only = cc.DlFunc[func(gesture *GestureStylus) bool, bool]{Name: "gtk_gesture_stylus_get_stylus_only"}
-	gtk_gesture_stylus_set_stylus_only = cc.DlFunc[func(gesture *GestureStylus, stylusOnly bool), cc.Void]{Name: "gtk_gesture_stylus_set_stylus_only"}
-	gtk_gesture_stylus_get_axis        = cc.DlFunc[func(gesture *GestureStylus, axis gdk.AxisUse, value *float64) bool, bool]{Name: "gtk_gesture_stylus_get_axis"}
-	gtk_gesture_stylus_get_axes        = cc.DlFunc[func(gesture *GestureStylus, axes *gdk.AxisUse, values **float64) bool, bool]{Name: "gtk_gesture_stylus_get_axes"}
-	gtk_gesture_stylus_get_backlog     = cc.DlFunc[func(gesture *GestureStylus, backlog **gdk.TimeCoord, nElems *uint32) bool, bool]{Name: "gtk_gesture_stylus_get_backlog"}
+	gtk_gesture_stylus_get_stylus_only = cc.DlFunc[func(gesture *GestureStylus) int32, int32]{Name: "gtk_gesture_stylus_get_stylus_only"}
+	gtk_gesture_stylus_set_stylus_only = cc.DlFunc[func(gesture *GestureStylus, stylusOnly int32), cc.Void]{Name: "gtk_gesture_stylus_set_stylus_only"}
+	gtk_gesture_stylus_get_axis        = cc.DlFunc[func(gesture *GestureStylus, axis gdk.AxisUse, value *float64) int32, int32]{Name: "gtk_gesture_stylus_get_axis"}
+	gtk_gesture_stylus_get_axes        = cc.DlFunc[func(gesture *GestureStylus, axes *gdk.AxisUse, values **float64) int32, int32]{Name: "gtk_gesture_stylus_get_axes"}
+	gtk_gesture_stylus_get_backlog     = cc.DlFunc[func(gesture *GestureStylus, backlog **gdk.TimeCoord, nElems *uint32) int32, int32]{Name: "gtk_gesture_stylus_get_backlog"}
 	gtk_gesture_stylus_get_device_tool = cc.DlFunc[func(gesture *GestureStylus) *gdk.DeviceTool, *gdk.DeviceTool]{Name: "gtk_gesture_stylus_get_device_tool"}
 	// #endregion
 
 	// #region GestureSwipe
 	gtk_gesture_swipe_get_type     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_gesture_swipe_get_type"}
 	gtk_gesture_swipe_new          = cc.DlFunc[func() *GestureSwipe, *GestureSwipe]{Name: "gtk_gesture_swipe_new"}
-	gtk_gesture_swipe_get_velocity = cc.DlFunc[func(gesture *GestureSwipe, velocityX, velocityY *float64) bool, bool]{Name: "gtk_gesture_swipe_get_velocity"}
+	gtk_gesture_swipe_get_velocity = cc.DlFunc[func(gesture *GestureSwipe, velocityX, velocityY *float64) int32, int32]{Name: "gtk_gesture_swipe_get_velocity"}
 	// #endregion
 
 	// #region GestureZoom
@@ -1323,12 +1323,12 @@ var (
 	gtk_gl_area_get_api                = cc.DlFunc[func(area *GLArea) gdk.GLAPI, gdk.GLAPI]{Name: "gtk_gl_area_get_api"}
 	gtk_gl_area_set_required_version   = cc.DlFunc[func(area *GLArea, major int32, minor int32), cc.Void]{Name: "gtk_gl_area_set_required_version"}
 	gtk_gl_area_get_required_version   = cc.DlFunc[func(area *GLArea, major *int32, minor *int32), cc.Void]{Name: "gtk_gl_area_get_required_version"}
-	gtk_gl_area_get_has_depth_buffer   = cc.DlFunc[func(area *GLArea) bool, bool]{Name: "gtk_gl_area_get_has_depth_buffer"}
-	gtk_gl_area_set_has_depth_buffer   = cc.DlFunc[func(area *GLArea, hasDepthBuffer bool), cc.Void]{Name: "gtk_gl_area_set_has_depth_buffer"}
-	gtk_gl_area_get_has_stencil_buffer = cc.DlFunc[func(area *GLArea) bool, bool]{Name: "gtk_gl_area_get_has_stencil_buffer"}
-	gtk_gl_area_set_has_stencil_buffer = cc.DlFunc[func(area *GLArea, hasStencilBuffer bool), cc.Void]{Name: "gtk_gl_area_set_has_stencil_buffer"}
-	gtk_gl_area_get_auto_render        = cc.DlFunc[func(area *GLArea) bool, bool]{Name: "gtk_gl_area_get_auto_render"}
-	gtk_gl_area_set_auto_render        = cc.DlFunc[func(area *GLArea, autoRender bool), cc.Void]{Name: "gtk_gl_area_set_auto_render"}
+	gtk_gl_area_get_has_depth_buffer   = cc.DlFunc[func(area *GLArea) int32, int32]{Name: "gtk_gl_area_get_has_depth_buffer"}
+	gtk_gl_area_set_has_depth_buffer   = cc.DlFunc[func(area *GLArea, hasDepthBuffer int32), cc.Void]{Name: "gtk_gl_area_set_has_depth_buffer"}
+	gtk_gl_area_get_has_stencil_buffer = cc.DlFunc[func(area *GLArea) int32, int32]{Name: "gtk_gl_area_get_has_stencil_buffer"}
+	gtk_gl_area_set_has_stencil_buffer = cc.DlFunc[func(area *GLArea, hasStencilBuffer int32), cc.Void]{Name: "gtk_gl_area_set_has_stencil_buffer"}
+	gtk_gl_area_get_auto_render        = cc.DlFunc[func(area *GLArea) int32, int32]{Name: "gtk_gl_area_get_auto_render"}
+	gtk_gl_area_set_auto_render        = cc.DlFunc[func(area *GLArea, autoRender int32), cc.Void]{Name: "gtk_gl_area_set_auto_render"}
 	gtk_gl_area_queue_render           = cc.DlFunc[func(area *GLArea), cc.Void]{Name: "gtk_gl_area_queue_render"}
 	gtk_gl_area_get_context            = cc.DlFunc[func(area *GLArea) *gdk.GLContext, *gdk.GLContext]{Name: "gtk_gl_area_get_context"}
 	gtk_gl_area_make_current           = cc.DlFunc[func(area *GLArea), cc.Void]{Name: "gtk_gl_area_make_current"}
@@ -1344,8 +1344,8 @@ var (
 	gtk_graphics_offload_get_child            = cc.DlFunc[func(goff *GraphicsOffload) *Widget, *Widget]{Name: "gtk_graphics_offload_get_child"}
 	gtk_graphics_offload_set_enabled          = cc.DlFunc[func(goff *GraphicsOffload, enabled GraphicsOffloadEnabled), cc.Void]{Name: "gtk_graphics_offload_set_enabled"}
 	gtk_graphics_offload_get_enabled          = cc.DlFunc[func(goff *GraphicsOffload) GraphicsOffloadEnabled, GraphicsOffloadEnabled]{Name: "gtk_graphics_offload_get_enabled"}
-	gtk_graphics_offload_set_black_background = cc.DlFunc[func(goff *GraphicsOffload, value bool), cc.Void]{Name: "gtk_graphics_offload_set_black_background"}
-	gtk_graphics_offload_get_black_background = cc.DlFunc[func(goff *GraphicsOffload) bool, bool]{Name: "gtk_graphics_offload_get_black_background"}
+	gtk_graphics_offload_set_black_background = cc.DlFunc[func(goff *GraphicsOffload, value int32), cc.Void]{Name: "gtk_graphics_offload_set_black_background"}
+	gtk_graphics_offload_get_black_background = cc.DlFunc[func(goff *GraphicsOffload) int32, int32]{Name: "gtk_graphics_offload_get_black_background"}
 	// #endregion
 
 	// #region Grid
@@ -1360,12 +1360,12 @@ var (
 	gtk_grid_remove_row                = cc.DlFunc[func(grid *Grid, position int32), cc.Void]{Name: "gtk_grid_remove_row"}
 	gtk_grid_remove_column             = cc.DlFunc[func(grid *Grid, position int32), cc.Void]{Name: "gtk_grid_remove_column"}
 	gtk_grid_insert_next_to            = cc.DlFunc[func(grid *Grid, sibling *Widget, side PositionType), cc.Void]{Name: "gtk_grid_insert_next_to"}
-	gtk_grid_set_row_homogeneous       = cc.DlFunc[func(grid *Grid, homogeneous bool), cc.Void]{Name: "gtk_grid_set_row_homogeneous"}
-	gtk_grid_get_row_homogeneous       = cc.DlFunc[func(grid *Grid) bool, bool]{Name: "gtk_grid_get_row_homogeneous"}
+	gtk_grid_set_row_homogeneous       = cc.DlFunc[func(grid *Grid, homogeneous int32), cc.Void]{Name: "gtk_grid_set_row_homogeneous"}
+	gtk_grid_get_row_homogeneous       = cc.DlFunc[func(grid *Grid) int32, int32]{Name: "gtk_grid_get_row_homogeneous"}
 	gtk_grid_set_row_spacing           = cc.DlFunc[func(grid *Grid, spacing uint32), cc.Void]{Name: "gtk_grid_set_row_spacing"}
 	gtk_grid_get_row_spacing           = cc.DlFunc[func(grid *Grid) uint32, uint32]{Name: "gtk_grid_get_row_spacing"}
-	gtk_grid_set_column_homogeneous    = cc.DlFunc[func(grid *Grid, homogeneous bool), cc.Void]{Name: "gtk_grid_set_column_homogeneous"}
-	gtk_grid_get_column_homogeneous    = cc.DlFunc[func(grid *Grid) bool, bool]{Name: "gtk_grid_get_column_homogeneous"}
+	gtk_grid_set_column_homogeneous    = cc.DlFunc[func(grid *Grid, homogeneous int32), cc.Void]{Name: "gtk_grid_set_column_homogeneous"}
+	gtk_grid_get_column_homogeneous    = cc.DlFunc[func(grid *Grid) int32, int32]{Name: "gtk_grid_get_column_homogeneous"}
 	gtk_grid_set_column_spacing        = cc.DlFunc[func(grid *Grid, spacing uint32), cc.Void]{Name: "gtk_grid_set_column_spacing"}
 	gtk_grid_get_column_spacing        = cc.DlFunc[func(grid *Grid) uint32, uint32]{Name: "gtk_grid_get_column_spacing"}
 	gtk_grid_set_row_baseline_position = cc.DlFunc[func(grid *Grid, row int32, pos BaselinePosition), cc.Void]{Name: "gtk_grid_set_row_baseline_position"}
@@ -1378,12 +1378,12 @@ var (
 	// #region GridLayout
 	gtk_grid_layout_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_grid_layout_get_type"}
 	gtk_grid_layout_new                       = cc.DlFunc[func() *GridLayout, *GridLayout]{Name: "gtk_grid_layout_new"}
-	gtk_grid_layout_set_row_homogeneous       = cc.DlFunc[func(g *GridLayout, homogeneous bool), cc.Void]{Name: "gtk_grid_layout_set_row_homogeneous"}
-	gtk_grid_layout_get_row_homogeneous       = cc.DlFunc[func(g *GridLayout) bool, bool]{Name: "gtk_grid_layout_get_row_homogeneous"}
+	gtk_grid_layout_set_row_homogeneous       = cc.DlFunc[func(g *GridLayout, homogeneous int32), cc.Void]{Name: "gtk_grid_layout_set_row_homogeneous"}
+	gtk_grid_layout_get_row_homogeneous       = cc.DlFunc[func(g *GridLayout) int32, int32]{Name: "gtk_grid_layout_get_row_homogeneous"}
 	gtk_grid_layout_set_row_spacing           = cc.DlFunc[func(g *GridLayout, spacing uint32), cc.Void]{Name: "gtk_grid_layout_set_row_spacing"}
 	gtk_grid_layout_get_row_spacing           = cc.DlFunc[func(g *GridLayout) uint32, uint32]{Name: "gtk_grid_layout_get_row_spacing"}
-	gtk_grid_layout_set_column_homogeneous    = cc.DlFunc[func(g *GridLayout, homogeneous bool), cc.Void]{Name: "gtk_grid_layout_set_column_homogeneous"}
-	gtk_grid_layout_get_column_homogeneous    = cc.DlFunc[func(g *GridLayout) bool, bool]{Name: "gtk_grid_layout_get_column_homogeneous"}
+	gtk_grid_layout_set_column_homogeneous    = cc.DlFunc[func(g *GridLayout, homogeneous int32), cc.Void]{Name: "gtk_grid_layout_set_column_homogeneous"}
+	gtk_grid_layout_get_column_homogeneous    = cc.DlFunc[func(g *GridLayout) int32, int32]{Name: "gtk_grid_layout_get_column_homogeneous"}
 	gtk_grid_layout_set_column_spacing        = cc.DlFunc[func(g *GridLayout, spacing uint32), cc.Void]{Name: "gtk_grid_layout_set_column_spacing"}
 	gtk_grid_layout_get_column_spacing        = cc.DlFunc[func(g *GridLayout) uint32, uint32]{Name: "gtk_grid_layout_get_column_spacing"}
 	gtk_grid_layout_set_row_baseline_position = cc.DlFunc[func(g *GridLayout, row int32, pos BaselinePosition), cc.Void]{Name: "gtk_grid_layout_set_row_baseline_position"}
@@ -1411,12 +1411,12 @@ var (
 	gtk_grid_view_set_min_columns           = cc.DlFunc[func(g *GridView, minColumns uint32), cc.Void]{Name: "gtk_grid_view_set_min_columns"}
 	gtk_grid_view_get_max_columns           = cc.DlFunc[func(g *GridView) uint32, uint32]{Name: "gtk_grid_view_get_max_columns"}
 	gtk_grid_view_set_max_columns           = cc.DlFunc[func(g *GridView, maxColumns uint32), cc.Void]{Name: "gtk_grid_view_set_max_columns"}
-	gtk_grid_view_set_enable_rubberband     = cc.DlFunc[func(g *GridView, enableRubberband bool), cc.Void]{Name: "gtk_grid_view_set_enable_rubberband"}
-	gtk_grid_view_get_enable_rubberband     = cc.DlFunc[func(g *GridView) bool, bool]{Name: "gtk_grid_view_get_enable_rubberband"}
+	gtk_grid_view_set_enable_rubberband     = cc.DlFunc[func(g *GridView, enableRubberband int32), cc.Void]{Name: "gtk_grid_view_set_enable_rubberband"}
+	gtk_grid_view_get_enable_rubberband     = cc.DlFunc[func(g *GridView) int32, int32]{Name: "gtk_grid_view_get_enable_rubberband"}
 	gtk_grid_view_set_tab_behavior          = cc.DlFunc[func(g *GridView, tabBehavior ListTabBehavior), cc.Void]{Name: "gtk_grid_view_set_tab_behavior"}
 	gtk_grid_view_get_tab_behavior          = cc.DlFunc[func(g *GridView) ListTabBehavior, ListTabBehavior]{Name: "gtk_grid_view_get_tab_behavior"}
-	gtk_grid_view_set_single_click_activate = cc.DlFunc[func(g *GridView, singleClickActivate bool), cc.Void]{Name: "gtk_grid_view_set_single_click_activate"}
-	gtk_grid_view_get_single_click_activate = cc.DlFunc[func(g *GridView) bool, bool]{Name: "gtk_grid_view_get_single_click_activate"}
+	gtk_grid_view_set_single_click_activate = cc.DlFunc[func(g *GridView, singleClickActivate int32), cc.Void]{Name: "gtk_grid_view_set_single_click_activate"}
+	gtk_grid_view_get_single_click_activate = cc.DlFunc[func(g *GridView) int32, int32]{Name: "gtk_grid_view_get_single_click_activate"}
 	gtk_grid_view_scroll_to                 = cc.DlFunc[func(g *GridView, pos uint32, flags ListScrollFlags, scroll *ScrollInfo), cc.Void]{Name: "gtk_grid_view_scroll_to"}
 	// #endregion
 
@@ -1428,12 +1428,12 @@ var (
 	gtk_header_bar_pack_start              = cc.DlFunc[func(bar *HeaderBar, child *Widget), cc.Void]{Name: "gtk_header_bar_pack_start"}
 	gtk_header_bar_pack_end                = cc.DlFunc[func(bar *HeaderBar, child *Widget), cc.Void]{Name: "gtk_header_bar_pack_end"}
 	gtk_header_bar_remove                  = cc.DlFunc[func(bar *HeaderBar, child *Widget), cc.Void]{Name: "gtk_header_bar_remove"}
-	gtk_header_bar_get_show_title_buttons  = cc.DlFunc[func(bar *HeaderBar) bool, bool]{Name: "gtk_header_bar_get_show_title_buttons"}
-	gtk_header_bar_set_show_title_buttons  = cc.DlFunc[func(bar *HeaderBar, setting bool), cc.Void]{Name: "gtk_header_bar_set_show_title_buttons"}
+	gtk_header_bar_get_show_title_buttons  = cc.DlFunc[func(bar *HeaderBar) int32, int32]{Name: "gtk_header_bar_get_show_title_buttons"}
+	gtk_header_bar_set_show_title_buttons  = cc.DlFunc[func(bar *HeaderBar, setting int32), cc.Void]{Name: "gtk_header_bar_set_show_title_buttons"}
 	gtk_header_bar_set_decoration_layout   = cc.DlFunc[func(bar *HeaderBar, layout cc.String), cc.Void]{Name: "gtk_header_bar_set_decoration_layout"}
 	gtk_header_bar_get_decoration_layout   = cc.DlFunc[func(bar *HeaderBar) cc.String, cc.String]{Name: "gtk_header_bar_get_decoration_layout"}
-	gtk_header_bar_get_use_native_controls = cc.DlFunc[func(bar *HeaderBar) bool, bool]{Name: "gtk_header_bar_get_use_native_controls"}
-	gtk_header_bar_set_use_native_controls = cc.DlFunc[func(bar *HeaderBar, setting bool), cc.Void]{Name: "gtk_header_bar_set_use_native_controls"}
+	gtk_header_bar_get_use_native_controls = cc.DlFunc[func(bar *HeaderBar) int32, int32]{Name: "gtk_header_bar_get_use_native_controls"}
+	gtk_header_bar_set_use_native_controls = cc.DlFunc[func(bar *HeaderBar, setting int32), cc.Void]{Name: "gtk_header_bar_set_use_native_controls"}
 	// #endregion
 
 	// #region IconTheme
@@ -1450,8 +1450,8 @@ var (
 	gtk_icon_theme_add_resource_path = cc.DlFunc[func(iconTheme *IconTheme, path cc.String), cc.Void]{Name: "gtk_icon_theme_add_resource_path"}
 	gtk_icon_theme_set_theme_name    = cc.DlFunc[func(iconTheme *IconTheme, themeName cc.String), cc.Void]{Name: "gtk_icon_theme_set_theme_name"}
 	gtk_icon_theme_get_theme_name    = cc.DlFunc[func(iconTheme *IconTheme) cc.String, cc.String]{Name: "gtk_icon_theme_get_theme_name"}
-	gtk_icon_theme_has_icon          = cc.DlFunc[func(iconTheme *IconTheme, iconName cc.String) bool, bool]{Name: "gtk_icon_theme_has_icon"}
-	gtk_icon_theme_has_gicon         = cc.DlFunc[func(iconTheme *IconTheme, gicon *gio.GIcon) bool, bool]{Name: "gtk_icon_theme_has_gicon"}
+	gtk_icon_theme_has_icon          = cc.DlFunc[func(iconTheme *IconTheme, iconName cc.String) int32, int32]{Name: "gtk_icon_theme_has_icon"}
+	gtk_icon_theme_has_gicon         = cc.DlFunc[func(iconTheme *IconTheme, gicon *gio.GIcon) int32, int32]{Name: "gtk_icon_theme_has_gicon"}
 	gtk_icon_theme_get_icon_sizes    = cc.DlFunc[func(iconTheme *IconTheme, iconName cc.String) *int32, *int32]{Name: "gtk_icon_theme_get_icon_sizes"}
 	gtk_icon_theme_lookup_icon       = cc.DlFunc[func(iconTheme *IconTheme, iconName cc.String, fallbacks cc.Strings, size, scale int32, direction TextDirection, flags IconLookupFlags) *IconPaintable, *IconPaintable]{Name: "gtk_icon_theme_lookup_icon"}
 	gtk_icon_theme_lookup_by_gicon   = cc.DlFunc[func(iconTheme *IconTheme, gicon *gio.GIcon, size, scale int32, direction TextDirection, flags IconLookupFlags) *IconPaintable, *IconPaintable]{Name: "gtk_icon_theme_lookup_by_gicon"}
@@ -1460,7 +1460,7 @@ var (
 	gtk_icon_paintable_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_icon_paintable_get_type"}
 	gtk_icon_paintable_get_file      = cc.DlFunc[func(iconPaintable *IconPaintable) *gio.GFile, *gio.GFile]{Name: "gtk_icon_paintable_get_file"}
 	gtk_icon_paintable_get_icon_name = cc.DlFunc[func(iconPaintable *IconPaintable) cc.String, cc.String]{Name: "gtk_icon_paintable_get_icon_name"}
-	gtk_icon_paintable_is_symbolic   = cc.DlFunc[func(iconPaintable *IconPaintable) bool, bool]{Name: "gtk_icon_paintable_is_symbolic"}
+	gtk_icon_paintable_is_symbolic   = cc.DlFunc[func(iconPaintable *IconPaintable) int32, int32]{Name: "gtk_icon_paintable_is_symbolic"}
 	// #endregion
 
 	// #region Image
@@ -1493,17 +1493,17 @@ var (
 	gtk_im_context_get_type                       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_im_context_get_type"}
 	gtk_im_context_set_client_widget              = cc.DlFunc[func(context *IMContext, widget *Widget), cc.Void]{Name: "gtk_im_context_set_client_widget"}
 	gtk_im_context_get_preedit_string             = cc.DlFunc[func(context *IMContext, str *cc.String, attrs **pango.AttrList, cursorPos *int32), cc.Void]{Name: "gtk_im_context_get_preedit_string"}
-	gtk_im_context_filter_keypress                = cc.DlFunc[func(context *IMContext, event *gdk.Event) bool, bool]{Name: "gtk_im_context_filter_keypress"}
-	gtk_im_context_filter_key                     = cc.DlFunc[func(context *IMContext, press bool, surface *gdk.Surface, device *gdk.Device, time uint32, keycode uint32, state gdk.ModifierType, group int32) bool, bool]{Name: "gtk_im_context_filter_key"}
+	gtk_im_context_filter_keypress                = cc.DlFunc[func(context *IMContext, event *gdk.Event) int32, int32]{Name: "gtk_im_context_filter_keypress"}
+	gtk_im_context_filter_key                     = cc.DlFunc[func(context *IMContext, press int32, surface *gdk.Surface, device *gdk.Device, time uint32, keycode uint32, state gdk.ModifierType, group int32) int32, int32]{Name: "gtk_im_context_filter_key"}
 	gtk_im_context_focus_in                       = cc.DlFunc[func(context *IMContext), cc.Void]{Name: "gtk_im_context_focus_in"}
 	gtk_im_context_focus_out                      = cc.DlFunc[func(context *IMContext), cc.Void]{Name: "gtk_im_context_focus_out"}
 	gtk_im_context_reset                          = cc.DlFunc[func(context *IMContext), cc.Void]{Name: "gtk_im_context_reset"}
 	gtk_im_context_set_cursor_location            = cc.DlFunc[func(context *IMContext, area *gdk.Rectangle), cc.Void]{Name: "gtk_im_context_set_cursor_location"}
-	gtk_im_context_set_use_preedit                = cc.DlFunc[func(context *IMContext, usePreedit bool), cc.Void]{Name: "gtk_im_context_set_use_preedit"}
-	gtk_im_context_set_surrounding_with_selection = cc.DlFunc[func(context *IMContext, text string, length, cursorIndex, anchorIndex int32), cc.Void]{Name: "gtk_im_context_set_surrounding_with_selection"}
-	gtk_im_context_get_surrounding_with_selection = cc.DlFunc[func(context *IMContext, text *cc.String, cursorIndex, anchorIndex *int32) bool, bool]{Name: "gtk_im_context_get_surrounding_with_selection"}
-	gtk_im_context_delete_surrounding             = cc.DlFunc[func(context *IMContext, offset, nChars int32) bool, bool]{Name: "gtk_im_context_delete_surrounding"}
-	gtk_im_context_activate_osk                   = cc.DlFunc[func(context *IMContext, event *gdk.Event) bool, bool]{Name: "gtk_im_context_activate_osk"}
+	gtk_im_context_set_use_preedit                = cc.DlFunc[func(context *IMContext, usePreedit int32), cc.Void]{Name: "gtk_im_context_set_use_preedit"}
+	gtk_im_context_set_surrounding_with_selection = cc.DlFunc[func(context *IMContext, text cc.String, length, cursorIndex, anchorIndex int32), cc.Void]{Name: "gtk_im_context_set_surrounding_with_selection"}
+	gtk_im_context_get_surrounding_with_selection = cc.DlFunc[func(context *IMContext, text *cc.String, cursorIndex, anchorIndex *int32) int32, int32]{Name: "gtk_im_context_get_surrounding_with_selection"}
+	gtk_im_context_delete_surrounding             = cc.DlFunc[func(context *IMContext, offset, nChars int32) int32, int32]{Name: "gtk_im_context_delete_surrounding"}
+	gtk_im_context_activate_osk                   = cc.DlFunc[func(context *IMContext, event *gdk.Event) int32, int32]{Name: "gtk_im_context_activate_osk"}
 	// #endregion
 
 	// #region IMContextSimple
@@ -1557,10 +1557,10 @@ var (
 	gtk_label_set_label                = cc.DlFunc[func(label *Label, str cc.String), cc.Void]{Name: "gtk_label_set_label"}
 	gtk_label_get_label                = cc.DlFunc[func(label *Label) cc.String, cc.String]{Name: "gtk_label_get_label"}
 	gtk_label_set_markup               = cc.DlFunc[func(label *Label, str cc.String), cc.Void]{Name: "gtk_label_set_markup"}
-	gtk_label_set_use_markup           = cc.DlFunc[func(label *Label, setting bool), cc.Void]{Name: "gtk_label_set_use_markup"}
-	gtk_label_get_use_markup           = cc.DlFunc[func(label *Label) bool, bool]{Name: "gtk_label_get_use_markup"}
-	gtk_label_set_use_underline        = cc.DlFunc[func(label *Label, setting bool), cc.Void]{Name: "gtk_label_set_use_underline"}
-	gtk_label_get_use_underline        = cc.DlFunc[func(label *Label) bool, bool]{Name: "gtk_label_get_use_underline"}
+	gtk_label_set_use_markup           = cc.DlFunc[func(label *Label, setting int32), cc.Void]{Name: "gtk_label_set_use_markup"}
+	gtk_label_get_use_markup           = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_use_markup"}
+	gtk_label_set_use_underline        = cc.DlFunc[func(label *Label, setting int32), cc.Void]{Name: "gtk_label_set_use_underline"}
+	gtk_label_get_use_underline        = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_use_underline"}
 	gtk_label_set_markup_with_mnemonic = cc.DlFunc[func(label *Label, str cc.String), cc.Void]{Name: "gtk_label_set_markup_with_mnemonic"}
 	gtk_label_get_mnemonic_keyval      = cc.DlFunc[func(label *Label) uint32, uint32]{Name: "gtk_label_get_mnemonic_keyval"}
 	gtk_label_set_mnemonic_widget      = cc.DlFunc[func(label *Label, widget *Widget), cc.Void]{Name: "gtk_label_set_mnemonic_widget"}
@@ -1576,20 +1576,20 @@ var (
 	gtk_label_get_max_width_chars      = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_max_width_chars"}
 	gtk_label_set_lines                = cc.DlFunc[func(label *Label, lines int32), cc.Void]{Name: "gtk_label_set_lines"}
 	gtk_label_get_lines                = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_lines"}
-	gtk_label_set_wrap                 = cc.DlFunc[func(label *Label, wrap bool), cc.Void]{Name: "gtk_label_set_wrap"}
-	gtk_label_get_wrap                 = cc.DlFunc[func(label *Label) bool, bool]{Name: "gtk_label_get_wrap"}
+	gtk_label_set_wrap                 = cc.DlFunc[func(label *Label, wrap int32), cc.Void]{Name: "gtk_label_set_wrap"}
+	gtk_label_get_wrap                 = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_wrap"}
 	gtk_label_set_wrap_mode            = cc.DlFunc[func(label *Label, wrapMode pango.WrapMode), cc.Void]{Name: "gtk_label_set_wrap_mode"}
 	gtk_label_get_wrap_mode            = cc.DlFunc[func(label *Label) pango.WrapMode, pango.WrapMode]{Name: "gtk_label_get_wrap_mode"}
 	gtk_label_set_natural_wrap_mode    = cc.DlFunc[func(label *Label, wrapMode NaturalWrapMode), cc.Void]{Name: "gtk_label_set_natural_wrap_mode"}
 	gtk_label_get_natural_wrap_mode    = cc.DlFunc[func(label *Label) NaturalWrapMode, NaturalWrapMode]{Name: "gtk_label_get_natural_wrap_mode"}
-	gtk_label_set_selectable           = cc.DlFunc[func(label *Label, setting bool), cc.Void]{Name: "gtk_label_set_selectable"}
-	gtk_label_get_selectable           = cc.DlFunc[func(label *Label) bool, bool]{Name: "gtk_label_get_selectable"}
+	gtk_label_set_selectable           = cc.DlFunc[func(label *Label, setting int32), cc.Void]{Name: "gtk_label_set_selectable"}
+	gtk_label_get_selectable           = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_selectable"}
 	gtk_label_select_region            = cc.DlFunc[func(label *Label, startOffset, endOffset int32), cc.Void]{Name: "gtk_label_select_region"}
-	gtk_label_get_selection_bounds     = cc.DlFunc[func(label *Label, start, end *int32) bool, bool]{Name: "gtk_label_get_selection_bounds"}
+	gtk_label_get_selection_bounds     = cc.DlFunc[func(label *Label, start, end *int32) int32, int32]{Name: "gtk_label_get_selection_bounds"}
 	gtk_label_get_layout               = cc.DlFunc[func(label *Label) *pango.Layout, *pango.Layout]{Name: "gtk_label_get_layout"}
 	gtk_label_get_layout_offsets       = cc.DlFunc[func(label *Label, x, y *int32), cc.Void]{Name: "gtk_label_get_layout_offsets"}
-	gtk_label_set_single_line_mode     = cc.DlFunc[func(label *Label, singleLineMode bool), cc.Void]{Name: "gtk_label_set_single_line_mode"}
-	gtk_label_get_single_line_mode     = cc.DlFunc[func(label *Label) bool, bool]{Name: "gtk_label_get_single_line_mode"}
+	gtk_label_set_single_line_mode     = cc.DlFunc[func(label *Label, singleLineMode int32), cc.Void]{Name: "gtk_label_set_single_line_mode"}
+	gtk_label_get_single_line_mode     = cc.DlFunc[func(label *Label) int32, int32]{Name: "gtk_label_get_single_line_mode"}
 	gtk_label_get_current_uri          = cc.DlFunc[func(label *Label) cc.String, cc.String]{Name: "gtk_label_get_current_uri"}
 	gtk_label_set_xalign               = cc.DlFunc[func(label *Label, xalign float32), cc.Void]{Name: "gtk_label_set_xalign"}
 	gtk_label_get_xalign               = cc.DlFunc[func(label *Label) float32, float32]{Name: "gtk_label_get_xalign"}
@@ -1629,11 +1629,11 @@ var (
 	gtk_level_bar_get_min_value       = cc.DlFunc[func(l *LevelBar) float64, float64]{Name: "gtk_level_bar_get_min_value"}
 	gtk_level_bar_set_max_value       = cc.DlFunc[func(l *LevelBar, value float64), cc.Void]{Name: "gtk_level_bar_set_max_value"}
 	gtk_level_bar_get_max_value       = cc.DlFunc[func(l *LevelBar) float64, float64]{Name: "gtk_level_bar_get_max_value"}
-	gtk_level_bar_set_inverted        = cc.DlFunc[func(l *LevelBar, inverted bool), cc.Void]{Name: "gtk_level_bar_set_inverted"}
-	gtk_level_bar_get_inverted        = cc.DlFunc[func(l *LevelBar) bool, bool]{Name: "gtk_level_bar_get_inverted"}
+	gtk_level_bar_set_inverted        = cc.DlFunc[func(l *LevelBar, inverted int32), cc.Void]{Name: "gtk_level_bar_set_inverted"}
+	gtk_level_bar_get_inverted        = cc.DlFunc[func(l *LevelBar) int32, int32]{Name: "gtk_level_bar_get_inverted"}
 	gtk_level_bar_add_offset_value    = cc.DlFunc[func(l *LevelBar, name cc.String, value float64), cc.Void]{Name: "gtk_level_bar_add_offset_value"}
 	gtk_level_bar_remove_offset_value = cc.DlFunc[func(l *LevelBar, name cc.String), cc.Void]{Name: "gtk_level_bar_remove_offset_value"}
-	gtk_level_bar_get_offset_value    = cc.DlFunc[func(l *LevelBar, name cc.String, value *float64) bool, bool]{Name: "gtk_level_bar_get_offset_value"}
+	gtk_level_bar_get_offset_value    = cc.DlFunc[func(l *LevelBar, name cc.String, value *float64) int32, int32]{Name: "gtk_level_bar_get_offset_value"}
 	// #endregion
 
 	// #region LinkButton
@@ -1642,8 +1642,8 @@ var (
 	gtk_link_button_new_with_label = cc.DlFunc[func(uri cc.String, label cc.String) *LinkButton, *LinkButton]{Name: "gtk_link_button_new_with_label"}
 	gtk_link_button_get_uri        = cc.DlFunc[func(lb *LinkButton) cc.String, cc.String]{Name: "gtk_link_button_get_uri"}
 	gtk_link_button_set_uri        = cc.DlFunc[func(lb *LinkButton, uri cc.String), cc.Void]{Name: "gtk_link_button_set_uri"}
-	gtk_link_button_get_visited    = cc.DlFunc[func(lb *LinkButton) bool, bool]{Name: "gtk_link_button_get_visited"}
-	gtk_link_button_set_visited    = cc.DlFunc[func(lb *LinkButton, visited bool), cc.Void]{Name: "gtk_link_button_set_visited"}
+	gtk_link_button_get_visited    = cc.DlFunc[func(lb *LinkButton) int32, int32]{Name: "gtk_link_button_get_visited"}
+	gtk_link_button_set_visited    = cc.DlFunc[func(lb *LinkButton, visited int32), cc.Void]{Name: "gtk_link_button_set_visited"}
 	// #endregion
 
 	// #region ListBase
@@ -1659,11 +1659,11 @@ var (
 	gtk_list_box_row_set_header               = cc.DlFunc[func(row *ListBoxRow, header *Widget), cc.Void]{Name: "gtk_list_box_row_set_header"}
 	gtk_list_box_row_get_index                = cc.DlFunc[func(row *ListBoxRow) int32, int32]{Name: "gtk_list_box_row_get_index"}
 	gtk_list_box_row_changed                  = cc.DlFunc[func(row *ListBoxRow), cc.Void]{Name: "gtk_list_box_row_changed"}
-	gtk_list_box_row_is_selected              = cc.DlFunc[func(row *ListBoxRow) bool, bool]{Name: "gtk_list_box_row_is_selected"}
-	gtk_list_box_row_set_selectable           = cc.DlFunc[func(row *ListBoxRow, selectable bool), cc.Void]{Name: "gtk_list_box_row_set_selectable"}
-	gtk_list_box_row_get_selectable           = cc.DlFunc[func(row *ListBoxRow) bool, bool]{Name: "gtk_list_box_row_get_selectable"}
-	gtk_list_box_row_set_activatable          = cc.DlFunc[func(row *ListBoxRow, activatable bool), cc.Void]{Name: "gtk_list_box_row_set_activatable"}
-	gtk_list_box_row_get_activatable          = cc.DlFunc[func(row *ListBoxRow) bool, bool]{Name: "gtk_list_box_row_get_activatable"}
+	gtk_list_box_row_is_selected              = cc.DlFunc[func(row *ListBoxRow) int32, int32]{Name: "gtk_list_box_row_is_selected"}
+	gtk_list_box_row_set_selectable           = cc.DlFunc[func(row *ListBoxRow, selectable int32), cc.Void]{Name: "gtk_list_box_row_set_selectable"}
+	gtk_list_box_row_get_selectable           = cc.DlFunc[func(row *ListBoxRow) int32, int32]{Name: "gtk_list_box_row_get_selectable"}
+	gtk_list_box_row_set_activatable          = cc.DlFunc[func(row *ListBoxRow, activatable int32), cc.Void]{Name: "gtk_list_box_row_set_activatable"}
+	gtk_list_box_row_get_activatable          = cc.DlFunc[func(row *ListBoxRow) int32, int32]{Name: "gtk_list_box_row_get_activatable"}
 	gtk_list_box_get_type                     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_list_box_get_type"}
 	gtk_list_box_prepend                      = cc.DlFunc[func(box *ListBox, child *Widget), cc.Void]{Name: "gtk_list_box_prepend"}
 	gtk_list_box_append                       = cc.DlFunc[func(box *ListBox, child *Widget), cc.Void]{Name: "gtk_list_box_append"}
@@ -1677,27 +1677,27 @@ var (
 	gtk_list_box_set_placeholder              = cc.DlFunc[func(box *ListBox, placeholder *Widget), cc.Void]{Name: "gtk_list_box_set_placeholder"}
 	gtk_list_box_set_adjustment               = cc.DlFunc[func(box *ListBox, adjustment *Adjustment), cc.Void]{Name: "gtk_list_box_set_adjustment"}
 	gtk_list_box_get_adjustment               = cc.DlFunc[func(box *ListBox) *Adjustment, *Adjustment]{Name: "gtk_list_box_get_adjustment"}
-	gtk_list_box_selected_foreach             = cc.DlFunc[func(box *ListBox, fn, data UPtr), cc.Void]{Name: "gtk_list_box_selected_foreach"}
+	gtk_list_box_selected_foreach             = cc.DlFunc[func(box *ListBox, fn, data uptr), cc.Void]{Name: "gtk_list_box_selected_foreach"}
 	gtk_list_box_get_selected_rows            = cc.DlFunc[func(box *ListBox) *glib.GList[ListBoxRow], *glib.GList[ListBoxRow]]{Name: "gtk_list_box_get_selected_rows"}
 	gtk_list_box_unselect_row                 = cc.DlFunc[func(box *ListBox, row *ListBoxRow), cc.Void]{Name: "gtk_list_box_unselect_row"}
 	gtk_list_box_select_all                   = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_select_all"}
 	gtk_list_box_unselect_all                 = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_unselect_all"}
 	gtk_list_box_set_selection_mode           = cc.DlFunc[func(box *ListBox, mode SelectionMode), cc.Void]{Name: "gtk_list_box_set_selection_mode"}
 	gtk_list_box_get_selection_mode           = cc.DlFunc[func(box *ListBox) SelectionMode, SelectionMode]{Name: "gtk_list_box_get_selection_mode"}
-	gtk_list_box_set_filter_func              = cc.DlFunc[func(box *ListBox, filterFunc UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_list_box_set_filter_func"}
-	gtk_list_box_set_header_func              = cc.DlFunc[func(box *ListBox, updateHeader UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_list_box_set_header_func"}
+	gtk_list_box_set_filter_func              = cc.DlFunc[func(box *ListBox, filterFunc uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_list_box_set_filter_func"}
+	gtk_list_box_set_header_func              = cc.DlFunc[func(box *ListBox, updateHeader uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_list_box_set_header_func"}
 	gtk_list_box_invalidate_filter            = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_invalidate_filter"}
 	gtk_list_box_invalidate_sort              = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_invalidate_sort"}
 	gtk_list_box_invalidate_headers           = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_invalidate_headers"}
-	gtk_list_box_set_sort_func                = cc.DlFunc[func(box *ListBox, sortFunc UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_list_box_set_sort_func"}
-	gtk_list_box_set_activate_on_single_click = cc.DlFunc[func(box *ListBox, single bool), cc.Void]{Name: "gtk_list_box_set_activate_on_single_click"}
-	gtk_list_box_get_activate_on_single_click = cc.DlFunc[func(box *ListBox) bool, bool]{Name: "gtk_list_box_get_activate_on_single_click"}
+	gtk_list_box_set_sort_func                = cc.DlFunc[func(box *ListBox, sortFunc uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_list_box_set_sort_func"}
+	gtk_list_box_set_activate_on_single_click = cc.DlFunc[func(box *ListBox, single int32), cc.Void]{Name: "gtk_list_box_set_activate_on_single_click"}
+	gtk_list_box_get_activate_on_single_click = cc.DlFunc[func(box *ListBox) int32, int32]{Name: "gtk_list_box_get_activate_on_single_click"}
 	gtk_list_box_drag_unhighlight_row         = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_drag_unhighlight_row"}
 	gtk_list_box_drag_highlight_row           = cc.DlFunc[func(box *ListBox, row *ListBoxRow), cc.Void]{Name: "gtk_list_box_drag_highlight_row"}
 	gtk_list_box_new                          = cc.DlFunc[func() *ListBox, *ListBox]{Name: "gtk_list_box_new"}
-	gtk_list_box_bind_model                   = cc.DlFunc[func(box *ListBox, model *gio.GListModel, createWidgetFunc UPtr, userData UPtr, userDataFreeFunc UPtr), cc.Void]{Name: "gtk_list_box_bind_model"}
-	gtk_list_box_set_show_separators          = cc.DlFunc[func(box *ListBox, showSeparators bool), cc.Void]{Name: "gtk_list_box_set_show_separators"}
-	gtk_list_box_get_show_separators          = cc.DlFunc[func(box *ListBox) bool, bool]{Name: "gtk_list_box_get_show_separators"}
+	gtk_list_box_bind_model                   = cc.DlFunc[func(box *ListBox, model *gio.GListModel, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_list_box_bind_model"}
+	gtk_list_box_set_show_separators          = cc.DlFunc[func(box *ListBox, showSeparators int32), cc.Void]{Name: "gtk_list_box_set_show_separators"}
+	gtk_list_box_get_show_separators          = cc.DlFunc[func(box *ListBox) int32, int32]{Name: "gtk_list_box_get_show_separators"}
 	gtk_list_box_set_tab_behavior             = cc.DlFunc[func(box *ListBox, behavior ListTabBehavior), cc.Void]{Name: "gtk_list_box_set_tab_behavior"}
 	gtk_list_box_get_tab_behavior             = cc.DlFunc[func(box *ListBox) ListTabBehavior, ListTabBehavior]{Name: "gtk_list_box_get_tab_behavior"}
 	// #endregion
@@ -1714,20 +1714,20 @@ var (
 
 	// #region ListItem
 	gtk_list_item_get_type                   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_list_item_get_type"}
-	gtk_list_item_get_item                   = cc.DlFunc[func(*ListItem) UPtr, UPtr]{Name: "gtk_list_item_get_item"}
+	gtk_list_item_get_item                   = cc.DlFunc[func(*ListItem) uptr, uptr]{Name: "gtk_list_item_get_item"}
 	gtk_list_item_get_position               = cc.DlFunc[func(*ListItem) uint32, uint32]{Name: "gtk_list_item_get_position"}
-	gtk_list_item_get_selected               = cc.DlFunc[func(*ListItem) bool, bool]{Name: "gtk_list_item_get_selected"}
-	gtk_list_item_get_selectable             = cc.DlFunc[func(*ListItem) bool, bool]{Name: "gtk_list_item_get_selectable"}
-	gtk_list_item_set_selectable             = cc.DlFunc[func(*ListItem, bool), cc.Void]{Name: "gtk_list_item_set_selectable"}
-	gtk_list_item_get_activatable            = cc.DlFunc[func(*ListItem) bool, bool]{Name: "gtk_list_item_get_activatable"}
-	gtk_list_item_set_activatable            = cc.DlFunc[func(*ListItem, bool), cc.Void]{Name: "gtk_list_item_set_activatable"}
-	gtk_list_item_get_focusable              = cc.DlFunc[func(*ListItem) bool, bool]{Name: "gtk_list_item_get_focusable"}
-	gtk_list_item_set_focusable              = cc.DlFunc[func(*ListItem, bool), cc.Void]{Name: "gtk_list_item_set_focusable"}
+	gtk_list_item_get_selected               = cc.DlFunc[func(*ListItem) int32, int32]{Name: "gtk_list_item_get_selected"}
+	gtk_list_item_get_selectable             = cc.DlFunc[func(*ListItem) int32, int32]{Name: "gtk_list_item_get_selectable"}
+	gtk_list_item_set_selectable             = cc.DlFunc[func(*ListItem, int32), cc.Void]{Name: "gtk_list_item_set_selectable"}
+	gtk_list_item_get_activatable            = cc.DlFunc[func(*ListItem) int32, int32]{Name: "gtk_list_item_get_activatable"}
+	gtk_list_item_set_activatable            = cc.DlFunc[func(*ListItem, int32), cc.Void]{Name: "gtk_list_item_set_activatable"}
+	gtk_list_item_get_focusable              = cc.DlFunc[func(*ListItem) int32, int32]{Name: "gtk_list_item_get_focusable"}
+	gtk_list_item_set_focusable              = cc.DlFunc[func(*ListItem, int32), cc.Void]{Name: "gtk_list_item_set_focusable"}
 	gtk_list_item_set_child                  = cc.DlFunc[func(*ListItem, *Widget), cc.Void]{Name: "gtk_list_item_set_child"}
 	gtk_list_item_get_child                  = cc.DlFunc[func(*ListItem) *Widget, *Widget]{Name: "gtk_list_item_get_child"}
-	gtk_list_item_set_accessible_description = cc.DlFunc[func(*ListItem, string), cc.Void]{Name: "gtk_list_item_set_accessible_description"}
+	gtk_list_item_set_accessible_description = cc.DlFunc[func(*ListItem, cc.String), cc.Void]{Name: "gtk_list_item_set_accessible_description"}
 	gtk_list_item_get_accessible_description = cc.DlFunc[func(*ListItem) cc.String, cc.String]{Name: "gtk_list_item_get_accessible_description"}
-	gtk_list_item_set_accessible_label       = cc.DlFunc[func(*ListItem, string), cc.Void]{Name: "gtk_list_item_set_accessible_label"}
+	gtk_list_item_set_accessible_label       = cc.DlFunc[func(*ListItem, cc.String), cc.Void]{Name: "gtk_list_item_set_accessible_label"}
 	gtk_list_item_get_accessible_label       = cc.DlFunc[func(*ListItem) cc.String, cc.String]{Name: "gtk_list_item_get_accessible_label"}
 	// #endregion
 
@@ -1744,12 +1744,12 @@ var (
 	gtk_list_view_get_factory               = cc.DlFunc[func(lv *ListView) *ListItemFactory, *ListItemFactory]{Name: "gtk_list_view_get_factory"}
 	gtk_list_view_set_header_factory        = cc.DlFunc[func(lv *ListView, factory *ListItemFactory), cc.Void]{Name: "gtk_list_view_set_header_factory"}
 	gtk_list_view_get_header_factory        = cc.DlFunc[func(lv *ListView) *ListItemFactory, *ListItemFactory]{Name: "gtk_list_view_get_header_factory"}
-	gtk_list_view_set_show_separators       = cc.DlFunc[func(lv *ListView, showSeparators bool), cc.Void]{Name: "gtk_list_view_set_show_separators"}
-	gtk_list_view_get_show_separators       = cc.DlFunc[func(lv *ListView) bool, bool]{Name: "gtk_list_view_get_show_separators"}
-	gtk_list_view_set_single_click_activate = cc.DlFunc[func(lv *ListView, singleClickActivate bool), cc.Void]{Name: "gtk_list_view_set_single_click_activate"}
-	gtk_list_view_get_single_click_activate = cc.DlFunc[func(lv *ListView) bool, bool]{Name: "gtk_list_view_get_single_click_activate"}
-	gtk_list_view_set_enable_rubberband     = cc.DlFunc[func(lv *ListView, enableRubberband bool), cc.Void]{Name: "gtk_list_view_set_enable_rubberband"}
-	gtk_list_view_get_enable_rubberband     = cc.DlFunc[func(lv *ListView) bool, bool]{Name: "gtk_list_view_get_enable_rubberband"}
+	gtk_list_view_set_show_separators       = cc.DlFunc[func(lv *ListView, showSeparators int32), cc.Void]{Name: "gtk_list_view_set_show_separators"}
+	gtk_list_view_get_show_separators       = cc.DlFunc[func(lv *ListView) int32, int32]{Name: "gtk_list_view_get_show_separators"}
+	gtk_list_view_set_single_click_activate = cc.DlFunc[func(lv *ListView, singleClickActivate int32), cc.Void]{Name: "gtk_list_view_set_single_click_activate"}
+	gtk_list_view_get_single_click_activate = cc.DlFunc[func(lv *ListView) int32, int32]{Name: "gtk_list_view_get_single_click_activate"}
+	gtk_list_view_set_enable_rubberband     = cc.DlFunc[func(lv *ListView, enableRubberband int32), cc.Void]{Name: "gtk_list_view_set_enable_rubberband"}
+	gtk_list_view_get_enable_rubberband     = cc.DlFunc[func(lv *ListView) int32, int32]{Name: "gtk_list_view_get_enable_rubberband"}
 	gtk_list_view_set_tab_behavior          = cc.DlFunc[func(lv *ListView, tabBehavior ListTabBehavior), cc.Void]{Name: "gtk_list_view_set_tab_behavior"}
 	gtk_list_view_get_tab_behavior          = cc.DlFunc[func(lv *ListView) ListTabBehavior, ListTabBehavior]{Name: "gtk_list_view_get_tab_behavior"}
 	gtk_list_view_scroll_to                 = cc.DlFunc[func(lv *ListView, pos uint32, flags ListScrollFlags, scroll *ScrollInfo), cc.Void]{Name: "gtk_list_view_scroll_to"}
@@ -1757,10 +1757,10 @@ var (
 
 	// #region Main
 	gtk_init                 = cc.DlFunc[func(), cc.Void]{Name: "gtk_init"}
-	gtk_init_check           = cc.DlFunc[func() bool, bool]{Name: "gtk_init_check"}
-	gtk_is_initialized       = cc.DlFunc[func() bool, bool]{Name: "gtk_is_initialized"}
+	gtk_init_check           = cc.DlFunc[func() int32, int32]{Name: "gtk_init_check"}
+	gtk_is_initialized       = cc.DlFunc[func() int32, int32]{Name: "gtk_is_initialized"}
 	gtk_init_abi_check       = cc.DlFunc[func(numChecks int32, sizeofWindow uintptr, sizeofBox uintptr), cc.Void]{Name: "gtk_init_abi_check"}
-	gtk_init_check_abi_check = cc.DlFunc[func(numChecks int32, sizeofWindow uintptr, sizeofBox uintptr) bool, bool]{Name: "gtk_init_check_abi_check"}
+	gtk_init_check_abi_check = cc.DlFunc[func(numChecks int32, sizeofWindow uintptr, sizeofBox uintptr) int32, int32]{Name: "gtk_init_check_abi_check"}
 	gtk_disable_setlocale    = cc.DlFunc[func(), cc.Void]{Name: "gtk_disable_setlocale"}
 	gtk_disable_portals      = cc.DlFunc[func(), cc.Void]{Name: "gtk_disable_portals"}
 	gtk_get_default_language = cc.DlFunc[func() *pango.Language, *pango.Language]{Name: "gtk_get_default_language"}
@@ -1769,11 +1769,11 @@ var (
 
 	// #region MapListModel
 	gtk_map_list_model_get_type     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_map_list_model_get_type"}
-	gtk_map_list_model_new          = cc.DlFunc[func(model *gio.GListModel, mapFunc UPtr, userData UPtr, userDestroy UPtr) *MapListModel, *MapListModel]{Name: "gtk_map_list_model_new"}
-	gtk_map_list_model_set_map_func = cc.DlFunc[func(m *MapListModel, mapFunc UPtr, userData UPtr, userDestroy UPtr), cc.Void]{Name: "gtk_map_list_model_set_map_func"}
+	gtk_map_list_model_new          = cc.DlFunc[func(model *gio.GListModel, mapFunc uptr, userData uptr, userDestroy uptr) *MapListModel, *MapListModel]{Name: "gtk_map_list_model_new"}
+	gtk_map_list_model_set_map_func = cc.DlFunc[func(m *MapListModel, mapFunc uptr, userData uptr, userDestroy uptr), cc.Void]{Name: "gtk_map_list_model_set_map_func"}
 	gtk_map_list_model_set_model    = cc.DlFunc[func(m *MapListModel, model *gio.GListModel), cc.Void]{Name: "gtk_map_list_model_set_model"}
 	gtk_map_list_model_get_model    = cc.DlFunc[func(m *MapListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_map_list_model_get_model"}
-	gtk_map_list_model_has_map      = cc.DlFunc[func(m *MapListModel) bool, bool]{Name: "gtk_map_list_model_has_map"}
+	gtk_map_list_model_has_map      = cc.DlFunc[func(m *MapListModel) int32, int32]{Name: "gtk_map_list_model_has_map"}
 	// #endregion
 
 	// #region MediaControls
@@ -1801,29 +1801,29 @@ var (
 
 	// #region MediaStream
 	gtk_media_stream_get_type          = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_media_stream_get_type"}
-	gtk_media_stream_is_prepared       = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_is_prepared"}
+	gtk_media_stream_is_prepared       = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_is_prepared"}
 	gtk_media_stream_get_error         = cc.DlFunc[func(ms *MediaStream) *glib.GError, *glib.GError]{Name: "gtk_media_stream_get_error"}
-	gtk_media_stream_has_audio         = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_has_audio"}
-	gtk_media_stream_has_video         = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_has_video"}
+	gtk_media_stream_has_audio         = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_has_audio"}
+	gtk_media_stream_has_video         = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_has_video"}
 	gtk_media_stream_play              = cc.DlFunc[func(ms *MediaStream), cc.Void]{Name: "gtk_media_stream_play"}
 	gtk_media_stream_pause             = cc.DlFunc[func(ms *MediaStream), cc.Void]{Name: "gtk_media_stream_pause"}
-	gtk_media_stream_get_playing       = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_get_playing"}
-	gtk_media_stream_set_playing       = cc.DlFunc[func(ms *MediaStream, playing bool), cc.Void]{Name: "gtk_media_stream_set_playing"}
-	gtk_media_stream_get_ended         = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_get_ended"}
+	gtk_media_stream_get_playing       = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_get_playing"}
+	gtk_media_stream_set_playing       = cc.DlFunc[func(ms *MediaStream, playing int32), cc.Void]{Name: "gtk_media_stream_set_playing"}
+	gtk_media_stream_get_ended         = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_get_ended"}
 	gtk_media_stream_get_timestamp     = cc.DlFunc[func(ms *MediaStream) int64, int64]{Name: "gtk_media_stream_get_timestamp"}
 	gtk_media_stream_get_duration      = cc.DlFunc[func(ms *MediaStream) int64, int64]{Name: "gtk_media_stream_get_duration"}
-	gtk_media_stream_is_seekable       = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_is_seekable"}
-	gtk_media_stream_is_seeking        = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_is_seeking"}
+	gtk_media_stream_is_seekable       = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_is_seekable"}
+	gtk_media_stream_is_seeking        = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_is_seeking"}
 	gtk_media_stream_seek              = cc.DlFunc[func(ms *MediaStream, timestamp int64), cc.Void]{Name: "gtk_media_stream_seek"}
-	gtk_media_stream_get_loop          = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_get_loop"}
-	gtk_media_stream_set_loop          = cc.DlFunc[func(ms *MediaStream, loop bool), cc.Void]{Name: "gtk_media_stream_set_loop"}
-	gtk_media_stream_get_muted         = cc.DlFunc[func(ms *MediaStream) bool, bool]{Name: "gtk_media_stream_get_muted"}
-	gtk_media_stream_set_muted         = cc.DlFunc[func(ms *MediaStream, muted bool), cc.Void]{Name: "gtk_media_stream_set_muted"}
+	gtk_media_stream_get_loop          = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_get_loop"}
+	gtk_media_stream_set_loop          = cc.DlFunc[func(ms *MediaStream, loop int32), cc.Void]{Name: "gtk_media_stream_set_loop"}
+	gtk_media_stream_get_muted         = cc.DlFunc[func(ms *MediaStream) int32, int32]{Name: "gtk_media_stream_get_muted"}
+	gtk_media_stream_set_muted         = cc.DlFunc[func(ms *MediaStream, muted int32), cc.Void]{Name: "gtk_media_stream_set_muted"}
 	gtk_media_stream_get_volume        = cc.DlFunc[func(ms *MediaStream) float64, float64]{Name: "gtk_media_stream_get_volume"}
 	gtk_media_stream_set_volume        = cc.DlFunc[func(ms *MediaStream, volume float64), cc.Void]{Name: "gtk_media_stream_set_volume"}
 	gtk_media_stream_realize           = cc.DlFunc[func(ms *MediaStream, surface *gdk.Surface), cc.Void]{Name: "gtk_media_stream_realize"}
 	gtk_media_stream_unrealize         = cc.DlFunc[func(ms *MediaStream, surface *gdk.Surface), cc.Void]{Name: "gtk_media_stream_unrealize"}
-	gtk_media_stream_stream_prepared   = cc.DlFunc[func(ms *MediaStream, hasAudio, hasVideo, seekable bool, duration int64), cc.Void]{Name: "gtk_media_stream_stream_prepared"}
+	gtk_media_stream_stream_prepared   = cc.DlFunc[func(ms *MediaStream, hasAudio, hasVideo, seekable int32, duration int64), cc.Void]{Name: "gtk_media_stream_stream_prepared"}
 	gtk_media_stream_stream_unprepared = cc.DlFunc[func(ms *MediaStream), cc.Void]{Name: "gtk_media_stream_stream_unprepared"}
 	gtk_media_stream_update            = cc.DlFunc[func(ms *MediaStream, timestamp int64), cc.Void]{Name: "gtk_media_stream_update"}
 	gtk_media_stream_stream_ended      = cc.DlFunc[func(ms *MediaStream), cc.Void]{Name: "gtk_media_stream_stream_ended"}
@@ -1844,31 +1844,31 @@ var (
 	gtk_menu_button_get_menu_model        = cc.DlFunc[func(mb *MenuButton) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_menu_button_get_menu_model"}
 	gtk_menu_button_set_icon_name         = cc.DlFunc[func(mb *MenuButton, iconName cc.String), cc.Void]{Name: "gtk_menu_button_set_icon_name"}
 	gtk_menu_button_get_icon_name         = cc.DlFunc[func(mb *MenuButton) cc.String, cc.String]{Name: "gtk_menu_button_get_icon_name"}
-	gtk_menu_button_set_always_show_arrow = cc.DlFunc[func(mb *MenuButton, alwaysShowArrow bool), cc.Void]{Name: "gtk_menu_button_set_always_show_arrow"}
-	gtk_menu_button_get_always_show_arrow = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_always_show_arrow"}
+	gtk_menu_button_set_always_show_arrow = cc.DlFunc[func(mb *MenuButton, alwaysShowArrow int32), cc.Void]{Name: "gtk_menu_button_set_always_show_arrow"}
+	gtk_menu_button_get_always_show_arrow = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_always_show_arrow"}
 	gtk_menu_button_set_label             = cc.DlFunc[func(mb *MenuButton, label cc.String), cc.Void]{Name: "gtk_menu_button_set_label"}
 	gtk_menu_button_get_label             = cc.DlFunc[func(mb *MenuButton) cc.String, cc.String]{Name: "gtk_menu_button_get_label"}
-	gtk_menu_button_set_use_underline     = cc.DlFunc[func(mb *MenuButton, useUnderline bool), cc.Void]{Name: "gtk_menu_button_set_use_underline"}
-	gtk_menu_button_get_use_underline     = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_use_underline"}
-	gtk_menu_button_set_has_frame         = cc.DlFunc[func(mb *MenuButton, hasFrame bool), cc.Void]{Name: "gtk_menu_button_set_has_frame"}
-	gtk_menu_button_get_has_frame         = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_has_frame"}
+	gtk_menu_button_set_use_underline     = cc.DlFunc[func(mb *MenuButton, useUnderline int32), cc.Void]{Name: "gtk_menu_button_set_use_underline"}
+	gtk_menu_button_get_use_underline     = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_use_underline"}
+	gtk_menu_button_set_has_frame         = cc.DlFunc[func(mb *MenuButton, hasFrame int32), cc.Void]{Name: "gtk_menu_button_set_has_frame"}
+	gtk_menu_button_get_has_frame         = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_has_frame"}
 	gtk_menu_button_popup                 = cc.DlFunc[func(mb *MenuButton), cc.Void]{Name: "gtk_menu_button_popup"}
 	gtk_menu_button_popdown               = cc.DlFunc[func(mb *MenuButton), cc.Void]{Name: "gtk_menu_button_popdown"}
-	gtk_menu_button_set_create_popup_func = cc.DlFunc[func(mb *MenuButton, fn UPtr, userData UPtr, destroy UPtr), cc.Void]{Name: "gtk_menu_button_set_create_popup_func"}
-	gtk_menu_button_set_primary           = cc.DlFunc[func(mb *MenuButton, primary bool), cc.Void]{Name: "gtk_menu_button_set_primary"}
-	gtk_menu_button_get_primary           = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_primary"}
+	gtk_menu_button_set_create_popup_func = cc.DlFunc[func(mb *MenuButton, fn uptr, userData uptr, destroy uptr), cc.Void]{Name: "gtk_menu_button_set_create_popup_func"}
+	gtk_menu_button_set_primary           = cc.DlFunc[func(mb *MenuButton, primary int32), cc.Void]{Name: "gtk_menu_button_set_primary"}
+	gtk_menu_button_get_primary           = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_primary"}
 	gtk_menu_button_set_child             = cc.DlFunc[func(mb *MenuButton, child *Widget), cc.Void]{Name: "gtk_menu_button_set_child"}
 	gtk_menu_button_get_child             = cc.DlFunc[func(mb *MenuButton) *Widget, *Widget]{Name: "gtk_menu_button_get_child"}
-	gtk_menu_button_set_active            = cc.DlFunc[func(mb *MenuButton, active bool), cc.Void]{Name: "gtk_menu_button_set_active"}
-	gtk_menu_button_get_active            = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_active"}
-	gtk_menu_button_set_can_shrink        = cc.DlFunc[func(mb *MenuButton, canShrink bool), cc.Void]{Name: "gtk_menu_button_set_can_shrink"}
-	gtk_menu_button_get_can_shrink        = cc.DlFunc[func(mb *MenuButton) bool, bool]{Name: "gtk_menu_button_get_can_shrink"}
+	gtk_menu_button_set_active            = cc.DlFunc[func(mb *MenuButton, active int32), cc.Void]{Name: "gtk_menu_button_set_active"}
+	gtk_menu_button_get_active            = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_active"}
+	gtk_menu_button_set_can_shrink        = cc.DlFunc[func(mb *MenuButton, canShrink int32), cc.Void]{Name: "gtk_menu_button_set_can_shrink"}
+	gtk_menu_button_get_can_shrink        = cc.DlFunc[func(mb *MenuButton) int32, int32]{Name: "gtk_menu_button_get_can_shrink"}
 	// #endregion
 
 	// #region MountOperation
 	gtk_mount_operation_get_type    = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_mount_operation_get_type"}
 	gtk_mount_operation_new         = cc.DlFunc[func(parent *Window) *MountOperation, *MountOperation]{Name: "gtk_mount_operation_new"}
-	gtk_mount_operation_is_showing  = cc.DlFunc[func(op *MountOperation) bool, bool]{Name: "gtk_mount_operation_is_showing"}
+	gtk_mount_operation_is_showing  = cc.DlFunc[func(op *MountOperation) int32, int32]{Name: "gtk_mount_operation_is_showing"}
 	gtk_mount_operation_set_parent  = cc.DlFunc[func(op *MountOperation, parent *Window), cc.Void]{Name: "gtk_mount_operation_set_parent"}
 	gtk_mount_operation_get_parent  = cc.DlFunc[func(op *MountOperation) *Window, *Window]{Name: "gtk_mount_operation_get_parent"}
 	gtk_mount_operation_set_display = cc.DlFunc[func(op *MountOperation, display *gdk.Display), cc.Void]{Name: "gtk_mount_operation_set_display"}
@@ -1913,9 +1913,9 @@ var (
 	gtk_native_dialog_show              = cc.DlFunc[func(nd *NativeDialog), cc.Void]{Name: "gtk_native_dialog_show"}
 	gtk_native_dialog_hide              = cc.DlFunc[func(nd *NativeDialog), cc.Void]{Name: "gtk_native_dialog_hide"}
 	gtk_native_dialog_destroy           = cc.DlFunc[func(nd *NativeDialog), cc.Void]{Name: "gtk_native_dialog_destroy"}
-	gtk_native_dialog_get_visible       = cc.DlFunc[func(nd *NativeDialog) bool, bool]{Name: "gtk_native_dialog_get_visible"}
-	gtk_native_dialog_set_modal         = cc.DlFunc[func(nd *NativeDialog, modal bool), cc.Void]{Name: "gtk_native_dialog_set_modal"}
-	gtk_native_dialog_get_modal         = cc.DlFunc[func(nd *NativeDialog) bool, bool]{Name: "gtk_native_dialog_get_modal"}
+	gtk_native_dialog_get_visible       = cc.DlFunc[func(nd *NativeDialog) int32, int32]{Name: "gtk_native_dialog_get_visible"}
+	gtk_native_dialog_set_modal         = cc.DlFunc[func(nd *NativeDialog, modal int32), cc.Void]{Name: "gtk_native_dialog_set_modal"}
+	gtk_native_dialog_get_modal         = cc.DlFunc[func(nd *NativeDialog) int32, int32]{Name: "gtk_native_dialog_get_modal"}
 	gtk_native_dialog_set_title         = cc.DlFunc[func(nd *NativeDialog, title cc.String), cc.Void]{Name: "gtk_native_dialog_set_title"}
 	gtk_native_dialog_get_title         = cc.DlFunc[func(nd *NativeDialog) cc.String, cc.String]{Name: "gtk_native_dialog_get_title"}
 	gtk_native_dialog_set_transient_for = cc.DlFunc[func(nd *NativeDialog, parent *Window), cc.Void]{Name: "gtk_native_dialog_set_transient_for"}
@@ -1948,14 +1948,14 @@ var (
 	gtk_notebook_set_current_page    = cc.DlFunc[func(nb *Notebook, pageNum int32), cc.Void]{Name: "gtk_notebook_set_current_page"}
 	gtk_notebook_next_page           = cc.DlFunc[func(nb *Notebook), cc.Void]{Name: "gtk_notebook_next_page"}
 	gtk_notebook_prev_page           = cc.DlFunc[func(nb *Notebook), cc.Void]{Name: "gtk_notebook_prev_page"}
-	gtk_notebook_set_show_border     = cc.DlFunc[func(nb *Notebook, showBorder bool), cc.Void]{Name: "gtk_notebook_set_show_border"}
-	gtk_notebook_get_show_border     = cc.DlFunc[func(nb *Notebook) bool, bool]{Name: "gtk_notebook_get_show_border"}
-	gtk_notebook_set_show_tabs       = cc.DlFunc[func(nb *Notebook, showTabs bool), cc.Void]{Name: "gtk_notebook_set_show_tabs"}
-	gtk_notebook_get_show_tabs       = cc.DlFunc[func(nb *Notebook) bool, bool]{Name: "gtk_notebook_get_show_tabs"}
+	gtk_notebook_set_show_border     = cc.DlFunc[func(nb *Notebook, showBorder int32), cc.Void]{Name: "gtk_notebook_set_show_border"}
+	gtk_notebook_get_show_border     = cc.DlFunc[func(nb *Notebook) int32, int32]{Name: "gtk_notebook_get_show_border"}
+	gtk_notebook_set_show_tabs       = cc.DlFunc[func(nb *Notebook, showTabs int32), cc.Void]{Name: "gtk_notebook_set_show_tabs"}
+	gtk_notebook_get_show_tabs       = cc.DlFunc[func(nb *Notebook) int32, int32]{Name: "gtk_notebook_get_show_tabs"}
 	gtk_notebook_set_tab_pos         = cc.DlFunc[func(nb *Notebook, pos PositionType), cc.Void]{Name: "gtk_notebook_set_tab_pos"}
 	gtk_notebook_get_tab_pos         = cc.DlFunc[func(nb *Notebook) PositionType, PositionType]{Name: "gtk_notebook_get_tab_pos"}
-	gtk_notebook_set_scrollable      = cc.DlFunc[func(nb *Notebook, scrollable bool), cc.Void]{Name: "gtk_notebook_set_scrollable"}
-	gtk_notebook_get_scrollable      = cc.DlFunc[func(nb *Notebook) bool, bool]{Name: "gtk_notebook_get_scrollable"}
+	gtk_notebook_set_scrollable      = cc.DlFunc[func(nb *Notebook, scrollable int32), cc.Void]{Name: "gtk_notebook_set_scrollable"}
+	gtk_notebook_get_scrollable      = cc.DlFunc[func(nb *Notebook) int32, int32]{Name: "gtk_notebook_get_scrollable"}
 	gtk_notebook_popup_enable        = cc.DlFunc[func(nb *Notebook), cc.Void]{Name: "gtk_notebook_popup_enable"}
 	gtk_notebook_popup_disable       = cc.DlFunc[func(nb *Notebook), cc.Void]{Name: "gtk_notebook_popup_disable"}
 	gtk_notebook_get_tab_label       = cc.DlFunc[func(nb *Notebook, child *Widget) *Widget, *Widget]{Name: "gtk_notebook_get_tab_label"}
@@ -1967,10 +1967,10 @@ var (
 	gtk_notebook_set_menu_label_text = cc.DlFunc[func(nb *Notebook, child *Widget, menuText cc.String), cc.Void]{Name: "gtk_notebook_set_menu_label_text"}
 	gtk_notebook_get_menu_label_text = cc.DlFunc[func(nb *Notebook, child *Widget) cc.String, cc.String]{Name: "gtk_notebook_get_menu_label_text"}
 	gtk_notebook_reorder_child       = cc.DlFunc[func(nb *Notebook, child *Widget, position int32), cc.Void]{Name: "gtk_notebook_reorder_child"}
-	gtk_notebook_get_tab_reorderable = cc.DlFunc[func(nb *Notebook, child *Widget) bool, bool]{Name: "gtk_notebook_get_tab_reorderable"}
-	gtk_notebook_set_tab_reorderable = cc.DlFunc[func(nb *Notebook, child *Widget, reorderable bool), cc.Void]{Name: "gtk_notebook_set_tab_reorderable"}
-	gtk_notebook_get_tab_detachable  = cc.DlFunc[func(nb *Notebook, child *Widget) bool, bool]{Name: "gtk_notebook_get_tab_detachable"}
-	gtk_notebook_set_tab_detachable  = cc.DlFunc[func(nb *Notebook, child *Widget, detachable bool), cc.Void]{Name: "gtk_notebook_set_tab_detachable"}
+	gtk_notebook_get_tab_reorderable = cc.DlFunc[func(nb *Notebook, child *Widget) int32, int32]{Name: "gtk_notebook_get_tab_reorderable"}
+	gtk_notebook_set_tab_reorderable = cc.DlFunc[func(nb *Notebook, child *Widget, reorderable int32), cc.Void]{Name: "gtk_notebook_set_tab_reorderable"}
+	gtk_notebook_get_tab_detachable  = cc.DlFunc[func(nb *Notebook, child *Widget) int32, int32]{Name: "gtk_notebook_get_tab_detachable"}
+	gtk_notebook_set_tab_detachable  = cc.DlFunc[func(nb *Notebook, child *Widget, detachable int32), cc.Void]{Name: "gtk_notebook_set_tab_detachable"}
 	gtk_notebook_detach_tab          = cc.DlFunc[func(nb *Notebook, child *Widget), cc.Void]{Name: "gtk_notebook_detach_tab"}
 	gtk_notebook_get_action_widget   = cc.DlFunc[func(nb *Notebook, packType PackType) *Widget, *Widget]{Name: "gtk_notebook_get_action_widget"}
 	gtk_notebook_set_action_widget   = cc.DlFunc[func(nb *Notebook, widget *Widget, packType PackType), cc.Void]{Name: "gtk_notebook_set_action_widget"}
@@ -2002,19 +2002,19 @@ var (
 	gtk_overlay_remove_overlay      = cc.DlFunc[func(overlay *Overlay, widget *Widget), cc.Void]{Name: "gtk_overlay_remove_overlay"}
 	gtk_overlay_set_child           = cc.DlFunc[func(overlay *Overlay, child *Widget), cc.Void]{Name: "gtk_overlay_set_child"}
 	gtk_overlay_get_child           = cc.DlFunc[func(overlay *Overlay) *Widget, *Widget]{Name: "gtk_overlay_get_child"}
-	gtk_overlay_get_measure_overlay = cc.DlFunc[func(overlay *Overlay, widget *Widget) bool, bool]{Name: "gtk_overlay_get_measure_overlay"}
-	gtk_overlay_set_measure_overlay = cc.DlFunc[func(overlay *Overlay, widget *Widget, measure bool), cc.Void]{Name: "gtk_overlay_set_measure_overlay"}
-	gtk_overlay_get_clip_overlay    = cc.DlFunc[func(overlay *Overlay, widget *Widget) bool, bool]{Name: "gtk_overlay_get_clip_overlay"}
-	gtk_overlay_set_clip_overlay    = cc.DlFunc[func(overlay *Overlay, widget *Widget, clipOverlay bool), cc.Void]{Name: "gtk_overlay_set_clip_overlay"}
+	gtk_overlay_get_measure_overlay = cc.DlFunc[func(overlay *Overlay, widget *Widget) int32, int32]{Name: "gtk_overlay_get_measure_overlay"}
+	gtk_overlay_set_measure_overlay = cc.DlFunc[func(overlay *Overlay, widget *Widget, measure int32), cc.Void]{Name: "gtk_overlay_set_measure_overlay"}
+	gtk_overlay_get_clip_overlay    = cc.DlFunc[func(overlay *Overlay, widget *Widget) int32, int32]{Name: "gtk_overlay_get_clip_overlay"}
+	gtk_overlay_set_clip_overlay    = cc.DlFunc[func(overlay *Overlay, widget *Widget, clipOverlay int32), cc.Void]{Name: "gtk_overlay_set_clip_overlay"}
 	// #endregion
 
 	// #region OverlayLayout
 	gtk_overlay_layout_get_type               = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_overlay_layout_get_type"}
 	gtk_overlay_layout_new                    = cc.DlFunc[func() *OverlayLayout, *OverlayLayout]{Name: "gtk_overlay_layout_new"}
-	gtk_overlay_layout_child_set_measure      = cc.DlFunc[func(child *OverlayLayoutChild, measure bool), cc.Void]{Name: "gtk_overlay_layout_child_set_measure"}
-	gtk_overlay_layout_child_get_measure      = cc.DlFunc[func(child *OverlayLayoutChild) bool, bool]{Name: "gtk_overlay_layout_child_get_measure"}
-	gtk_overlay_layout_child_set_clip_overlay = cc.DlFunc[func(child *OverlayLayoutChild, clipOverlay bool), cc.Void]{Name: "gtk_overlay_layout_child_set_clip_overlay"}
-	gtk_overlay_layout_child_get_clip_overlay = cc.DlFunc[func(child *OverlayLayoutChild) bool, bool]{Name: "gtk_overlay_layout_child_get_clip_overlay"}
+	gtk_overlay_layout_child_set_measure      = cc.DlFunc[func(child *OverlayLayoutChild, measure int32), cc.Void]{Name: "gtk_overlay_layout_child_set_measure"}
+	gtk_overlay_layout_child_get_measure      = cc.DlFunc[func(child *OverlayLayoutChild) int32, int32]{Name: "gtk_overlay_layout_child_get_measure"}
+	gtk_overlay_layout_child_set_clip_overlay = cc.DlFunc[func(child *OverlayLayoutChild, clipOverlay int32), cc.Void]{Name: "gtk_overlay_layout_child_set_clip_overlay"}
+	gtk_overlay_layout_child_get_clip_overlay = cc.DlFunc[func(child *OverlayLayoutChild) int32, int32]{Name: "gtk_overlay_layout_child_get_clip_overlay"}
 	// #endregion
 
 	// #region PadController
@@ -2029,27 +2029,27 @@ var (
 	gtk_paned_new                    = cc.DlFunc[func(orientation Orientation) *Paned, *Paned]{Name: "gtk_paned_new"}
 	gtk_paned_set_start_child        = cc.DlFunc[func(paned *Paned, child *Widget), cc.Void]{Name: "gtk_paned_set_start_child"}
 	gtk_paned_get_start_child        = cc.DlFunc[func(paned *Paned) *Widget, *Widget]{Name: "gtk_paned_get_start_child"}
-	gtk_paned_set_resize_start_child = cc.DlFunc[func(paned *Paned, resize bool), cc.Void]{Name: "gtk_paned_set_resize_start_child"}
-	gtk_paned_get_resize_start_child = cc.DlFunc[func(paned *Paned) bool, bool]{Name: "gtk_paned_get_resize_start_child"}
+	gtk_paned_set_resize_start_child = cc.DlFunc[func(paned *Paned, resize int32), cc.Void]{Name: "gtk_paned_set_resize_start_child"}
+	gtk_paned_get_resize_start_child = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_resize_start_child"}
 	gtk_paned_set_end_child          = cc.DlFunc[func(paned *Paned, child *Widget), cc.Void]{Name: "gtk_paned_set_end_child"}
 	gtk_paned_get_end_child          = cc.DlFunc[func(paned *Paned) *Widget, *Widget]{Name: "gtk_paned_get_end_child"}
-	gtk_paned_set_shrink_start_child = cc.DlFunc[func(paned *Paned, resize bool), cc.Void]{Name: "gtk_paned_set_shrink_start_child"}
-	gtk_paned_get_shrink_start_child = cc.DlFunc[func(paned *Paned) bool, bool]{Name: "gtk_paned_get_shrink_start_child"}
-	gtk_paned_set_resize_end_child   = cc.DlFunc[func(paned *Paned, resize bool), cc.Void]{Name: "gtk_paned_set_resize_end_child"}
-	gtk_paned_get_resize_end_child   = cc.DlFunc[func(paned *Paned) bool, bool]{Name: "gtk_paned_get_resize_end_child"}
-	gtk_paned_set_shrink_end_child   = cc.DlFunc[func(paned *Paned, resize bool), cc.Void]{Name: "gtk_paned_set_shrink_end_child"}
-	gtk_paned_get_shrink_end_child   = cc.DlFunc[func(paned *Paned) bool, bool]{Name: "gtk_paned_get_shrink_end_child"}
+	gtk_paned_set_shrink_start_child = cc.DlFunc[func(paned *Paned, resize int32), cc.Void]{Name: "gtk_paned_set_shrink_start_child"}
+	gtk_paned_get_shrink_start_child = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_shrink_start_child"}
+	gtk_paned_set_resize_end_child   = cc.DlFunc[func(paned *Paned, resize int32), cc.Void]{Name: "gtk_paned_set_resize_end_child"}
+	gtk_paned_get_resize_end_child   = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_resize_end_child"}
+	gtk_paned_set_shrink_end_child   = cc.DlFunc[func(paned *Paned, resize int32), cc.Void]{Name: "gtk_paned_set_shrink_end_child"}
+	gtk_paned_get_shrink_end_child   = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_shrink_end_child"}
 	gtk_paned_get_position           = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_position"}
 	gtk_paned_set_position           = cc.DlFunc[func(paned *Paned, position int32), cc.Void]{Name: "gtk_paned_set_position"}
-	gtk_paned_set_wide_handle        = cc.DlFunc[func(paned *Paned, wide bool), cc.Void]{Name: "gtk_paned_set_wide_handle"}
-	gtk_paned_get_wide_handle        = cc.DlFunc[func(paned *Paned) bool, bool]{Name: "gtk_paned_get_wide_handle"}
+	gtk_paned_set_wide_handle        = cc.DlFunc[func(paned *Paned, wide int32), cc.Void]{Name: "gtk_paned_set_wide_handle"}
+	gtk_paned_get_wide_handle        = cc.DlFunc[func(paned *Paned) int32, int32]{Name: "gtk_paned_get_wide_handle"}
 	// #endregion
 
 	// #region PasswordEntry
 	gtk_password_entry_get_type           = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_password_entry_get_type"}
 	gtk_password_entry_new                = cc.DlFunc[func() *PasswordEntry, *PasswordEntry]{Name: "gtk_password_entry_new"}
-	gtk_password_entry_set_show_peek_icon = cc.DlFunc[func(entry *PasswordEntry, showPeekIcon bool), cc.Void]{Name: "gtk_password_entry_set_show_peek_icon"}
-	gtk_password_entry_get_show_peek_icon = cc.DlFunc[func(entry *PasswordEntry) bool, bool]{Name: "gtk_password_entry_get_show_peek_icon"}
+	gtk_password_entry_set_show_peek_icon = cc.DlFunc[func(entry *PasswordEntry, showPeekIcon int32), cc.Void]{Name: "gtk_password_entry_set_show_peek_icon"}
+	gtk_password_entry_get_show_peek_icon = cc.DlFunc[func(entry *PasswordEntry) int32, int32]{Name: "gtk_password_entry_get_show_peek_icon"}
 	gtk_password_entry_set_extra_menu     = cc.DlFunc[func(entry *PasswordEntry, model *gio.GMenuModel), cc.Void]{Name: "gtk_password_entry_set_extra_menu"}
 	gtk_password_entry_get_extra_menu     = cc.DlFunc[func(entry *PasswordEntry) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_password_entry_get_extra_menu"}
 	// #endregion
@@ -2072,8 +2072,8 @@ var (
 	gtk_picture_get_file             = cc.DlFunc[func(pic *Picture) *gio.GFile, *gio.GFile]{Name: "gtk_picture_get_file"}
 	gtk_picture_set_filename         = cc.DlFunc[func(pic *Picture, filename cc.String), cc.Void]{Name: "gtk_picture_set_filename"}
 	gtk_picture_set_resource         = cc.DlFunc[func(pic *Picture, resourcePath cc.String), cc.Void]{Name: "gtk_picture_set_resource"}
-	gtk_picture_set_can_shrink       = cc.DlFunc[func(pic *Picture, canShrink bool), cc.Void]{Name: "gtk_picture_set_can_shrink"}
-	gtk_picture_get_can_shrink       = cc.DlFunc[func(pic *Picture) bool, bool]{Name: "gtk_picture_get_can_shrink"}
+	gtk_picture_set_can_shrink       = cc.DlFunc[func(pic *Picture, canShrink int32), cc.Void]{Name: "gtk_picture_set_can_shrink"}
+	gtk_picture_get_can_shrink       = cc.DlFunc[func(pic *Picture) int32, int32]{Name: "gtk_picture_get_can_shrink"}
 	gtk_picture_set_content_fit      = cc.DlFunc[func(pic *Picture, contentFit ContentFit), cc.Void]{Name: "gtk_picture_set_content_fit"}
 	gtk_picture_get_content_fit      = cc.DlFunc[func(pic *Picture) ContentFit, ContentFit]{Name: "gtk_picture_get_content_fit"}
 	gtk_picture_set_alternative_text = cc.DlFunc[func(pic *Picture, alternativeText cc.String), cc.Void]{Name: "gtk_picture_set_alternative_text"}
@@ -2086,21 +2086,21 @@ var (
 	gtk_popover_set_child             = cc.DlFunc[func(popover *Popover, child *Widget), cc.Void]{Name: "gtk_popover_set_child"}
 	gtk_popover_get_child             = cc.DlFunc[func(popover *Popover) *Widget, *Widget]{Name: "gtk_popover_get_child"}
 	gtk_popover_set_pointing_to       = cc.DlFunc[func(popover *Popover, rect *gdk.Rectangle), cc.Void]{Name: "gtk_popover_set_pointing_to"}
-	gtk_popover_get_pointing_to       = cc.DlFunc[func(popover *Popover, rect *gdk.Rectangle) bool, bool]{Name: "gtk_popover_get_pointing_to"}
+	gtk_popover_get_pointing_to       = cc.DlFunc[func(popover *Popover, rect *gdk.Rectangle) int32, int32]{Name: "gtk_popover_get_pointing_to"}
 	gtk_popover_set_position          = cc.DlFunc[func(popover *Popover, position PositionType), cc.Void]{Name: "gtk_popover_set_position"}
 	gtk_popover_get_position          = cc.DlFunc[func(popover *Popover) PositionType, PositionType]{Name: "gtk_popover_get_position"}
-	gtk_popover_set_autohide          = cc.DlFunc[func(popover *Popover, autohide bool), cc.Void]{Name: "gtk_popover_set_autohide"}
-	gtk_popover_get_autohide          = cc.DlFunc[func(popover *Popover) bool, bool]{Name: "gtk_popover_get_autohide"}
-	gtk_popover_set_has_arrow         = cc.DlFunc[func(popover *Popover, hasArrow bool), cc.Void]{Name: "gtk_popover_set_has_arrow"}
-	gtk_popover_get_has_arrow         = cc.DlFunc[func(popover *Popover) bool, bool]{Name: "gtk_popover_get_has_arrow"}
-	gtk_popover_set_mnemonics_visible = cc.DlFunc[func(popover *Popover, mnemonicsVisible bool), cc.Void]{Name: "gtk_popover_set_mnemonics_visible"}
-	gtk_popover_get_mnemonics_visible = cc.DlFunc[func(popover *Popover) bool, bool]{Name: "gtk_popover_get_mnemonics_visible"}
+	gtk_popover_set_autohide          = cc.DlFunc[func(popover *Popover, autohide int32), cc.Void]{Name: "gtk_popover_set_autohide"}
+	gtk_popover_get_autohide          = cc.DlFunc[func(popover *Popover) int32, int32]{Name: "gtk_popover_get_autohide"}
+	gtk_popover_set_has_arrow         = cc.DlFunc[func(popover *Popover, hasArrow int32), cc.Void]{Name: "gtk_popover_set_has_arrow"}
+	gtk_popover_get_has_arrow         = cc.DlFunc[func(popover *Popover) int32, int32]{Name: "gtk_popover_get_has_arrow"}
+	gtk_popover_set_mnemonics_visible = cc.DlFunc[func(popover *Popover, mnemonicsVisible int32), cc.Void]{Name: "gtk_popover_set_mnemonics_visible"}
+	gtk_popover_get_mnemonics_visible = cc.DlFunc[func(popover *Popover) int32, int32]{Name: "gtk_popover_get_mnemonics_visible"}
 	gtk_popover_popup                 = cc.DlFunc[func(popover *Popover), cc.Void]{Name: "gtk_popover_popup"}
 	gtk_popover_popdown               = cc.DlFunc[func(popover *Popover), cc.Void]{Name: "gtk_popover_popdown"}
 	gtk_popover_set_offset            = cc.DlFunc[func(popover *Popover, xOffset int32, yOffset int32), cc.Void]{Name: "gtk_popover_set_offset"}
 	gtk_popover_get_offset            = cc.DlFunc[func(popover *Popover, xOffset *int32, yOffset *int32), cc.Void]{Name: "gtk_popover_get_offset"}
-	gtk_popover_set_cascade_popdown   = cc.DlFunc[func(popover *Popover, cascadePopdown bool), cc.Void]{Name: "gtk_popover_set_cascade_popdown"}
-	gtk_popover_get_cascade_popdown   = cc.DlFunc[func(popover *Popover) bool, bool]{Name: "gtk_popover_get_cascade_popdown"}
+	gtk_popover_set_cascade_popdown   = cc.DlFunc[func(popover *Popover, cascadePopdown int32), cc.Void]{Name: "gtk_popover_set_cascade_popdown"}
+	gtk_popover_get_cascade_popdown   = cc.DlFunc[func(popover *Popover) int32, int32]{Name: "gtk_popover_get_cascade_popdown"}
 	gtk_popover_set_default_widget    = cc.DlFunc[func(popover *Popover, widget *Widget), cc.Void]{Name: "gtk_popover_set_default_widget"}
 	gtk_popover_present               = cc.DlFunc[func(popover *Popover), cc.Void]{Name: "gtk_popover_present"}
 	// #endregion
@@ -2113,8 +2113,8 @@ var (
 	gtk_popover_menu_get_menu_model      = cc.DlFunc[func(popover *PopoverMenu) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_popover_menu_get_menu_model"}
 	gtk_popover_menu_set_flags           = cc.DlFunc[func(popover *PopoverMenu, flags PopoverMenuFlags), cc.Void]{Name: "gtk_popover_menu_set_flags"}
 	gtk_popover_menu_get_flags           = cc.DlFunc[func(popover *PopoverMenu) PopoverMenuFlags, PopoverMenuFlags]{Name: "gtk_popover_menu_get_flags"}
-	gtk_popover_menu_add_child           = cc.DlFunc[func(popover *PopoverMenu, child *Widget, id cc.String) bool, bool]{Name: "gtk_popover_menu_add_child"}
-	gtk_popover_menu_remove_child        = cc.DlFunc[func(popover *PopoverMenu, child *Widget) bool, bool]{Name: "gtk_popover_menu_remove_child"}
+	gtk_popover_menu_add_child           = cc.DlFunc[func(popover *PopoverMenu, child *Widget, id cc.String) int32, int32]{Name: "gtk_popover_menu_add_child"}
+	gtk_popover_menu_remove_child        = cc.DlFunc[func(popover *PopoverMenu, child *Widget) int32, int32]{Name: "gtk_popover_menu_remove_child"}
 	// #endregion
 
 	// #region PopoverMenuBar
@@ -2122,8 +2122,8 @@ var (
 	gtk_popover_menu_bar_new_from_model = cc.DlFunc[func(model *gio.GMenuModel) *PopoverMenuBar, *PopoverMenuBar]{Name: "gtk_popover_menu_bar_new_from_model"}
 	gtk_popover_menu_bar_set_menu_model = cc.DlFunc[func(bar *PopoverMenuBar, model *gio.GMenuModel), cc.Void]{Name: "gtk_popover_menu_bar_set_menu_model"}
 	gtk_popover_menu_bar_get_menu_model = cc.DlFunc[func(bar *PopoverMenuBar) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_popover_menu_bar_get_menu_model"}
-	gtk_popover_menu_bar_add_child      = cc.DlFunc[func(bar *PopoverMenuBar, child *Widget, id cc.String) bool, bool]{Name: "gtk_popover_menu_bar_add_child"}
-	gtk_popover_menu_bar_remove_child   = cc.DlFunc[func(bar *PopoverMenuBar, child *Widget) bool, bool]{Name: "gtk_popover_menu_bar_remove_child"}
+	gtk_popover_menu_bar_add_child      = cc.DlFunc[func(bar *PopoverMenuBar, child *Widget, id cc.String) int32, int32]{Name: "gtk_popover_menu_bar_add_child"}
+	gtk_popover_menu_bar_remove_child   = cc.DlFunc[func(bar *PopoverMenuBar, child *Widget) int32, int32]{Name: "gtk_popover_menu_bar_remove_child"}
 	// #endregion
 
 	// #region PrintDialog
@@ -2139,18 +2139,18 @@ var (
 	gtk_print_dialog_set_title          = cc.DlFunc[func(dialog *PrintDialog, title cc.String), cc.Void]{Name: "gtk_print_dialog_set_title"}
 	gtk_print_dialog_get_accept_label   = cc.DlFunc[func(dialog *PrintDialog) cc.String, cc.String]{Name: "gtk_print_dialog_get_accept_label"}
 	gtk_print_dialog_set_accept_label   = cc.DlFunc[func(dialog *PrintDialog, acceptLabel cc.String), cc.Void]{Name: "gtk_print_dialog_set_accept_label"}
-	gtk_print_dialog_get_modal          = cc.DlFunc[func(dialog *PrintDialog) bool, bool]{Name: "gtk_print_dialog_get_modal"}
-	gtk_print_dialog_set_modal          = cc.DlFunc[func(dialog *PrintDialog, modal bool), cc.Void]{Name: "gtk_print_dialog_set_modal"}
+	gtk_print_dialog_get_modal          = cc.DlFunc[func(dialog *PrintDialog) int32, int32]{Name: "gtk_print_dialog_get_modal"}
+	gtk_print_dialog_set_modal          = cc.DlFunc[func(dialog *PrintDialog, modal int32), cc.Void]{Name: "gtk_print_dialog_set_modal"}
 	gtk_print_dialog_get_page_setup     = cc.DlFunc[func(dialog *PrintDialog) *PageSetup, *PageSetup]{Name: "gtk_print_dialog_get_page_setup"}
 	gtk_print_dialog_set_page_setup     = cc.DlFunc[func(dialog *PrintDialog, pageSetup *PageSetup), cc.Void]{Name: "gtk_print_dialog_set_page_setup"}
 	gtk_print_dialog_get_print_settings = cc.DlFunc[func(dialog *PrintDialog) *PrintSettings, *PrintSettings]{Name: "gtk_print_dialog_get_print_settings"}
 	gtk_print_dialog_set_print_settings = cc.DlFunc[func(dialog *PrintDialog, printSettings *PrintSettings), cc.Void]{Name: "gtk_print_dialog_set_print_settings"}
-	gtk_print_dialog_setup              = cc.DlFunc[func(dialog *PrintDialog, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_print_dialog_setup"}
+	gtk_print_dialog_setup              = cc.DlFunc[func(dialog *PrintDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_print_dialog_setup"}
 	gtk_print_dialog_setup_finish       = cc.DlFunc[func(dialog *PrintDialog, result *gio.GAsyncResult, err **glib.GError) *PrintSetup, *PrintSetup]{Name: "gtk_print_dialog_setup_finish"}
-	gtk_print_dialog_print              = cc.DlFunc[func(dialog *PrintDialog, parent *Window, setup *PrintSetup, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_print_dialog_print"}
+	gtk_print_dialog_print              = cc.DlFunc[func(dialog *PrintDialog, parent *Window, setup *PrintSetup, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_print_dialog_print"}
 	gtk_print_dialog_print_finish       = cc.DlFunc[func(dialog *PrintDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GOutputStream, *gio.GOutputStream]{Name: "gtk_print_dialog_print_finish"}
-	gtk_print_dialog_print_file         = cc.DlFunc[func(dialog *PrintDialog, parent *Window, setup *PrintSetup, file *gio.GFile, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_print_dialog_print_file"}
-	gtk_print_dialog_print_file_finish  = cc.DlFunc[func(dialog *PrintDialog, result *gio.GAsyncResult, err **glib.GError) bool, bool]{Name: "gtk_print_dialog_print_file_finish"}
+	gtk_print_dialog_print_file         = cc.DlFunc[func(dialog *PrintDialog, parent *Window, setup *PrintSetup, file *gio.GFile, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_print_dialog_print_file"}
+	gtk_print_dialog_print_file_finish  = cc.DlFunc[func(dialog *PrintDialog, result *gio.GAsyncResult, err **glib.GError) int32, int32]{Name: "gtk_print_dialog_print_file_finish"}
 	// #endregion
 
 	// #region ProgressBar
@@ -2160,37 +2160,37 @@ var (
 	gtk_progress_bar_set_text       = cc.DlFunc[func(pbar *ProgressBar, text cc.String), cc.Void]{Name: "gtk_progress_bar_set_text"}
 	gtk_progress_bar_set_fraction   = cc.DlFunc[func(pbar *ProgressBar, fraction float64), cc.Void]{Name: "gtk_progress_bar_set_fraction"}
 	gtk_progress_bar_set_pulse_step = cc.DlFunc[func(pbar *ProgressBar, fraction float64), cc.Void]{Name: "gtk_progress_bar_set_pulse_step"}
-	gtk_progress_bar_set_inverted   = cc.DlFunc[func(pbar *ProgressBar, inverted bool), cc.Void]{Name: "gtk_progress_bar_set_inverted"}
+	gtk_progress_bar_set_inverted   = cc.DlFunc[func(pbar *ProgressBar, inverted int32), cc.Void]{Name: "gtk_progress_bar_set_inverted"}
 	gtk_progress_bar_get_text       = cc.DlFunc[func(pbar *ProgressBar) cc.String, cc.String]{Name: "gtk_progress_bar_get_text"}
 	gtk_progress_bar_get_fraction   = cc.DlFunc[func(pbar *ProgressBar) float64, float64]{Name: "gtk_progress_bar_get_fraction"}
 	gtk_progress_bar_get_pulse_step = cc.DlFunc[func(pbar *ProgressBar) float64, float64]{Name: "gtk_progress_bar_get_pulse_step"}
-	gtk_progress_bar_get_inverted   = cc.DlFunc[func(pbar *ProgressBar) bool, bool]{Name: "gtk_progress_bar_get_inverted"}
+	gtk_progress_bar_get_inverted   = cc.DlFunc[func(pbar *ProgressBar) int32, int32]{Name: "gtk_progress_bar_get_inverted"}
 	gtk_progress_bar_set_ellipsize  = cc.DlFunc[func(pbar *ProgressBar, mode pango.EllipsizeMode), cc.Void]{Name: "gtk_progress_bar_set_ellipsize"}
 	gtk_progress_bar_get_ellipsize  = cc.DlFunc[func(pbar *ProgressBar) pango.EllipsizeMode, pango.EllipsizeMode]{Name: "gtk_progress_bar_get_ellipsize"}
-	gtk_progress_bar_set_show_text  = cc.DlFunc[func(pbar *ProgressBar, showText bool), cc.Void]{Name: "gtk_progress_bar_set_show_text"}
-	gtk_progress_bar_get_show_text  = cc.DlFunc[func(pbar *ProgressBar) bool, bool]{Name: "gtk_progress_bar_get_show_text"}
+	gtk_progress_bar_set_show_text  = cc.DlFunc[func(pbar *ProgressBar, showText int32), cc.Void]{Name: "gtk_progress_bar_set_show_text"}
+	gtk_progress_bar_get_show_text  = cc.DlFunc[func(pbar *ProgressBar) int32, int32]{Name: "gtk_progress_bar_get_show_text"}
 	// #endregion
 
 	// #region Range
 	gtk_range_get_type                   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_range_get_type"}
 	gtk_range_set_adjustment             = cc.DlFunc[func(r *Range, adj *Adjustment), cc.Void]{Name: "gtk_range_set_adjustment"}
 	gtk_range_get_adjustment             = cc.DlFunc[func(r *Range) *Adjustment, *Adjustment]{Name: "gtk_range_get_adjustment"}
-	gtk_range_set_inverted               = cc.DlFunc[func(r *Range, setting bool), cc.Void]{Name: "gtk_range_set_inverted"}
-	gtk_range_get_inverted               = cc.DlFunc[func(r *Range) bool, bool]{Name: "gtk_range_get_inverted"}
-	gtk_range_set_flippable              = cc.DlFunc[func(r *Range, flippable bool), cc.Void]{Name: "gtk_range_set_flippable"}
-	gtk_range_get_flippable              = cc.DlFunc[func(r *Range) bool, bool]{Name: "gtk_range_get_flippable"}
-	gtk_range_set_slider_size_fixed      = cc.DlFunc[func(r *Range, sizeFixed bool), cc.Void]{Name: "gtk_range_set_slider_size_fixed"}
-	gtk_range_get_slider_size_fixed      = cc.DlFunc[func(r *Range) bool, bool]{Name: "gtk_range_get_slider_size_fixed"}
+	gtk_range_set_inverted               = cc.DlFunc[func(r *Range, setting int32), cc.Void]{Name: "gtk_range_set_inverted"}
+	gtk_range_get_inverted               = cc.DlFunc[func(r *Range) int32, int32]{Name: "gtk_range_get_inverted"}
+	gtk_range_set_flippable              = cc.DlFunc[func(r *Range, flippable int32), cc.Void]{Name: "gtk_range_set_flippable"}
+	gtk_range_get_flippable              = cc.DlFunc[func(r *Range) int32, int32]{Name: "gtk_range_get_flippable"}
+	gtk_range_set_slider_size_fixed      = cc.DlFunc[func(r *Range, sizeFixed int32), cc.Void]{Name: "gtk_range_set_slider_size_fixed"}
+	gtk_range_get_slider_size_fixed      = cc.DlFunc[func(r *Range) int32, int32]{Name: "gtk_range_get_slider_size_fixed"}
 	gtk_range_get_range_rect             = cc.DlFunc[func(r *Range, rangeRect *gdk.Rectangle), cc.Void]{Name: "gtk_range_get_range_rect"}
 	gtk_range_get_slider_range           = cc.DlFunc[func(r *Range, sliderStart *int32, sliderEnd *int32), cc.Void]{Name: "gtk_range_get_slider_range"}
 	gtk_range_set_increments             = cc.DlFunc[func(r *Range, step, page float64), cc.Void]{Name: "gtk_range_set_increments"}
 	gtk_range_set_range                  = cc.DlFunc[func(r *Range, min, max float64), cc.Void]{Name: "gtk_range_set_range"}
 	gtk_range_set_value                  = cc.DlFunc[func(r *Range, value float64), cc.Void]{Name: "gtk_range_set_value"}
 	gtk_range_get_value                  = cc.DlFunc[func(r *Range) float64, float64]{Name: "gtk_range_get_value"}
-	gtk_range_set_show_fill_level        = cc.DlFunc[func(r *Range, showFillLevel bool), cc.Void]{Name: "gtk_range_set_show_fill_level"}
-	gtk_range_get_show_fill_level        = cc.DlFunc[func(r *Range) bool, bool]{Name: "gtk_range_get_show_fill_level"}
-	gtk_range_set_restrict_to_fill_level = cc.DlFunc[func(r *Range, restrict bool), cc.Void]{Name: "gtk_range_set_restrict_to_fill_level"}
-	gtk_range_get_restrict_to_fill_level = cc.DlFunc[func(r *Range) bool, bool]{Name: "gtk_range_get_restrict_to_fill_level"}
+	gtk_range_set_show_fill_level        = cc.DlFunc[func(r *Range, showFillLevel int32), cc.Void]{Name: "gtk_range_set_show_fill_level"}
+	gtk_range_get_show_fill_level        = cc.DlFunc[func(r *Range) int32, int32]{Name: "gtk_range_get_show_fill_level"}
+	gtk_range_set_restrict_to_fill_level = cc.DlFunc[func(r *Range, restrict int32), cc.Void]{Name: "gtk_range_set_restrict_to_fill_level"}
+	gtk_range_get_restrict_to_fill_level = cc.DlFunc[func(r *Range) int32, int32]{Name: "gtk_range_get_restrict_to_fill_level"}
 	gtk_range_set_fill_level             = cc.DlFunc[func(r *Range, fillLevel float64), cc.Void]{Name: "gtk_range_set_fill_level"}
 	gtk_range_get_fill_level             = cc.DlFunc[func(r *Range) float64, float64]{Name: "gtk_range_get_fill_level"}
 	gtk_range_set_round_digits           = cc.DlFunc[func(r *Range, roundDigits int32), cc.Void]{Name: "gtk_range_set_round_digits"}
@@ -2202,12 +2202,12 @@ var (
 	gtk_recent_manager_get_type    = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_recent_manager_get_type"}
 	gtk_recent_manager_new         = cc.DlFunc[func() *RecentManager, *RecentManager]{Name: "gtk_recent_manager_new"}
 	gtk_recent_manager_get_default = cc.DlFunc[func() *RecentManager, *RecentManager]{Name: "gtk_recent_manager_get_default"}
-	gtk_recent_manager_add_item    = cc.DlFunc[func(manager *RecentManager, uri cc.String) bool, bool]{Name: "gtk_recent_manager_add_item"}
-	gtk_recent_manager_add_full    = cc.DlFunc[func(manager *RecentManager, uri cc.String, recentData *RecentData) bool, bool]{Name: "gtk_recent_manager_add_full"}
-	gtk_recent_manager_remove_item = cc.DlFunc[func(manager *RecentManager, uri cc.String, err **glib.GError) bool, bool]{Name: "gtk_recent_manager_remove_item"}
+	gtk_recent_manager_add_item    = cc.DlFunc[func(manager *RecentManager, uri cc.String) int32, int32]{Name: "gtk_recent_manager_add_item"}
+	gtk_recent_manager_add_full    = cc.DlFunc[func(manager *RecentManager, uri cc.String, recentData *RecentData) int32, int32]{Name: "gtk_recent_manager_add_full"}
+	gtk_recent_manager_remove_item = cc.DlFunc[func(manager *RecentManager, uri cc.String, err **glib.GError) int32, int32]{Name: "gtk_recent_manager_remove_item"}
 	gtk_recent_manager_lookup_item = cc.DlFunc[func(manager *RecentManager, uri cc.String, err **glib.GError) *RecentInfo, *RecentInfo]{Name: "gtk_recent_manager_lookup_item"}
-	gtk_recent_manager_has_item    = cc.DlFunc[func(manager *RecentManager, uri cc.String) bool, bool]{Name: "gtk_recent_manager_has_item"}
-	gtk_recent_manager_move_item   = cc.DlFunc[func(manager *RecentManager, uri cc.String, newUri cc.String, err **glib.GError) bool, bool]{Name: "gtk_recent_manager_move_item"}
+	gtk_recent_manager_has_item    = cc.DlFunc[func(manager *RecentManager, uri cc.String) int32, int32]{Name: "gtk_recent_manager_has_item"}
+	gtk_recent_manager_move_item   = cc.DlFunc[func(manager *RecentManager, uri cc.String, newUri cc.String, err **glib.GError) int32, int32]{Name: "gtk_recent_manager_move_item"}
 	gtk_recent_manager_get_items   = cc.DlFunc[func(manager *RecentManager) *glib.GList[RecentInfo], *glib.GList[RecentInfo]]{Name: "gtk_recent_manager_get_items"}
 	gtk_recent_manager_purge_items = cc.DlFunc[func(manager *RecentManager, err **glib.GError) int32, int32]{Name: "gtk_recent_manager_purge_items"}
 
@@ -2221,29 +2221,29 @@ var (
 	gtk_recent_info_get_added            = cc.DlFunc[func(info *RecentInfo) *glib.GDateTime, *glib.GDateTime]{Name: "gtk_recent_info_get_added"}
 	gtk_recent_info_get_modified         = cc.DlFunc[func(info *RecentInfo) *glib.GDateTime, *glib.GDateTime]{Name: "gtk_recent_info_get_modified"}
 	gtk_recent_info_get_visited          = cc.DlFunc[func(info *RecentInfo) *glib.GDateTime, *glib.GDateTime]{Name: "gtk_recent_info_get_visited"}
-	gtk_recent_info_get_private_hint     = cc.DlFunc[func(info *RecentInfo) bool, bool]{Name: "gtk_recent_info_get_private_hint"}
-	gtk_recent_info_get_application_info = cc.DlFunc[func(info *RecentInfo, appName cc.String, appExec *cc.String, count *uint32, stamp **glib.GDateTime) bool, bool]{Name: "gtk_recent_info_get_application_info"}
+	gtk_recent_info_get_private_hint     = cc.DlFunc[func(info *RecentInfo) int32, int32]{Name: "gtk_recent_info_get_private_hint"}
+	gtk_recent_info_get_application_info = cc.DlFunc[func(info *RecentInfo, appName cc.String, appExec *cc.String, count *uint32, stamp **glib.GDateTime) int32, int32]{Name: "gtk_recent_info_get_application_info"}
 	gtk_recent_info_create_app_info      = cc.DlFunc[func(info *RecentInfo, appName cc.String, err **glib.GError) *gio.GAppInfo, *gio.GAppInfo]{Name: "gtk_recent_info_create_app_info"}
 	gtk_recent_info_get_applications     = cc.DlFunc[func(info *RecentInfo, length *uint64) cc.Strings, cc.Strings]{Name: "gtk_recent_info_get_applications"}
 	gtk_recent_info_last_application     = cc.DlFunc[func(info *RecentInfo) cc.String, cc.String]{Name: "gtk_recent_info_last_application"}
-	gtk_recent_info_has_application      = cc.DlFunc[func(info *RecentInfo, appName cc.String) bool, bool]{Name: "gtk_recent_info_has_application"}
+	gtk_recent_info_has_application      = cc.DlFunc[func(info *RecentInfo, appName cc.String) int32, int32]{Name: "gtk_recent_info_has_application"}
 	gtk_recent_info_get_groups           = cc.DlFunc[func(info *RecentInfo, length *uint64) cc.Strings, cc.Strings]{Name: "gtk_recent_info_get_groups"}
-	gtk_recent_info_has_group            = cc.DlFunc[func(info *RecentInfo, groupName cc.String) bool, bool]{Name: "gtk_recent_info_has_group"}
+	gtk_recent_info_has_group            = cc.DlFunc[func(info *RecentInfo, groupName cc.String) int32, int32]{Name: "gtk_recent_info_has_group"}
 	gtk_recent_info_get_gicon            = cc.DlFunc[func(info *RecentInfo) *gio.GIcon, *gio.GIcon]{Name: "gtk_recent_info_get_gicon"}
 	gtk_recent_info_get_short_name       = cc.DlFunc[func(info *RecentInfo) cc.String, cc.String]{Name: "gtk_recent_info_get_short_name"}
 	gtk_recent_info_get_uri_display      = cc.DlFunc[func(info *RecentInfo) cc.String, cc.String]{Name: "gtk_recent_info_get_uri_display"}
 	gtk_recent_info_get_age              = cc.DlFunc[func(info *RecentInfo) int32, int32]{Name: "gtk_recent_info_get_age"}
-	gtk_recent_info_is_local             = cc.DlFunc[func(info *RecentInfo) bool, bool]{Name: "gtk_recent_info_is_local"}
-	gtk_recent_info_exists               = cc.DlFunc[func(info *RecentInfo) bool, bool]{Name: "gtk_recent_info_exists"}
-	gtk_recent_info_match                = cc.DlFunc[func(infoA *RecentInfo, infoB *RecentInfo) bool, bool]{Name: "gtk_recent_info_match"}
+	gtk_recent_info_is_local             = cc.DlFunc[func(info *RecentInfo) int32, int32]{Name: "gtk_recent_info_is_local"}
+	gtk_recent_info_exists               = cc.DlFunc[func(info *RecentInfo) int32, int32]{Name: "gtk_recent_info_exists"}
+	gtk_recent_info_match                = cc.DlFunc[func(infoA *RecentInfo, infoB *RecentInfo) int32, int32]{Name: "gtk_recent_info_match"}
 	// #endregion
 
 	// #region Revealer
 	gtk_revealer_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_revealer_get_type"}
 	gtk_revealer_new                     = cc.DlFunc[func() *Revealer, *Revealer]{Name: "gtk_revealer_new"}
-	gtk_revealer_get_reveal_child        = cc.DlFunc[func(revealer *Revealer) bool, bool]{Name: "gtk_revealer_get_reveal_child"}
-	gtk_revealer_set_reveal_child        = cc.DlFunc[func(revealer *Revealer, revealChild bool), cc.Void]{Name: "gtk_revealer_set_reveal_child"}
-	gtk_revealer_get_child_revealed      = cc.DlFunc[func(revealer *Revealer) bool, bool]{Name: "gtk_revealer_get_child_revealed"}
+	gtk_revealer_get_reveal_child        = cc.DlFunc[func(revealer *Revealer) int32, int32]{Name: "gtk_revealer_get_reveal_child"}
+	gtk_revealer_set_reveal_child        = cc.DlFunc[func(revealer *Revealer, revealChild int32), cc.Void]{Name: "gtk_revealer_set_reveal_child"}
+	gtk_revealer_get_child_revealed      = cc.DlFunc[func(revealer *Revealer) int32, int32]{Name: "gtk_revealer_get_child_revealed"}
 	gtk_revealer_get_transition_duration = cc.DlFunc[func(revealer *Revealer) uint32, uint32]{Name: "gtk_revealer_get_transition_duration"}
 	gtk_revealer_set_transition_duration = cc.DlFunc[func(revealer *Revealer, duration uint32), cc.Void]{Name: "gtk_revealer_set_transition_duration"}
 	gtk_revealer_set_transition_type     = cc.DlFunc[func(revealer *Revealer, transition RevealerTransitionType), cc.Void]{Name: "gtk_revealer_set_transition_type"}
@@ -2264,17 +2264,17 @@ var (
 	gtk_scale_new_with_range        = cc.DlFunc[func(orientation Orientation, min, max, step float64) *Scale, *Scale]{Name: "gtk_scale_new_with_range"}
 	gtk_scale_set_digits            = cc.DlFunc[func(scale *Scale, digits int32), cc.Void]{Name: "gtk_scale_set_digits"}
 	gtk_scale_get_digits            = cc.DlFunc[func(scale *Scale) int32, int32]{Name: "gtk_scale_get_digits"}
-	gtk_scale_set_draw_value        = cc.DlFunc[func(scale *Scale, drawValue bool), cc.Void]{Name: "gtk_scale_set_draw_value"}
-	gtk_scale_get_draw_value        = cc.DlFunc[func(scale *Scale) bool, bool]{Name: "gtk_scale_get_draw_value"}
-	gtk_scale_set_has_origin        = cc.DlFunc[func(scale *Scale, hasOrigin bool), cc.Void]{Name: "gtk_scale_set_has_origin"}
-	gtk_scale_get_has_origin        = cc.DlFunc[func(scale *Scale) bool, bool]{Name: "gtk_scale_get_has_origin"}
+	gtk_scale_set_draw_value        = cc.DlFunc[func(scale *Scale, drawValue int32), cc.Void]{Name: "gtk_scale_set_draw_value"}
+	gtk_scale_get_draw_value        = cc.DlFunc[func(scale *Scale) int32, int32]{Name: "gtk_scale_get_draw_value"}
+	gtk_scale_set_has_origin        = cc.DlFunc[func(scale *Scale, hasOrigin int32), cc.Void]{Name: "gtk_scale_set_has_origin"}
+	gtk_scale_get_has_origin        = cc.DlFunc[func(scale *Scale) int32, int32]{Name: "gtk_scale_get_has_origin"}
 	gtk_scale_set_value_pos         = cc.DlFunc[func(scale *Scale, pos PositionType), cc.Void]{Name: "gtk_scale_set_value_pos"}
 	gtk_scale_get_value_pos         = cc.DlFunc[func(scale *Scale) PositionType, PositionType]{Name: "gtk_scale_get_value_pos"}
 	gtk_scale_get_layout            = cc.DlFunc[func(scale *Scale) *pango.Layout, *pango.Layout]{Name: "gtk_scale_get_layout"}
 	gtk_scale_get_layout_offsets    = cc.DlFunc[func(scale *Scale, x, y *int32), cc.Void]{Name: "gtk_scale_get_layout_offsets"}
 	gtk_scale_add_mark              = cc.DlFunc[func(scale *Scale, value float64, position PositionType, markup cc.String), cc.Void]{Name: "gtk_scale_add_mark"}
 	gtk_scale_clear_marks           = cc.DlFunc[func(scale *Scale), cc.Void]{Name: "gtk_scale_clear_marks"}
-	gtk_scale_set_format_value_func = cc.DlFunc[func(scale *Scale, fn UPtr, userData UPtr, destroyNotify UPtr), cc.Void]{Name: "gtk_scale_set_format_value_func"}
+	gtk_scale_set_format_value_func = cc.DlFunc[func(scale *Scale, fn uptr, userData uptr, destroyNotify uptr), cc.Void]{Name: "gtk_scale_set_format_value_func"}
 	// #endregion
 
 	// #region ScaleButton
@@ -2288,9 +2288,9 @@ var (
 	gtk_scale_button_get_plus_button  = cc.DlFunc[func(button *ScaleButton) *Widget, *Widget]{Name: "gtk_scale_button_get_plus_button"}
 	gtk_scale_button_get_minus_button = cc.DlFunc[func(button *ScaleButton) *Widget, *Widget]{Name: "gtk_scale_button_get_minus_button"}
 	gtk_scale_button_get_popup        = cc.DlFunc[func(button *ScaleButton) *Widget, *Widget]{Name: "gtk_scale_button_get_popup"}
-	gtk_scale_button_get_active       = cc.DlFunc[func(button *ScaleButton) bool, bool]{Name: "gtk_scale_button_get_active"}
-	gtk_scale_button_get_has_frame    = cc.DlFunc[func(button *ScaleButton) bool, bool]{Name: "gtk_scale_button_get_has_frame"}
-	gtk_scale_button_set_has_frame    = cc.DlFunc[func(button *ScaleButton, hasFrame bool), cc.Void]{Name: "gtk_scale_button_set_has_frame"}
+	gtk_scale_button_get_active       = cc.DlFunc[func(button *ScaleButton) int32, int32]{Name: "gtk_scale_button_get_active"}
+	gtk_scale_button_get_has_frame    = cc.DlFunc[func(button *ScaleButton) int32, int32]{Name: "gtk_scale_button_get_has_frame"}
+	gtk_scale_button_set_has_frame    = cc.DlFunc[func(button *ScaleButton, hasFrame int32), cc.Void]{Name: "gtk_scale_button_set_has_frame"}
 	// #endregion
 
 	// #region Scrollable
@@ -2303,7 +2303,7 @@ var (
 	gtk_scrollable_set_hscroll_policy = cc.DlFunc[func(scrollable *Scrollable, policy ScrollablePolicy), cc.Void]{Name: "gtk_scrollable_set_hscroll_policy"}
 	gtk_scrollable_get_vscroll_policy = cc.DlFunc[func(scrollable *Scrollable) ScrollablePolicy, ScrollablePolicy]{Name: "gtk_scrollable_get_vscroll_policy"}
 	gtk_scrollable_set_vscroll_policy = cc.DlFunc[func(scrollable *Scrollable, policy ScrollablePolicy), cc.Void]{Name: "gtk_scrollable_set_vscroll_policy"}
-	gtk_scrollable_get_border         = cc.DlFunc[func(scrollable *Scrollable, border *Border) bool, bool]{Name: "gtk_scrollable_get_border"}
+	gtk_scrollable_get_border         = cc.DlFunc[func(scrollable *Scrollable, border *Border) int32, int32]{Name: "gtk_scrollable_get_border"}
 	// #endregion
 
 	// #region Scrollbar
@@ -2327,24 +2327,24 @@ var (
 	gtk_scrolled_window_set_placement                = cc.DlFunc[func(w *ScrolledWindow, placement CornerType), cc.Void]{Name: "gtk_scrolled_window_set_placement"}
 	gtk_scrolled_window_unset_placement              = cc.DlFunc[func(w *ScrolledWindow), cc.Void]{Name: "gtk_scrolled_window_unset_placement"}
 	gtk_scrolled_window_get_placement                = cc.DlFunc[func(w *ScrolledWindow) CornerType, CornerType]{Name: "gtk_scrolled_window_get_placement"}
-	gtk_scrolled_window_set_has_frame                = cc.DlFunc[func(w *ScrolledWindow, hasFrame bool), cc.Void]{Name: "gtk_scrolled_window_set_has_frame"}
-	gtk_scrolled_window_get_has_frame                = cc.DlFunc[func(w *ScrolledWindow) bool, bool]{Name: "gtk_scrolled_window_get_has_frame"}
+	gtk_scrolled_window_set_has_frame                = cc.DlFunc[func(w *ScrolledWindow, hasFrame int32), cc.Void]{Name: "gtk_scrolled_window_set_has_frame"}
+	gtk_scrolled_window_get_has_frame                = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_has_frame"}
 	gtk_scrolled_window_get_min_content_width        = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_min_content_width"}
 	gtk_scrolled_window_set_min_content_width        = cc.DlFunc[func(w *ScrolledWindow, width int32), cc.Void]{Name: "gtk_scrolled_window_set_min_content_width"}
 	gtk_scrolled_window_get_min_content_height       = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_min_content_height"}
 	gtk_scrolled_window_set_min_content_height       = cc.DlFunc[func(w *ScrolledWindow, height int32), cc.Void]{Name: "gtk_scrolled_window_set_min_content_height"}
-	gtk_scrolled_window_set_kinetic_scrolling        = cc.DlFunc[func(w *ScrolledWindow, kineticScrolling bool), cc.Void]{Name: "gtk_scrolled_window_set_kinetic_scrolling"}
-	gtk_scrolled_window_get_kinetic_scrolling        = cc.DlFunc[func(w *ScrolledWindow) bool, bool]{Name: "gtk_scrolled_window_get_kinetic_scrolling"}
-	gtk_scrolled_window_set_overlay_scrolling        = cc.DlFunc[func(w *ScrolledWindow, overlayScrolling bool), cc.Void]{Name: "gtk_scrolled_window_set_overlay_scrolling"}
-	gtk_scrolled_window_get_overlay_scrolling        = cc.DlFunc[func(w *ScrolledWindow) bool, bool]{Name: "gtk_scrolled_window_get_overlay_scrolling"}
+	gtk_scrolled_window_set_kinetic_scrolling        = cc.DlFunc[func(w *ScrolledWindow, kineticScrolling int32), cc.Void]{Name: "gtk_scrolled_window_set_kinetic_scrolling"}
+	gtk_scrolled_window_get_kinetic_scrolling        = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_kinetic_scrolling"}
+	gtk_scrolled_window_set_overlay_scrolling        = cc.DlFunc[func(w *ScrolledWindow, overlayScrolling int32), cc.Void]{Name: "gtk_scrolled_window_set_overlay_scrolling"}
+	gtk_scrolled_window_get_overlay_scrolling        = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_overlay_scrolling"}
 	gtk_scrolled_window_set_max_content_width        = cc.DlFunc[func(w *ScrolledWindow, width int32), cc.Void]{Name: "gtk_scrolled_window_set_max_content_width"}
 	gtk_scrolled_window_get_max_content_width        = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_max_content_width"}
 	gtk_scrolled_window_set_max_content_height       = cc.DlFunc[func(w *ScrolledWindow, height int32), cc.Void]{Name: "gtk_scrolled_window_set_max_content_height"}
 	gtk_scrolled_window_get_max_content_height       = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_max_content_height"}
-	gtk_scrolled_window_set_propagate_natural_width  = cc.DlFunc[func(w *ScrolledWindow, propagate bool), cc.Void]{Name: "gtk_scrolled_window_set_propagate_natural_width"}
-	gtk_scrolled_window_get_propagate_natural_width  = cc.DlFunc[func(w *ScrolledWindow) bool, bool]{Name: "gtk_scrolled_window_get_propagate_natural_width"}
-	gtk_scrolled_window_set_propagate_natural_height = cc.DlFunc[func(w *ScrolledWindow, propagate bool), cc.Void]{Name: "gtk_scrolled_window_set_propagate_natural_height"}
-	gtk_scrolled_window_get_propagate_natural_height = cc.DlFunc[func(w *ScrolledWindow) bool, bool]{Name: "gtk_scrolled_window_get_propagate_natural_height"}
+	gtk_scrolled_window_set_propagate_natural_width  = cc.DlFunc[func(w *ScrolledWindow, propagate int32), cc.Void]{Name: "gtk_scrolled_window_set_propagate_natural_width"}
+	gtk_scrolled_window_get_propagate_natural_width  = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_propagate_natural_width"}
+	gtk_scrolled_window_set_propagate_natural_height = cc.DlFunc[func(w *ScrolledWindow, propagate int32), cc.Void]{Name: "gtk_scrolled_window_set_propagate_natural_height"}
+	gtk_scrolled_window_get_propagate_natural_height = cc.DlFunc[func(w *ScrolledWindow) int32, int32]{Name: "gtk_scrolled_window_get_propagate_natural_height"}
 	gtk_scrolled_window_set_child                    = cc.DlFunc[func(w *ScrolledWindow, child *Widget), cc.Void]{Name: "gtk_scrolled_window_set_child"}
 	gtk_scrolled_window_get_child                    = cc.DlFunc[func(w *ScrolledWindow) *Widget, *Widget]{Name: "gtk_scrolled_window_get_child"}
 	// #endregion
@@ -2354,20 +2354,20 @@ var (
 	gtk_scroll_info_new                   = cc.DlFunc[func() *ScrollInfo, *ScrollInfo]{Name: "gtk_scroll_info_new"}
 	gtk_scroll_info_ref                   = cc.DlFunc[func(self *ScrollInfo) *ScrollInfo, *ScrollInfo]{Name: "gtk_scroll_info_ref"}
 	gtk_scroll_info_unref                 = cc.DlFunc[func(self *ScrollInfo), cc.Void]{Name: "gtk_scroll_info_unref"}
-	gtk_scroll_info_set_enable_horizontal = cc.DlFunc[func(self *ScrollInfo, horizontal bool), cc.Void]{Name: "gtk_scroll_info_set_enable_horizontal"}
-	gtk_scroll_info_get_enable_horizontal = cc.DlFunc[func(self *ScrollInfo) bool, bool]{Name: "gtk_scroll_info_get_enable_horizontal"}
-	gtk_scroll_info_set_enable_vertical   = cc.DlFunc[func(self *ScrollInfo, vertical bool), cc.Void]{Name: "gtk_scroll_info_set_enable_vertical"}
-	gtk_scroll_info_get_enable_vertical   = cc.DlFunc[func(self *ScrollInfo) bool, bool]{Name: "gtk_scroll_info_get_enable_vertical"}
+	gtk_scroll_info_set_enable_horizontal = cc.DlFunc[func(self *ScrollInfo, horizontal int32), cc.Void]{Name: "gtk_scroll_info_set_enable_horizontal"}
+	gtk_scroll_info_get_enable_horizontal = cc.DlFunc[func(self *ScrollInfo) int32, int32]{Name: "gtk_scroll_info_get_enable_horizontal"}
+	gtk_scroll_info_set_enable_vertical   = cc.DlFunc[func(self *ScrollInfo, vertical int32), cc.Void]{Name: "gtk_scroll_info_set_enable_vertical"}
+	gtk_scroll_info_get_enable_vertical   = cc.DlFunc[func(self *ScrollInfo) int32, int32]{Name: "gtk_scroll_info_get_enable_vertical"}
 	// #endregion
 
 	// #region SearchBar
 	gtk_search_bar_get_type               = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_search_bar_get_type"}
 	gtk_search_bar_new                    = cc.DlFunc[func() *SearchBar, *SearchBar]{Name: "gtk_search_bar_new"}
 	gtk_search_bar_connect_entry          = cc.DlFunc[func(bar *SearchBar, entry *Editable), cc.Void]{Name: "gtk_search_bar_connect_entry"}
-	gtk_search_bar_get_search_mode        = cc.DlFunc[func(bar *SearchBar) bool, bool]{Name: "gtk_search_bar_get_search_mode"}
-	gtk_search_bar_set_search_mode        = cc.DlFunc[func(bar *SearchBar, searchMode bool), cc.Void]{Name: "gtk_search_bar_set_search_mode"}
-	gtk_search_bar_get_show_close_button  = cc.DlFunc[func(bar *SearchBar) bool, bool]{Name: "gtk_search_bar_get_show_close_button"}
-	gtk_search_bar_set_show_close_button  = cc.DlFunc[func(bar *SearchBar, visible bool), cc.Void]{Name: "gtk_search_bar_set_show_close_button"}
+	gtk_search_bar_get_search_mode        = cc.DlFunc[func(bar *SearchBar) int32, int32]{Name: "gtk_search_bar_get_search_mode"}
+	gtk_search_bar_set_search_mode        = cc.DlFunc[func(bar *SearchBar, searchMode int32), cc.Void]{Name: "gtk_search_bar_set_search_mode"}
+	gtk_search_bar_get_show_close_button  = cc.DlFunc[func(bar *SearchBar) int32, int32]{Name: "gtk_search_bar_get_show_close_button"}
+	gtk_search_bar_set_show_close_button  = cc.DlFunc[func(bar *SearchBar, visible int32), cc.Void]{Name: "gtk_search_bar_set_show_close_button"}
 	gtk_search_bar_set_key_capture_widget = cc.DlFunc[func(bar *SearchBar, widget *Widget), cc.Void]{Name: "gtk_search_bar_set_key_capture_widget"}
 	gtk_search_bar_get_key_capture_widget = cc.DlFunc[func(bar *SearchBar) *Widget, *Widget]{Name: "gtk_search_bar_get_key_capture_widget"}
 	gtk_search_bar_set_child              = cc.DlFunc[func(bar *SearchBar, child *Widget), cc.Void]{Name: "gtk_search_bar_set_child"}
@@ -2403,16 +2403,16 @@ var (
 
 	// #region SelectionModel
 	gtk_selection_model_get_type               = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_selection_model_get_type"}
-	gtk_selection_model_is_selected            = cc.DlFunc[func(model *SelectionModel, position uint32) bool, bool]{Name: "gtk_selection_model_is_selected"}
+	gtk_selection_model_is_selected            = cc.DlFunc[func(model *SelectionModel, position uint32) int32, int32]{Name: "gtk_selection_model_is_selected"}
 	gtk_selection_model_get_selection          = cc.DlFunc[func(model *SelectionModel) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection"}
 	gtk_selection_model_get_selection_in_range = cc.DlFunc[func(model *SelectionModel, position, nItems uint32) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection_in_range"}
-	gtk_selection_model_select_item            = cc.DlFunc[func(model *SelectionModel, position uint32, unselectRest bool) bool, bool]{Name: "gtk_selection_model_select_item"}
-	gtk_selection_model_unselect_item          = cc.DlFunc[func(model *SelectionModel, position uint32) bool, bool]{Name: "gtk_selection_model_unselect_item"}
-	gtk_selection_model_select_range           = cc.DlFunc[func(model *SelectionModel, position, nItems uint32, unselectRest bool) bool, bool]{Name: "gtk_selection_model_select_range"}
-	gtk_selection_model_unselect_range         = cc.DlFunc[func(model *SelectionModel, position, nItems uint32) bool, bool]{Name: "gtk_selection_model_unselect_range"}
-	gtk_selection_model_select_all             = cc.DlFunc[func(model *SelectionModel) bool, bool]{Name: "gtk_selection_model_select_all"}
-	gtk_selection_model_unselect_all           = cc.DlFunc[func(model *SelectionModel) bool, bool]{Name: "gtk_selection_model_unselect_all"}
-	gtk_selection_model_set_selection          = cc.DlFunc[func(model *SelectionModel, selected, mask *Bitset) bool, bool]{Name: "gtk_selection_model_set_selection"}
+	gtk_selection_model_select_item            = cc.DlFunc[func(model *SelectionModel, position uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_item"}
+	gtk_selection_model_unselect_item          = cc.DlFunc[func(model *SelectionModel, position uint32) int32, int32]{Name: "gtk_selection_model_unselect_item"}
+	gtk_selection_model_select_range           = cc.DlFunc[func(model *SelectionModel, position, nItems uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_range"}
+	gtk_selection_model_unselect_range         = cc.DlFunc[func(model *SelectionModel, position, nItems uint32) int32, int32]{Name: "gtk_selection_model_unselect_range"}
+	gtk_selection_model_select_all             = cc.DlFunc[func(model *SelectionModel) int32, int32]{Name: "gtk_selection_model_select_all"}
+	gtk_selection_model_unselect_all           = cc.DlFunc[func(model *SelectionModel) int32, int32]{Name: "gtk_selection_model_unselect_all"}
+	gtk_selection_model_set_selection          = cc.DlFunc[func(model *SelectionModel, selected, mask *Bitset) int32, int32]{Name: "gtk_selection_model_set_selection"}
 	gtk_selection_model_selection_changed      = cc.DlFunc[func(model *SelectionModel, position, nItems uint32), cc.Void]{Name: "gtk_selection_model_selection_changed"}
 	// #endregion
 
@@ -2425,12 +2425,12 @@ var (
 	gtk_settings_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_settings_get_type"}
 	gtk_settings_get_default     = cc.DlFunc[func() *Settings, *Settings]{Name: "gtk_settings_get_default"}
 	gtk_settings_get_for_display = cc.DlFunc[func(display *gdk.Display) *Settings, *Settings]{Name: "gtk_settings_get_for_display"}
-	gtk_settings_reset_property  = cc.DlFunc[func(settings *Settings, name string), cc.Void]{Name: "gtk_settings_reset_property"}
+	gtk_settings_reset_property  = cc.DlFunc[func(settings *Settings, name cc.String), cc.Void]{Name: "gtk_settings_reset_property"}
 	// #endregion
 
 	// #region Shortcut
 	gtk_shortcut_new                = cc.DlFunc[func(*ShortcutTrigger, *ShortcutAction) *Shortcut, *Shortcut]{Name: "gtk_shortcut_new"}
-	gtk_shortcut_new_with_arguments = cc.DlFunc[func(*ShortcutTrigger, *ShortcutAction, string, ...interface{}) *Shortcut, *Shortcut]{Name: "gtk_shortcut_new_with_arguments", Va: true}
+	gtk_shortcut_new_with_arguments = cc.DlFunc[func(*ShortcutTrigger, *ShortcutAction, cc.String, ...interface{}) *Shortcut, *Shortcut]{Name: "gtk_shortcut_new_with_arguments", Va: true}
 	gtk_shortcut_get_trigger        = cc.DlFunc[func(*Shortcut) *ShortcutTrigger, *ShortcutTrigger]{Name: "gtk_shortcut_get_trigger"}
 	gtk_shortcut_set_trigger        = cc.DlFunc[func(*Shortcut, *ShortcutTrigger), cc.Void]{Name: "gtk_shortcut_set_trigger"}
 	gtk_shortcut_get_action         = cc.DlFunc[func(*Shortcut) *ShortcutAction, *ShortcutAction]{Name: "gtk_shortcut_get_action"}
@@ -2450,9 +2450,9 @@ var (
 	gtk_shortcut_action_to_string     = cc.DlFunc[func(*ShortcutAction) cc.String, cc.String]{Name: "gtk_shortcut_action_to_string"}
 	gtk_shortcut_action_parse_string  = cc.DlFunc[func(cc.String) *ShortcutAction, *ShortcutAction]{Name: "gtk_shortcut_action_parse_string"}
 	gtk_shortcut_action_print         = cc.DlFunc[func(*ShortcutAction, *glib.GString), cc.Void]{Name: "gtk_shortcut_action_print"}
-	gtk_shortcut_action_activate      = cc.DlFunc[func(*ShortcutAction, ShortcutActionFlags, *Widget, *glib.GVariant) bool, bool]{Name: "gtk_shortcut_action_activate"}
+	gtk_shortcut_action_activate      = cc.DlFunc[func(*ShortcutAction, ShortcutActionFlags, *Widget, *glib.GVariant) int32, int32]{Name: "gtk_shortcut_action_activate"}
 	gtk_nothing_action_get            = cc.DlFunc[func() *NothingAction, *NothingAction]{Name: "gtk_nothing_action_get"}
-	gtk_callback_action_new           = cc.DlFunc[func(callback UPtr, data UPtr, destroy UPtr) *CallbackAction, *CallbackAction]{Name: "gtk_callback_action_new"}
+	gtk_callback_action_new           = cc.DlFunc[func(callback uptr, data uptr, destroy uptr) *CallbackAction, *CallbackAction]{Name: "gtk_callback_action_new"}
 	gtk_mnemonic_action_get           = cc.DlFunc[func() *MnemonicAction, *MnemonicAction]{Name: "gtk_mnemonic_action_get"}
 	gtk_activate_action_get           = cc.DlFunc[func() *ActivateAction, *ActivateAction]{Name: "gtk_activate_action_get"}
 	gtk_signal_action_new             = cc.DlFunc[func(signalName cc.String) *SignalAction, *SignalAction]{Name: "gtk_signal_action_new"}
@@ -2487,11 +2487,11 @@ var (
 	gtk_shortcut_trigger_to_string     = cc.DlFunc[func(*ShortcutTrigger) cc.String, cc.String]{Name: "gtk_shortcut_trigger_to_string"}
 	gtk_shortcut_trigger_print         = cc.DlFunc[func(*ShortcutTrigger, *glib.GString), cc.Void]{Name: "gtk_shortcut_trigger_print"}
 	gtk_shortcut_trigger_to_label      = cc.DlFunc[func(*ShortcutTrigger, *gdk.Display) cc.String, cc.String]{Name: "gtk_shortcut_trigger_to_label"}
-	gtk_shortcut_trigger_print_label   = cc.DlFunc[func(*ShortcutTrigger, *gdk.Display, *glib.GString) bool, bool]{Name: "gtk_shortcut_trigger_print_label"}
+	gtk_shortcut_trigger_print_label   = cc.DlFunc[func(*ShortcutTrigger, *gdk.Display, *glib.GString) int32, int32]{Name: "gtk_shortcut_trigger_print_label"}
 	gtk_shortcut_trigger_hash          = cc.DlFunc[func(*ShortcutTrigger) uint, uint]{Name: "gtk_shortcut_trigger_hash"}
-	gtk_shortcut_trigger_equal         = cc.DlFunc[func(*ShortcutTrigger, *ShortcutTrigger) bool, bool]{Name: "gtk_shortcut_trigger_equal"}
+	gtk_shortcut_trigger_equal         = cc.DlFunc[func(*ShortcutTrigger, *ShortcutTrigger) int32, int32]{Name: "gtk_shortcut_trigger_equal"}
 	gtk_shortcut_trigger_compare       = cc.DlFunc[func(*ShortcutTrigger, *ShortcutTrigger) int, int]{Name: "gtk_shortcut_trigger_compare"}
-	gtk_shortcut_trigger_trigger       = cc.DlFunc[func(*ShortcutTrigger, *gdk.Event, bool) gdk.KeyMatch, gdk.KeyMatch]{Name: "gtk_shortcut_trigger_trigger"}
+	gtk_shortcut_trigger_trigger       = cc.DlFunc[func(*ShortcutTrigger, *gdk.Event, int32) gdk.KeyMatch, gdk.KeyMatch]{Name: "gtk_shortcut_trigger_trigger"}
 	gtk_never_trigger_get              = cc.DlFunc[func() *NeverTrigger, *NeverTrigger]{Name: "gtk_never_trigger_get"}
 	gtk_keyval_trigger_new             = cc.DlFunc[func(uint, gdk.ModifierType) *KeyvalTrigger, *KeyvalTrigger]{Name: "gtk_keyval_trigger_new"}
 	gtk_keyval_trigger_get_modifiers   = cc.DlFunc[func(*KeyvalTrigger) gdk.ModifierType, gdk.ModifierType]{Name: "gtk_keyval_trigger_get_modifiers"}
@@ -2515,11 +2515,11 @@ var (
 	gtk_single_selection_set_model         = cc.DlFunc[func(sel *SingleSelection, model *gio.GListModel), cc.Void]{Name: "gtk_single_selection_set_model"}
 	gtk_single_selection_get_selected      = cc.DlFunc[func(sel *SingleSelection) uint32, uint32]{Name: "gtk_single_selection_get_selected"}
 	gtk_single_selection_set_selected      = cc.DlFunc[func(sel *SingleSelection, position uint32), cc.Void]{Name: "gtk_single_selection_set_selected"}
-	gtk_single_selection_get_selected_item = cc.DlFunc[func(sel *SingleSelection) UPtr, UPtr]{Name: "gtk_single_selection_get_selected_item"}
-	gtk_single_selection_get_autoselect    = cc.DlFunc[func(sel *SingleSelection) bool, bool]{Name: "gtk_single_selection_get_autoselect"}
-	gtk_single_selection_set_autoselect    = cc.DlFunc[func(sel *SingleSelection, autoselect bool), cc.Void]{Name: "gtk_single_selection_set_autoselect"}
-	gtk_single_selection_get_can_unselect  = cc.DlFunc[func(sel *SingleSelection) bool, bool]{Name: "gtk_single_selection_get_can_unselect"}
-	gtk_single_selection_set_can_unselect  = cc.DlFunc[func(sel *SingleSelection, canUnselect bool), cc.Void]{Name: "gtk_single_selection_set_can_unselect"}
+	gtk_single_selection_get_selected_item = cc.DlFunc[func(sel *SingleSelection) uptr, uptr]{Name: "gtk_single_selection_get_selected_item"}
+	gtk_single_selection_get_autoselect    = cc.DlFunc[func(sel *SingleSelection) int32, int32]{Name: "gtk_single_selection_get_autoselect"}
+	gtk_single_selection_set_autoselect    = cc.DlFunc[func(sel *SingleSelection, autoselect int32), cc.Void]{Name: "gtk_single_selection_set_autoselect"}
+	gtk_single_selection_get_can_unselect  = cc.DlFunc[func(sel *SingleSelection) int32, int32]{Name: "gtk_single_selection_get_can_unselect"}
+	gtk_single_selection_set_can_unselect  = cc.DlFunc[func(sel *SingleSelection, canUnselect int32), cc.Void]{Name: "gtk_single_selection_set_can_unselect"}
 	// #endregion
 
 	// #region SizeGroup
@@ -2529,7 +2529,7 @@ var (
 	gtk_size_group_get_mode      = cc.DlFunc[func(sg *SizeGroup) SizeGroupMode, SizeGroupMode]{Name: "gtk_size_group_get_mode"}
 	gtk_size_group_add_widget    = cc.DlFunc[func(sg *SizeGroup, widget *Widget), cc.Void]{Name: "gtk_size_group_add_widget"}
 	gtk_size_group_remove_widget = cc.DlFunc[func(sg *SizeGroup, widget *Widget), cc.Void]{Name: "gtk_size_group_remove_widget"}
-	gtk_size_group_get_widgets   = cc.DlFunc[func(sg *SizeGroup) UPtr, UPtr]{Name: "gtk_size_group_get_widgets"}
+	gtk_size_group_get_widgets   = cc.DlFunc[func(sg *SizeGroup) uptr, uptr]{Name: "gtk_size_group_get_widgets"}
 	// #endregion
 
 	// #region RequestedSize
@@ -2554,7 +2554,7 @@ var (
 	gtk_snapshot_free_to_paintable                = cc.DlFunc[func(snapshot *Snapshot, size *graphene.Size) *gdk.Paintable, *gdk.Paintable]{Name: "gtk_snapshot_free_to_paintable"}
 	gtk_snapshot_to_node                          = cc.DlFunc[func(snapshot *Snapshot) *gsk.RenderNode, *gsk.RenderNode]{Name: "gtk_snapshot_to_node"}
 	gtk_snapshot_to_paintable                     = cc.DlFunc[func(snapshot *Snapshot, size *graphene.Size) *gdk.Paintable, *gdk.Paintable]{Name: "gtk_snapshot_to_paintable"}
-	gtk_snapshot_push_debug                       = cc.DlFunc[func(snapshot *Snapshot, message string, args ...interface{}), cc.Void]{Name: "gtk_snapshot_push_debug", Va: true}
+	gtk_snapshot_push_debug                       = cc.DlFunc[func(snapshot *Snapshot, message cc.String, args ...interface{}), cc.Void]{Name: "gtk_snapshot_push_debug", Va: true}
 	gtk_snapshot_push_opacity                     = cc.DlFunc[func(snapshot *Snapshot, opacity float64), cc.Void]{Name: "gtk_snapshot_push_opacity"}
 	gtk_snapshot_push_blur                        = cc.DlFunc[func(snapshot *Snapshot, radius float64), cc.Void]{Name: "gtk_snapshot_push_blur"}
 	gtk_snapshot_push_color_matrix                = cc.DlFunc[func(snapshot *Snapshot, colorMatrix *graphene.Matrix, colorOffset *graphene.Vec4), cc.Void]{Name: "gtk_snapshot_push_color_matrix"}
@@ -2599,7 +2599,7 @@ var (
 
 	// #region Sorter
 	gtk_sorter_get_type  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_sorter_get_type"}
-	gtk_sorter_compare   = cc.DlFunc[func(self *Sorter, item1, item2 UPtr) Ordering, Ordering]{Name: "gtk_sorter_compare"}
+	gtk_sorter_compare   = cc.DlFunc[func(self *Sorter, item1, item2 uptr) Ordering, Ordering]{Name: "gtk_sorter_compare"}
 	gtk_sorter_get_order = cc.DlFunc[func(self *Sorter) SorterOrder, SorterOrder]{Name: "gtk_sorter_get_order"}
 	gtk_sorter_changed   = cc.DlFunc[func(self *Sorter, change SorterChange), cc.Void]{Name: "gtk_sorter_changed"}
 	// #endregion
@@ -2613,8 +2613,8 @@ var (
 	gtk_sort_list_model_get_section_sorter = cc.DlFunc[func(m *SortListModel) *Sorter, *Sorter]{Name: "gtk_sort_list_model_get_section_sorter"}
 	gtk_sort_list_model_set_model          = cc.DlFunc[func(m *SortListModel, model *gio.GListModel), cc.Void]{Name: "gtk_sort_list_model_set_model"}
 	gtk_sort_list_model_get_model          = cc.DlFunc[func(m *SortListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_sort_list_model_get_model"}
-	gtk_sort_list_model_set_incremental    = cc.DlFunc[func(m *SortListModel, incremental bool), cc.Void]{Name: "gtk_sort_list_model_set_incremental"}
-	gtk_sort_list_model_get_incremental    = cc.DlFunc[func(m *SortListModel) bool, bool]{Name: "gtk_sort_list_model_get_incremental"}
+	gtk_sort_list_model_set_incremental    = cc.DlFunc[func(m *SortListModel, incremental int32), cc.Void]{Name: "gtk_sort_list_model_set_incremental"}
+	gtk_sort_list_model_get_incremental    = cc.DlFunc[func(m *SortListModel) int32, int32]{Name: "gtk_sort_list_model_get_incremental"}
 	gtk_sort_list_model_get_pending        = cc.DlFunc[func(m *SortListModel) uint32, uint32]{Name: "gtk_sort_list_model_get_pending"}
 	// #endregion
 
@@ -2623,8 +2623,8 @@ var (
 	gtk_spin_button_configure             = cc.DlFunc[func(spin *SpinButton, adjustment *Adjustment, climbRate float64, digits uint32), cc.Void]{Name: "gtk_spin_button_configure"}
 	gtk_spin_button_new                   = cc.DlFunc[func(adjustment *Adjustment, climbRate float64, digits uint32) *SpinButton, *SpinButton]{Name: "gtk_spin_button_new"}
 	gtk_spin_button_new_with_range        = cc.DlFunc[func(min, max, step float64) *SpinButton, *SpinButton]{Name: "gtk_spin_button_new_with_range"}
-	gtk_spin_button_set_activates_default = cc.DlFunc[func(spin *SpinButton, activatesDefault bool), cc.Void]{Name: "gtk_spin_button_set_activates_default"}
-	gtk_spin_button_get_activates_default = cc.DlFunc[func(spin *SpinButton) bool, bool]{Name: "gtk_spin_button_get_activates_default"}
+	gtk_spin_button_set_activates_default = cc.DlFunc[func(spin *SpinButton, activatesDefault int32), cc.Void]{Name: "gtk_spin_button_set_activates_default"}
+	gtk_spin_button_get_activates_default = cc.DlFunc[func(spin *SpinButton) int32, int32]{Name: "gtk_spin_button_get_activates_default"}
 	gtk_spin_button_set_adjustment        = cc.DlFunc[func(spin *SpinButton, adjustment *Adjustment), cc.Void]{Name: "gtk_spin_button_set_adjustment"}
 	gtk_spin_button_get_adjustment        = cc.DlFunc[func(spin *SpinButton) *Adjustment, *Adjustment]{Name: "gtk_spin_button_get_adjustment"}
 	gtk_spin_button_set_digits            = cc.DlFunc[func(spin *SpinButton, digits uint32), cc.Void]{Name: "gtk_spin_button_set_digits"}
@@ -2638,13 +2638,13 @@ var (
 	gtk_spin_button_set_value             = cc.DlFunc[func(spin *SpinButton, value float64), cc.Void]{Name: "gtk_spin_button_set_value"}
 	gtk_spin_button_set_update_policy     = cc.DlFunc[func(spin *SpinButton, policy SpinButtonUpdatePolicy), cc.Void]{Name: "gtk_spin_button_set_update_policy"}
 	gtk_spin_button_get_update_policy     = cc.DlFunc[func(spin *SpinButton) SpinButtonUpdatePolicy, SpinButtonUpdatePolicy]{Name: "gtk_spin_button_get_update_policy"}
-	gtk_spin_button_set_numeric           = cc.DlFunc[func(spin *SpinButton, numeric bool), cc.Void]{Name: "gtk_spin_button_set_numeric"}
-	gtk_spin_button_get_numeric           = cc.DlFunc[func(spin *SpinButton) bool, bool]{Name: "gtk_spin_button_get_numeric"}
+	gtk_spin_button_set_numeric           = cc.DlFunc[func(spin *SpinButton, numeric int32), cc.Void]{Name: "gtk_spin_button_set_numeric"}
+	gtk_spin_button_get_numeric           = cc.DlFunc[func(spin *SpinButton) int32, int32]{Name: "gtk_spin_button_get_numeric"}
 	gtk_spin_button_spin                  = cc.DlFunc[func(spin *SpinButton, direction SpinType, increment float64), cc.Void]{Name: "gtk_spin_button_spin"}
-	gtk_spin_button_set_wrap              = cc.DlFunc[func(spin *SpinButton, wrap bool), cc.Void]{Name: "gtk_spin_button_set_wrap"}
-	gtk_spin_button_get_wrap              = cc.DlFunc[func(spin *SpinButton) bool, bool]{Name: "gtk_spin_button_get_wrap"}
-	gtk_spin_button_set_snap_to_ticks     = cc.DlFunc[func(spin *SpinButton, snapToTicks bool), cc.Void]{Name: "gtk_spin_button_set_snap_to_ticks"}
-	gtk_spin_button_get_snap_to_ticks     = cc.DlFunc[func(spin *SpinButton) bool, bool]{Name: "gtk_spin_button_get_snap_to_ticks"}
+	gtk_spin_button_set_wrap              = cc.DlFunc[func(spin *SpinButton, wrap int32), cc.Void]{Name: "gtk_spin_button_set_wrap"}
+	gtk_spin_button_get_wrap              = cc.DlFunc[func(spin *SpinButton) int32, int32]{Name: "gtk_spin_button_get_wrap"}
+	gtk_spin_button_set_snap_to_ticks     = cc.DlFunc[func(spin *SpinButton, snapToTicks int32), cc.Void]{Name: "gtk_spin_button_set_snap_to_ticks"}
+	gtk_spin_button_get_snap_to_ticks     = cc.DlFunc[func(spin *SpinButton) int32, int32]{Name: "gtk_spin_button_get_snap_to_ticks"}
 	gtk_spin_button_set_climb_rate        = cc.DlFunc[func(spin *SpinButton, climbRate float64), cc.Void]{Name: "gtk_spin_button_set_climb_rate"}
 	gtk_spin_button_get_climb_rate        = cc.DlFunc[func(spin *SpinButton) float64, float64]{Name: "gtk_spin_button_get_climb_rate"}
 	gtk_spin_button_update                = cc.DlFunc[func(spin *SpinButton), cc.Void]{Name: "gtk_spin_button_update"}
@@ -2655,19 +2655,19 @@ var (
 	gtk_spinner_new          = cc.DlFunc[func() *Spinner, *Spinner]{Name: "gtk_spinner_new"}
 	gtk_spinner_start        = cc.DlFunc[func(spinner *Spinner), cc.Void]{Name: "gtk_spinner_start"}
 	gtk_spinner_stop         = cc.DlFunc[func(spinner *Spinner), cc.Void]{Name: "gtk_spinner_stop"}
-	gtk_spinner_set_spinning = cc.DlFunc[func(spinner *Spinner, spinning bool), cc.Void]{Name: "gtk_spinner_set_spinning"}
-	gtk_spinner_get_spinning = cc.DlFunc[func(spinner *Spinner) bool, bool]{Name: "gtk_spinner_get_spinning"}
+	gtk_spinner_set_spinning = cc.DlFunc[func(spinner *Spinner, spinning int32), cc.Void]{Name: "gtk_spinner_set_spinning"}
+	gtk_spinner_get_spinning = cc.DlFunc[func(spinner *Spinner) int32, int32]{Name: "gtk_spinner_get_spinning"}
 	// #endregion
 
 	// #region Stack
 	gtk_stack_page_get_type            = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_stack_page_get_type"}
 	gtk_stack_page_get_child           = cc.DlFunc[func(page *StackPage) *Widget, *Widget]{Name: "gtk_stack_page_get_child"}
-	gtk_stack_page_get_visible         = cc.DlFunc[func(page *StackPage) bool, bool]{Name: "gtk_stack_page_get_visible"}
-	gtk_stack_page_set_visible         = cc.DlFunc[func(page *StackPage, visible bool), cc.Void]{Name: "gtk_stack_page_set_visible"}
-	gtk_stack_page_get_needs_attention = cc.DlFunc[func(page *StackPage) bool, bool]{Name: "gtk_stack_page_get_needs_attention"}
-	gtk_stack_page_set_needs_attention = cc.DlFunc[func(page *StackPage, setting bool), cc.Void]{Name: "gtk_stack_page_set_needs_attention"}
-	gtk_stack_page_get_use_underline   = cc.DlFunc[func(page *StackPage) bool, bool]{Name: "gtk_stack_page_get_use_underline"}
-	gtk_stack_page_set_use_underline   = cc.DlFunc[func(page *StackPage, setting bool), cc.Void]{Name: "gtk_stack_page_set_use_underline"}
+	gtk_stack_page_get_visible         = cc.DlFunc[func(page *StackPage) int32, int32]{Name: "gtk_stack_page_get_visible"}
+	gtk_stack_page_set_visible         = cc.DlFunc[func(page *StackPage, visible int32), cc.Void]{Name: "gtk_stack_page_set_visible"}
+	gtk_stack_page_get_needs_attention = cc.DlFunc[func(page *StackPage) int32, int32]{Name: "gtk_stack_page_get_needs_attention"}
+	gtk_stack_page_set_needs_attention = cc.DlFunc[func(page *StackPage, setting int32), cc.Void]{Name: "gtk_stack_page_set_needs_attention"}
+	gtk_stack_page_get_use_underline   = cc.DlFunc[func(page *StackPage) int32, int32]{Name: "gtk_stack_page_get_use_underline"}
+	gtk_stack_page_set_use_underline   = cc.DlFunc[func(page *StackPage, setting int32), cc.Void]{Name: "gtk_stack_page_set_use_underline"}
 	gtk_stack_page_get_name            = cc.DlFunc[func(page *StackPage) cc.String, cc.String]{Name: "gtk_stack_page_get_name"}
 	gtk_stack_page_set_name            = cc.DlFunc[func(page *StackPage, setting cc.String), cc.Void]{Name: "gtk_stack_page_set_name"}
 	gtk_stack_page_get_title           = cc.DlFunc[func(page *StackPage) cc.String, cc.String]{Name: "gtk_stack_page_get_title"}
@@ -2687,17 +2687,17 @@ var (
 	gtk_stack_set_visible_child_name   = cc.DlFunc[func(stack *Stack, name cc.String), cc.Void]{Name: "gtk_stack_set_visible_child_name"}
 	gtk_stack_get_visible_child_name   = cc.DlFunc[func(stack *Stack) cc.String, cc.String]{Name: "gtk_stack_get_visible_child_name"}
 	gtk_stack_set_visible_child_full   = cc.DlFunc[func(stack *Stack, name cc.String, transition StackTransitionType), cc.Void]{Name: "gtk_stack_set_visible_child_full"}
-	gtk_stack_set_hhomogeneous         = cc.DlFunc[func(stack *Stack, hhomogeneous bool), cc.Void]{Name: "gtk_stack_set_hhomogeneous"}
-	gtk_stack_get_hhomogeneous         = cc.DlFunc[func(stack *Stack) bool, bool]{Name: "gtk_stack_get_hhomogeneous"}
-	gtk_stack_set_vhomogeneous         = cc.DlFunc[func(stack *Stack, vhomogeneous bool), cc.Void]{Name: "gtk_stack_set_vhomogeneous"}
-	gtk_stack_get_vhomogeneous         = cc.DlFunc[func(stack *Stack) bool, bool]{Name: "gtk_stack_get_vhomogeneous"}
+	gtk_stack_set_hhomogeneous         = cc.DlFunc[func(stack *Stack, hhomogeneous int32), cc.Void]{Name: "gtk_stack_set_hhomogeneous"}
+	gtk_stack_get_hhomogeneous         = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_hhomogeneous"}
+	gtk_stack_set_vhomogeneous         = cc.DlFunc[func(stack *Stack, vhomogeneous int32), cc.Void]{Name: "gtk_stack_set_vhomogeneous"}
+	gtk_stack_get_vhomogeneous         = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_vhomogeneous"}
 	gtk_stack_set_transition_duration  = cc.DlFunc[func(stack *Stack, duration uint32), cc.Void]{Name: "gtk_stack_set_transition_duration"}
 	gtk_stack_get_transition_duration  = cc.DlFunc[func(stack *Stack) uint32, uint32]{Name: "gtk_stack_get_transition_duration"}
 	gtk_stack_set_transition_type      = cc.DlFunc[func(stack *Stack, transition StackTransitionType), cc.Void]{Name: "gtk_stack_set_transition_type"}
 	gtk_stack_get_transition_type      = cc.DlFunc[func(stack *Stack) StackTransitionType, StackTransitionType]{Name: "gtk_stack_get_transition_type"}
-	gtk_stack_get_transition_running   = cc.DlFunc[func(stack *Stack) bool, bool]{Name: "gtk_stack_get_transition_running"}
-	gtk_stack_set_interpolate_size     = cc.DlFunc[func(stack *Stack, interpolateSize bool), cc.Void]{Name: "gtk_stack_set_interpolate_size"}
-	gtk_stack_get_interpolate_size     = cc.DlFunc[func(stack *Stack) bool, bool]{Name: "gtk_stack_get_interpolate_size"}
+	gtk_stack_get_transition_running   = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_transition_running"}
+	gtk_stack_set_interpolate_size     = cc.DlFunc[func(stack *Stack, interpolateSize int32), cc.Void]{Name: "gtk_stack_set_interpolate_size"}
+	gtk_stack_get_interpolate_size     = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_interpolate_size"}
 	gtk_stack_get_pages                = cc.DlFunc[func(stack *Stack) *SelectionModel, *SelectionModel]{Name: "gtk_stack_get_pages"}
 	// #endregion
 
@@ -2722,15 +2722,15 @@ var (
 	gtk_string_filter_set_search      = cc.DlFunc[func(f *StringFilter, search cc.String), cc.Void]{Name: "gtk_string_filter_set_search"}
 	gtk_string_filter_get_expression  = cc.DlFunc[func(f *StringFilter) *Expression, *Expression]{Name: "gtk_string_filter_get_expression"}
 	gtk_string_filter_set_expression  = cc.DlFunc[func(f *StringFilter, expression *Expression), cc.Void]{Name: "gtk_string_filter_set_expression"}
-	gtk_string_filter_get_ignore_case = cc.DlFunc[func(f *StringFilter) bool, bool]{Name: "gtk_string_filter_get_ignore_case"}
-	gtk_string_filter_set_ignore_case = cc.DlFunc[func(f *StringFilter, ignoreCase bool), cc.Void]{Name: "gtk_string_filter_set_ignore_case"}
+	gtk_string_filter_get_ignore_case = cc.DlFunc[func(f *StringFilter) int32, int32]{Name: "gtk_string_filter_get_ignore_case"}
+	gtk_string_filter_set_ignore_case = cc.DlFunc[func(f *StringFilter, ignoreCase int32), cc.Void]{Name: "gtk_string_filter_set_ignore_case"}
 	gtk_string_filter_get_match_mode  = cc.DlFunc[func(f *StringFilter) StringFilterMatchMode, StringFilterMatchMode]{Name: "gtk_string_filter_get_match_mode"}
 	gtk_string_filter_set_match_mode  = cc.DlFunc[func(f *StringFilter, mode StringFilterMatchMode), cc.Void]{Name: "gtk_string_filter_set_match_mode"}
 	// #endregion
 
 	// #region StringList
 	gtk_string_object_get_type   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_string_object_get_type"}
-	gtk_string_object_new        = cc.DlFunc[func(str string) *StringObject, *StringObject]{Name: "gtk_string_object_new"}
+	gtk_string_object_new        = cc.DlFunc[func(str cc.String) *StringObject, *StringObject]{Name: "gtk_string_object_new"}
 	gtk_string_object_get_string = cc.DlFunc[func(self *StringObject) cc.String, cc.String]{Name: "gtk_string_object_get_string"}
 	gtk_string_list_get_type     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_string_list_get_type"}
 	gtk_string_list_new          = cc.DlFunc[func(strings cc.Strings) *StringList, *StringList]{Name: "gtk_string_list_new"}
@@ -2739,7 +2739,7 @@ var (
 	gtk_string_list_remove       = cc.DlFunc[func(self *StringList, position uint32), cc.Void]{Name: "gtk_string_list_remove"}
 	gtk_string_list_splice       = cc.DlFunc[func(self *StringList, position, nRemovals uint32, additions cc.Strings), cc.Void]{Name: "gtk_string_list_splice"}
 	gtk_string_list_get_string   = cc.DlFunc[func(self *StringList, position uint32) cc.String, cc.String]{Name: "gtk_string_list_get_string"}
-	gtk_string_list_find         = cc.DlFunc[func(self *StringList, str string) uint32, uint32]{Name: "gtk_string_list_find"}
+	gtk_string_list_find         = cc.DlFunc[func(self *StringList, str cc.String) uint32, uint32]{Name: "gtk_string_list_find"}
 	// #endregion
 
 	// #region StringSorter
@@ -2747,8 +2747,8 @@ var (
 	gtk_string_sorter_new             = cc.DlFunc[func(expression *Expression) *StringSorter, *StringSorter]{Name: "gtk_string_sorter_new"}
 	gtk_string_sorter_get_expression  = cc.DlFunc[func(s *StringSorter) *Expression, *Expression]{Name: "gtk_string_sorter_get_expression"}
 	gtk_string_sorter_set_expression  = cc.DlFunc[func(s *StringSorter, expression *Expression), cc.Void]{Name: "gtk_string_sorter_set_expression"}
-	gtk_string_sorter_get_ignore_case = cc.DlFunc[func(s *StringSorter) bool, bool]{Name: "gtk_string_sorter_get_ignore_case"}
-	gtk_string_sorter_set_ignore_case = cc.DlFunc[func(s *StringSorter, ignoreCase bool), cc.Void]{Name: "gtk_string_sorter_set_ignore_case"}
+	gtk_string_sorter_get_ignore_case = cc.DlFunc[func(s *StringSorter) int32, int32]{Name: "gtk_string_sorter_get_ignore_case"}
+	gtk_string_sorter_set_ignore_case = cc.DlFunc[func(s *StringSorter, ignoreCase int32), cc.Void]{Name: "gtk_string_sorter_set_ignore_case"}
 	// #endregion
 
 	// #region StyleProvider
@@ -2760,10 +2760,10 @@ var (
 	// #region Switch
 	gtk_switch_get_type   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_switch_get_type"}
 	gtk_switch_new        = cc.DlFunc[func() *Switch, *Switch]{Name: "gtk_switch_new"}
-	gtk_switch_set_active = cc.DlFunc[func(sw *Switch, isActive bool), cc.Void]{Name: "gtk_switch_set_active"}
-	gtk_switch_get_active = cc.DlFunc[func(sw *Switch) bool, bool]{Name: "gtk_switch_get_active"}
-	gtk_switch_set_state  = cc.DlFunc[func(sw *Switch, state bool), cc.Void]{Name: "gtk_switch_set_state"}
-	gtk_switch_get_state  = cc.DlFunc[func(sw *Switch) bool, bool]{Name: "gtk_switch_get_state"}
+	gtk_switch_set_active = cc.DlFunc[func(sw *Switch, isActive int32), cc.Void]{Name: "gtk_switch_set_active"}
+	gtk_switch_get_active = cc.DlFunc[func(sw *Switch) int32, int32]{Name: "gtk_switch_get_active"}
+	gtk_switch_set_state  = cc.DlFunc[func(sw *Switch, state int32), cc.Void]{Name: "gtk_switch_set_state"}
+	gtk_switch_get_state  = cc.DlFunc[func(sw *Switch) int32, int32]{Name: "gtk_switch_get_state"}
 	// #endregion
 
 	// #region SymbolicPaintable
@@ -2771,10 +2771,10 @@ var (
 	// #endregion
 
 	// #region TestAtContext
-	gtk_test_accessible_has_role               = cc.DlFunc[func(a *Accessible, role AccessibleRole) bool, bool]{Name: "gtk_test_accessible_has_role"}
-	gtk_test_accessible_has_property           = cc.DlFunc[func(a *Accessible, property AccessibleProperty) bool, bool]{Name: "gtk_test_accessible_has_property"}
-	gtk_test_accessible_has_relation           = cc.DlFunc[func(a *Accessible, relation AccessibleRelation) bool, bool]{Name: "gtk_test_accessible_has_relation"}
-	gtk_test_accessible_has_state              = cc.DlFunc[func(a *Accessible, state AccessibleState) bool, bool]{Name: "gtk_test_accessible_has_state"}
+	gtk_test_accessible_has_role               = cc.DlFunc[func(a *Accessible, role AccessibleRole) int32, int32]{Name: "gtk_test_accessible_has_role"}
+	gtk_test_accessible_has_property           = cc.DlFunc[func(a *Accessible, property AccessibleProperty) int32, int32]{Name: "gtk_test_accessible_has_property"}
+	gtk_test_accessible_has_relation           = cc.DlFunc[func(a *Accessible, relation AccessibleRelation) int32, int32]{Name: "gtk_test_accessible_has_relation"}
+	gtk_test_accessible_has_state              = cc.DlFunc[func(a *Accessible, state AccessibleState) int32, int32]{Name: "gtk_test_accessible_has_state"}
 	gtk_test_accessible_check_property         = cc.DlFunc[func(a *Accessible, property AccessibleProperty, args ...interface{}) cc.String, cc.String]{Name: "gtk_test_accessible_check_property", Va: true}
 	gtk_test_accessible_check_relation         = cc.DlFunc[func(a *Accessible, relation AccessibleRelation, args ...interface{}) cc.String, cc.String]{Name: "gtk_test_accessible_check_relation", Va: true}
 	gtk_test_accessible_check_state            = cc.DlFunc[func(a *Accessible, state AccessibleState, args ...interface{}) cc.String, cc.String]{Name: "gtk_test_accessible_check_state", Va: true}
@@ -2794,18 +2794,18 @@ var (
 	gtk_text_new_with_buffer                   = cc.DlFunc[func(buffer *EntryBuffer) *Text, *Text]{Name: "gtk_text_new_with_buffer"}
 	gtk_text_get_buffer                        = cc.DlFunc[func(t *Text) *EntryBuffer, *EntryBuffer]{Name: "gtk_text_get_buffer"}
 	gtk_text_set_buffer                        = cc.DlFunc[func(t *Text, buffer *EntryBuffer), cc.Void]{Name: "gtk_text_set_buffer"}
-	gtk_text_set_visibility                    = cc.DlFunc[func(t *Text, visible bool), cc.Void]{Name: "gtk_text_set_visibility"}
-	gtk_text_get_visibility                    = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_visibility"}
+	gtk_text_set_visibility                    = cc.DlFunc[func(t *Text, visible int32), cc.Void]{Name: "gtk_text_set_visibility"}
+	gtk_text_get_visibility                    = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_visibility"}
 	gtk_text_set_invisible_char                = cc.DlFunc[func(t *Text, ch uint32), cc.Void]{Name: "gtk_text_set_invisible_char"}
 	gtk_text_get_invisible_char                = cc.DlFunc[func(t *Text) uint32, uint32]{Name: "gtk_text_get_invisible_char"}
 	gtk_text_unset_invisible_char              = cc.DlFunc[func(t *Text), cc.Void]{Name: "gtk_text_unset_invisible_char"}
-	gtk_text_set_overwrite_mode                = cc.DlFunc[func(t *Text, overwrite bool), cc.Void]{Name: "gtk_text_set_overwrite_mode"}
-	gtk_text_get_overwrite_mode                = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_overwrite_mode"}
+	gtk_text_set_overwrite_mode                = cc.DlFunc[func(t *Text, overwrite int32), cc.Void]{Name: "gtk_text_set_overwrite_mode"}
+	gtk_text_get_overwrite_mode                = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_overwrite_mode"}
 	gtk_text_set_max_length                    = cc.DlFunc[func(t *Text, length int32), cc.Void]{Name: "gtk_text_set_max_length"}
 	gtk_text_get_max_length                    = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_max_length"}
 	gtk_text_get_text_length                   = cc.DlFunc[func(t *Text) uint16, uint16]{Name: "gtk_text_get_text_length"}
-	gtk_text_set_activates_default             = cc.DlFunc[func(t *Text, activates bool), cc.Void]{Name: "gtk_text_set_activates_default"}
-	gtk_text_get_activates_default             = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_activates_default"}
+	gtk_text_set_activates_default             = cc.DlFunc[func(t *Text, activates int32), cc.Void]{Name: "gtk_text_set_activates_default"}
+	gtk_text_get_activates_default             = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_activates_default"}
 	gtk_text_get_placeholder_text              = cc.DlFunc[func(t *Text) cc.String, cc.String]{Name: "gtk_text_get_placeholder_text"}
 	gtk_text_set_placeholder_text              = cc.DlFunc[func(t *Text, text cc.String), cc.Void]{Name: "gtk_text_set_placeholder_text"}
 	gtk_text_set_input_purpose                 = cc.DlFunc[func(t *Text, purpose InputPurpose), cc.Void]{Name: "gtk_text_set_input_purpose"}
@@ -2816,15 +2816,15 @@ var (
 	gtk_text_get_attributes                    = cc.DlFunc[func(t *Text) *pango.AttrList, *pango.AttrList]{Name: "gtk_text_get_attributes"}
 	gtk_text_set_tabs                          = cc.DlFunc[func(t *Text, tabs *pango.TabArray), cc.Void]{Name: "gtk_text_set_tabs"}
 	gtk_text_get_tabs                          = cc.DlFunc[func(t *Text) *pango.TabArray, *pango.TabArray]{Name: "gtk_text_get_tabs"}
-	gtk_text_grab_focus_without_selecting      = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_grab_focus_without_selecting"}
+	gtk_text_grab_focus_without_selecting      = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_grab_focus_without_selecting"}
 	gtk_text_set_extra_menu                    = cc.DlFunc[func(t *Text, model *gio.GMenuModel), cc.Void]{Name: "gtk_text_set_extra_menu"}
 	gtk_text_get_extra_menu                    = cc.DlFunc[func(t *Text) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_text_get_extra_menu"}
-	gtk_text_set_enable_emoji_completion       = cc.DlFunc[func(t *Text, enable bool), cc.Void]{Name: "gtk_text_set_enable_emoji_completion"}
-	gtk_text_get_enable_emoji_completion       = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_enable_emoji_completion"}
-	gtk_text_set_propagate_text_width          = cc.DlFunc[func(t *Text, propagate bool), cc.Void]{Name: "gtk_text_set_propagate_text_width"}
-	gtk_text_get_propagate_text_width          = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_propagate_text_width"}
-	gtk_text_set_truncate_multiline            = cc.DlFunc[func(t *Text, truncate bool), cc.Void]{Name: "gtk_text_set_truncate_multiline"}
-	gtk_text_get_truncate_multiline            = cc.DlFunc[func(t *Text) bool, bool]{Name: "gtk_text_get_truncate_multiline"}
+	gtk_text_set_enable_emoji_completion       = cc.DlFunc[func(t *Text, enable int32), cc.Void]{Name: "gtk_text_set_enable_emoji_completion"}
+	gtk_text_get_enable_emoji_completion       = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_enable_emoji_completion"}
+	gtk_text_set_propagate_text_width          = cc.DlFunc[func(t *Text, propagate int32), cc.Void]{Name: "gtk_text_set_propagate_text_width"}
+	gtk_text_get_propagate_text_width          = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_propagate_text_width"}
+	gtk_text_set_truncate_multiline            = cc.DlFunc[func(t *Text, truncate int32), cc.Void]{Name: "gtk_text_set_truncate_multiline"}
+	gtk_text_get_truncate_multiline            = cc.DlFunc[func(t *Text) int32, int32]{Name: "gtk_text_get_truncate_multiline"}
 	gtk_text_compute_cursor_extents            = cc.DlFunc[func(t *Text, position uint64, strong, weak *graphene.Rect), cc.Void]{Name: "gtk_text_compute_cursor_extents"}
 	gtk_text_buffer_apply_tag                  = cc.DlFunc[func(buffer *TextBuffer, tag *TextTag, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_apply_tag"}
 	gtk_text_buffer_remove_tag                 = cc.DlFunc[func(buffer *TextBuffer, tag *TextTag, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_remove_tag"}
@@ -2832,30 +2832,30 @@ var (
 	gtk_text_buffer_remove_tag_by_name         = cc.DlFunc[func(buffer *TextBuffer, name cc.String, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_remove_tag_by_name"}
 	gtk_text_buffer_remove_all_tags            = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_remove_all_tags"}
 	gtk_text_buffer_create_tag                 = cc.DlFunc[func(buffer *TextBuffer, tagName cc.String, firstPropertyName cc.String, args ...interface{}) *TextTag, *TextTag]{Name: "gtk_text_buffer_create_tag", Va: true}
-	gtk_text_buffer_get_iter_at_line_offset    = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber, charOffset int32) bool, bool]{Name: "gtk_text_buffer_get_iter_at_line_offset"}
-	gtk_text_buffer_get_iter_at_line_index     = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber, byteIndex int32) bool, bool]{Name: "gtk_text_buffer_get_iter_at_line_index"}
+	gtk_text_buffer_get_iter_at_line_offset    = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber, charOffset int32) int32, int32]{Name: "gtk_text_buffer_get_iter_at_line_offset"}
+	gtk_text_buffer_get_iter_at_line_index     = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber, byteIndex int32) int32, int32]{Name: "gtk_text_buffer_get_iter_at_line_index"}
 	gtk_text_buffer_get_iter_at_offset         = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, charOffset int32), cc.Void]{Name: "gtk_text_buffer_get_iter_at_offset"}
-	gtk_text_buffer_get_iter_at_line           = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber int32) bool, bool]{Name: "gtk_text_buffer_get_iter_at_line"}
+	gtk_text_buffer_get_iter_at_line           = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, lineNumber int32) int32, int32]{Name: "gtk_text_buffer_get_iter_at_line"}
 	gtk_text_buffer_get_start_iter             = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter), cc.Void]{Name: "gtk_text_buffer_get_start_iter"}
 	gtk_text_buffer_get_end_iter               = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter), cc.Void]{Name: "gtk_text_buffer_get_end_iter"}
 	gtk_text_buffer_get_bounds                 = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_get_bounds"}
 	gtk_text_buffer_get_iter_at_mark           = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, mark *TextMark), cc.Void]{Name: "gtk_text_buffer_get_iter_at_mark"}
 	gtk_text_buffer_get_iter_at_child_anchor   = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, anchor *TextChildAnchor), cc.Void]{Name: "gtk_text_buffer_get_iter_at_child_anchor"}
-	gtk_text_buffer_get_modified               = cc.DlFunc[func(buffer *TextBuffer) bool, bool]{Name: "gtk_text_buffer_get_modified"}
-	gtk_text_buffer_set_modified               = cc.DlFunc[func(buffer *TextBuffer, setting bool), cc.Void]{Name: "gtk_text_buffer_set_modified"}
-	gtk_text_buffer_get_has_selection          = cc.DlFunc[func(buffer *TextBuffer) bool, bool]{Name: "gtk_text_buffer_get_has_selection"}
+	gtk_text_buffer_get_modified               = cc.DlFunc[func(buffer *TextBuffer) int32, int32]{Name: "gtk_text_buffer_get_modified"}
+	gtk_text_buffer_set_modified               = cc.DlFunc[func(buffer *TextBuffer, setting int32), cc.Void]{Name: "gtk_text_buffer_set_modified"}
+	gtk_text_buffer_get_has_selection          = cc.DlFunc[func(buffer *TextBuffer) int32, int32]{Name: "gtk_text_buffer_get_has_selection"}
 	gtk_text_buffer_add_selection_clipboard    = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard), cc.Void]{Name: "gtk_text_buffer_add_selection_clipboard"}
 	gtk_text_buffer_remove_selection_clipboard = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard), cc.Void]{Name: "gtk_text_buffer_remove_selection_clipboard"}
-	gtk_text_buffer_cut_clipboard              = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard, defaultEditable bool), cc.Void]{Name: "gtk_text_buffer_cut_clipboard"}
+	gtk_text_buffer_cut_clipboard              = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard, defaultEditable int32), cc.Void]{Name: "gtk_text_buffer_cut_clipboard"}
 	gtk_text_buffer_copy_clipboard             = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard), cc.Void]{Name: "gtk_text_buffer_copy_clipboard"}
-	gtk_text_buffer_paste_clipboard            = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard, overrideLocation *TextIter, defaultEditable bool), cc.Void]{Name: "gtk_text_buffer_paste_clipboard"}
-	gtk_text_buffer_get_selection_bounds       = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter) bool, bool]{Name: "gtk_text_buffer_get_selection_bounds"}
-	gtk_text_buffer_delete_selection           = cc.DlFunc[func(buffer *TextBuffer, interactive, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_delete_selection"}
+	gtk_text_buffer_paste_clipboard            = cc.DlFunc[func(buffer *TextBuffer, clipboard *gdk.Clipboard, overrideLocation *TextIter, defaultEditable int32), cc.Void]{Name: "gtk_text_buffer_paste_clipboard"}
+	gtk_text_buffer_get_selection_bounds       = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter) int32, int32]{Name: "gtk_text_buffer_get_selection_bounds"}
+	gtk_text_buffer_delete_selection           = cc.DlFunc[func(buffer *TextBuffer, interactive, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_delete_selection"}
 	gtk_text_buffer_get_selection_content      = cc.DlFunc[func(buffer *TextBuffer) *gdk.ContentProvider, *gdk.ContentProvider]{Name: "gtk_text_buffer_get_selection_content"}
-	gtk_text_buffer_get_can_undo               = cc.DlFunc[func(buffer *TextBuffer) bool, bool]{Name: "gtk_text_buffer_get_can_undo"}
-	gtk_text_buffer_get_can_redo               = cc.DlFunc[func(buffer *TextBuffer) bool, bool]{Name: "gtk_text_buffer_get_can_redo"}
-	gtk_text_buffer_get_enable_undo            = cc.DlFunc[func(buffer *TextBuffer) bool, bool]{Name: "gtk_text_buffer_get_enable_undo"}
-	gtk_text_buffer_set_enable_undo            = cc.DlFunc[func(buffer *TextBuffer, enableUndo bool), cc.Void]{Name: "gtk_text_buffer_set_enable_undo"}
+	gtk_text_buffer_get_can_undo               = cc.DlFunc[func(buffer *TextBuffer) int32, int32]{Name: "gtk_text_buffer_get_can_undo"}
+	gtk_text_buffer_get_can_redo               = cc.DlFunc[func(buffer *TextBuffer) int32, int32]{Name: "gtk_text_buffer_get_can_redo"}
+	gtk_text_buffer_get_enable_undo            = cc.DlFunc[func(buffer *TextBuffer) int32, int32]{Name: "gtk_text_buffer_get_enable_undo"}
+	gtk_text_buffer_set_enable_undo            = cc.DlFunc[func(buffer *TextBuffer, enableUndo int32), cc.Void]{Name: "gtk_text_buffer_set_enable_undo"}
 	gtk_text_buffer_get_max_undo_levels        = cc.DlFunc[func(buffer *TextBuffer) uint32, uint32]{Name: "gtk_text_buffer_get_max_undo_levels"}
 	gtk_text_buffer_set_max_undo_levels        = cc.DlFunc[func(buffer *TextBuffer, maxUndoLevels uint32), cc.Void]{Name: "gtk_text_buffer_set_max_undo_levels"}
 	gtk_text_buffer_undo                       = cc.DlFunc[func(buffer *TextBuffer), cc.Void]{Name: "gtk_text_buffer_undo"}
@@ -2864,7 +2864,7 @@ var (
 	gtk_text_buffer_end_irreversible_action    = cc.DlFunc[func(buffer *TextBuffer), cc.Void]{Name: "gtk_text_buffer_end_irreversible_action"}
 	gtk_text_buffer_begin_user_action          = cc.DlFunc[func(buffer *TextBuffer), cc.Void]{Name: "gtk_text_buffer_begin_user_action"}
 	gtk_text_buffer_end_user_action            = cc.DlFunc[func(buffer *TextBuffer), cc.Void]{Name: "gtk_text_buffer_end_user_action"}
-	gtk_text_buffer_add_commit_notify          = cc.DlFunc[func(buffer *TextBuffer, flags uint32, commitNotify UPtr, userData UPtr, destroy UPtr) uint32, uint32]{Name: "gtk_text_buffer_add_commit_notify"}
+	gtk_text_buffer_add_commit_notify          = cc.DlFunc[func(buffer *TextBuffer, flags uint32, commitNotify uptr, userData uptr, destroy uptr) uint32, uint32]{Name: "gtk_text_buffer_add_commit_notify"}
 	gtk_text_buffer_remove_commit_notify       = cc.DlFunc[func(buffer *TextBuffer, handler uint32), cc.Void]{Name: "gtk_text_buffer_remove_commit_notify"}
 	// #endregion
 
@@ -2877,23 +2877,23 @@ var (
 	gtk_text_buffer_set_text                     = cc.DlFunc[func(buffer *TextBuffer, text cc.String, len int32), cc.Void]{Name: "gtk_text_buffer_set_text"}
 	gtk_text_buffer_insert                       = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, text cc.String, len int32), cc.Void]{Name: "gtk_text_buffer_insert"}
 	gtk_text_buffer_insert_at_cursor             = cc.DlFunc[func(buffer *TextBuffer, text cc.String, len int32), cc.Void]{Name: "gtk_text_buffer_insert_at_cursor"}
-	gtk_text_buffer_insert_interactive           = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, text cc.String, len int32, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_insert_interactive"}
-	gtk_text_buffer_insert_interactive_at_cursor = cc.DlFunc[func(buffer *TextBuffer, text cc.String, len int32, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_insert_interactive_at_cursor"}
+	gtk_text_buffer_insert_interactive           = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, text cc.String, len int32, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_insert_interactive"}
+	gtk_text_buffer_insert_interactive_at_cursor = cc.DlFunc[func(buffer *TextBuffer, text cc.String, len int32, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_insert_interactive_at_cursor"}
 	gtk_text_buffer_insert_range                 = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_insert_range"}
-	gtk_text_buffer_insert_range_interactive     = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, start, end *TextIter, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_insert_range_interactive"}
+	gtk_text_buffer_insert_range_interactive     = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, start, end *TextIter, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_insert_range_interactive"}
 	gtk_text_buffer_insert_with_tags             = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, text cc.String, len int32, firstTag *TextTag, args ...interface{}), cc.Void]{Name: "gtk_text_buffer_insert_with_tags", Va: true}
 	gtk_text_buffer_insert_with_tags_by_name     = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, text cc.String, len int32, firstTagName cc.String, args ...interface{}), cc.Void]{Name: "gtk_text_buffer_insert_with_tags_by_name", Va: true}
 	gtk_text_buffer_insert_markup                = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, markup cc.String, len int32), cc.Void]{Name: "gtk_text_buffer_insert_markup"}
 	gtk_text_buffer_delete                       = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter), cc.Void]{Name: "gtk_text_buffer_delete"}
-	gtk_text_buffer_delete_interactive           = cc.DlFunc[func(buffer *TextBuffer, startIter, endIter *TextIter, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_delete_interactive"}
-	gtk_text_buffer_backspace                    = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, interactive, defaultEditable bool) bool, bool]{Name: "gtk_text_buffer_backspace"}
-	gtk_text_buffer_get_text                     = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter, includeHiddenChars bool) cc.String, cc.String]{Name: "gtk_text_buffer_get_text"}
-	gtk_text_buffer_get_slice                    = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter, includeHiddenChars bool) cc.String, cc.String]{Name: "gtk_text_buffer_get_slice"}
+	gtk_text_buffer_delete_interactive           = cc.DlFunc[func(buffer *TextBuffer, startIter, endIter *TextIter, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_delete_interactive"}
+	gtk_text_buffer_backspace                    = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, interactive, defaultEditable int32) int32, int32]{Name: "gtk_text_buffer_backspace"}
+	gtk_text_buffer_get_text                     = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter, includeHiddenChars int32) cc.String, cc.String]{Name: "gtk_text_buffer_get_text"}
+	gtk_text_buffer_get_slice                    = cc.DlFunc[func(buffer *TextBuffer, start, end *TextIter, includeHiddenChars int32) cc.String, cc.String]{Name: "gtk_text_buffer_get_slice"}
 	gtk_text_buffer_insert_paintable             = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, paintable *gdk.Paintable), cc.Void]{Name: "gtk_text_buffer_insert_paintable"}
 	gtk_text_buffer_insert_child_anchor          = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter, anchor *TextChildAnchor), cc.Void]{Name: "gtk_text_buffer_insert_child_anchor"}
 	gtk_text_buffer_create_child_anchor          = cc.DlFunc[func(buffer *TextBuffer, iter *TextIter) *TextChildAnchor, *TextChildAnchor]{Name: "gtk_text_buffer_create_child_anchor"}
 	gtk_text_buffer_add_mark                     = cc.DlFunc[func(buffer *TextBuffer, mark *TextMark, where *TextIter), cc.Void]{Name: "gtk_text_buffer_add_mark"}
-	gtk_text_buffer_create_mark                  = cc.DlFunc[func(buffer *TextBuffer, markName cc.String, where *TextIter, leftGravity bool) *TextMark, *TextMark]{Name: "gtk_text_buffer_create_mark"}
+	gtk_text_buffer_create_mark                  = cc.DlFunc[func(buffer *TextBuffer, markName cc.String, where *TextIter, leftGravity int32) *TextMark, *TextMark]{Name: "gtk_text_buffer_create_mark"}
 	gtk_text_buffer_move_mark                    = cc.DlFunc[func(buffer *TextBuffer, mark *TextMark, where *TextIter), cc.Void]{Name: "gtk_text_buffer_move_mark"}
 	gtk_text_buffer_delete_mark                  = cc.DlFunc[func(buffer *TextBuffer, mark *TextMark), cc.Void]{Name: "gtk_text_buffer_delete_mark"}
 	gtk_text_buffer_get_mark                     = cc.DlFunc[func(buffer *TextBuffer, name cc.String) *TextMark, *TextMark]{Name: "gtk_text_buffer_get_mark"}
@@ -2910,7 +2910,7 @@ var (
 	gtk_text_child_anchor_new                  = cc.DlFunc[func() *TextChildAnchor, *TextChildAnchor]{Name: "gtk_text_child_anchor_new"}
 	gtk_text_child_anchor_new_with_replacement = cc.DlFunc[func(character cc.String) *TextChildAnchor, *TextChildAnchor]{Name: "gtk_text_child_anchor_new_with_replacement"}
 	gtk_text_child_anchor_get_widgets          = cc.DlFunc[func(anchor *TextChildAnchor, outLen *uint32) **Widget, **Widget]{Name: "gtk_text_child_anchor_get_widgets"}
-	gtk_text_child_anchor_get_deleted          = cc.DlFunc[func(anchor *TextChildAnchor) bool, bool]{Name: "gtk_text_child_anchor_get_deleted"}
+	gtk_text_child_anchor_get_deleted          = cc.DlFunc[func(anchor *TextChildAnchor) int32, int32]{Name: "gtk_text_child_anchor_get_deleted"}
 	// #endregion
 
 	// #region TextIter
@@ -2931,79 +2931,79 @@ var (
 	gtk_text_iter_get_visible_slice                 = cc.DlFunc[func(start, end *TextIter) cc.String, cc.String]{Name: "gtk_text_iter_get_visible_slice"}
 	gtk_text_iter_get_visible_text                  = cc.DlFunc[func(start, end *TextIter) cc.String, cc.String]{Name: "gtk_text_iter_get_visible_text"}
 	gtk_text_iter_get_paintable                     = cc.DlFunc[func(iter *TextIter) *gdk.Paintable, *gdk.Paintable]{Name: "gtk_text_iter_get_paintable"}
-	gtk_text_iter_get_marks                         = cc.DlFunc[func(iter *TextIter) UPtr, UPtr]{Name: "gtk_text_iter_get_marks"}
+	gtk_text_iter_get_marks                         = cc.DlFunc[func(iter *TextIter) uptr, uptr]{Name: "gtk_text_iter_get_marks"}
 	gtk_text_iter_get_child_anchor                  = cc.DlFunc[func(iter *TextIter) *TextChildAnchor, *TextChildAnchor]{Name: "gtk_text_iter_get_child_anchor"}
-	gtk_text_iter_get_toggled_tags                  = cc.DlFunc[func(iter *TextIter, toggledOn bool) UPtr, UPtr]{Name: "gtk_text_iter_get_toggled_tags"}
-	gtk_text_iter_starts_tag                        = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_starts_tag"}
-	gtk_text_iter_ends_tag                          = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_ends_tag"}
-	gtk_text_iter_toggles_tag                       = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_toggles_tag"}
-	gtk_text_iter_has_tag                           = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_has_tag"}
-	gtk_text_iter_get_tags                          = cc.DlFunc[func(iter *TextIter) UPtr, UPtr]{Name: "gtk_text_iter_get_tags"}
-	gtk_text_iter_editable                          = cc.DlFunc[func(iter *TextIter, defaultSetting bool) bool, bool]{Name: "gtk_text_iter_editable"}
-	gtk_text_iter_can_insert                        = cc.DlFunc[func(iter *TextIter, defaultEditability bool) bool, bool]{Name: "gtk_text_iter_can_insert"}
-	gtk_text_iter_starts_word                       = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_starts_word"}
-	gtk_text_iter_ends_word                         = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_ends_word"}
-	gtk_text_iter_inside_word                       = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_inside_word"}
-	gtk_text_iter_starts_sentence                   = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_starts_sentence"}
-	gtk_text_iter_ends_sentence                     = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_ends_sentence"}
-	gtk_text_iter_inside_sentence                   = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_inside_sentence"}
-	gtk_text_iter_starts_line                       = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_starts_line"}
-	gtk_text_iter_ends_line                         = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_ends_line"}
-	gtk_text_iter_is_cursor_position                = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_is_cursor_position"}
+	gtk_text_iter_get_toggled_tags                  = cc.DlFunc[func(iter *TextIter, toggledOn int32) uptr, uptr]{Name: "gtk_text_iter_get_toggled_tags"}
+	gtk_text_iter_starts_tag                        = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_starts_tag"}
+	gtk_text_iter_ends_tag                          = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_ends_tag"}
+	gtk_text_iter_toggles_tag                       = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_toggles_tag"}
+	gtk_text_iter_has_tag                           = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_has_tag"}
+	gtk_text_iter_get_tags                          = cc.DlFunc[func(iter *TextIter) uptr, uptr]{Name: "gtk_text_iter_get_tags"}
+	gtk_text_iter_editable                          = cc.DlFunc[func(iter *TextIter, defaultSetting int32) int32, int32]{Name: "gtk_text_iter_editable"}
+	gtk_text_iter_can_insert                        = cc.DlFunc[func(iter *TextIter, defaultEditability int32) int32, int32]{Name: "gtk_text_iter_can_insert"}
+	gtk_text_iter_starts_word                       = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_starts_word"}
+	gtk_text_iter_ends_word                         = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_ends_word"}
+	gtk_text_iter_inside_word                       = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_inside_word"}
+	gtk_text_iter_starts_sentence                   = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_starts_sentence"}
+	gtk_text_iter_ends_sentence                     = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_ends_sentence"}
+	gtk_text_iter_inside_sentence                   = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_inside_sentence"}
+	gtk_text_iter_starts_line                       = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_starts_line"}
+	gtk_text_iter_ends_line                         = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_ends_line"}
+	gtk_text_iter_is_cursor_position                = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_is_cursor_position"}
 	gtk_text_iter_get_chars_in_line                 = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_get_chars_in_line"}
 	gtk_text_iter_get_bytes_in_line                 = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_get_bytes_in_line"}
 	gtk_text_iter_get_language                      = cc.DlFunc[func(iter *TextIter) *pango.Language, *pango.Language]{Name: "gtk_text_iter_get_language"}
-	gtk_text_iter_is_end                            = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_is_end"}
-	gtk_text_iter_is_start                          = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_is_start"}
-	gtk_text_iter_forward_char                      = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_char"}
-	gtk_text_iter_backward_char                     = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_char"}
-	gtk_text_iter_forward_chars                     = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_chars"}
-	gtk_text_iter_backward_chars                    = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_chars"}
-	gtk_text_iter_forward_line                      = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_line"}
-	gtk_text_iter_backward_line                     = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_line"}
-	gtk_text_iter_forward_lines                     = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_lines"}
-	gtk_text_iter_backward_lines                    = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_lines"}
-	gtk_text_iter_forward_word_end                  = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_word_end"}
-	gtk_text_iter_backward_word_start               = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_word_start"}
-	gtk_text_iter_forward_word_ends                 = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_word_ends"}
-	gtk_text_iter_backward_word_starts              = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_word_starts"}
-	gtk_text_iter_forward_visible_line              = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_visible_line"}
-	gtk_text_iter_backward_visible_line             = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_visible_line"}
-	gtk_text_iter_forward_visible_lines             = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_visible_lines"}
-	gtk_text_iter_backward_visible_lines            = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_visible_lines"}
-	gtk_text_iter_forward_visible_word_end          = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_visible_word_end"}
-	gtk_text_iter_backward_visible_word_start       = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_visible_word_start"}
-	gtk_text_iter_forward_visible_word_ends         = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_visible_word_ends"}
-	gtk_text_iter_backward_visible_word_starts      = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_visible_word_starts"}
-	gtk_text_iter_forward_sentence_end              = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_sentence_end"}
-	gtk_text_iter_backward_sentence_start           = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_sentence_start"}
-	gtk_text_iter_forward_sentence_ends             = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_sentence_ends"}
-	gtk_text_iter_backward_sentence_starts          = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_sentence_starts"}
-	gtk_text_iter_forward_cursor_position           = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_cursor_position"}
-	gtk_text_iter_backward_cursor_position          = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_cursor_position"}
-	gtk_text_iter_forward_cursor_positions          = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_cursor_positions"}
-	gtk_text_iter_backward_cursor_positions         = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_cursor_positions"}
-	gtk_text_iter_forward_visible_cursor_position   = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_visible_cursor_position"}
-	gtk_text_iter_backward_visible_cursor_position  = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_backward_visible_cursor_position"}
-	gtk_text_iter_forward_visible_cursor_positions  = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_forward_visible_cursor_positions"}
-	gtk_text_iter_backward_visible_cursor_positions = cc.DlFunc[func(iter *TextIter, count int32) bool, bool]{Name: "gtk_text_iter_backward_visible_cursor_positions"}
+	gtk_text_iter_is_end                            = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_is_end"}
+	gtk_text_iter_is_start                          = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_is_start"}
+	gtk_text_iter_forward_char                      = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_char"}
+	gtk_text_iter_backward_char                     = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_char"}
+	gtk_text_iter_forward_chars                     = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_chars"}
+	gtk_text_iter_backward_chars                    = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_chars"}
+	gtk_text_iter_forward_line                      = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_line"}
+	gtk_text_iter_backward_line                     = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_line"}
+	gtk_text_iter_forward_lines                     = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_lines"}
+	gtk_text_iter_backward_lines                    = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_lines"}
+	gtk_text_iter_forward_word_end                  = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_word_end"}
+	gtk_text_iter_backward_word_start               = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_word_start"}
+	gtk_text_iter_forward_word_ends                 = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_word_ends"}
+	gtk_text_iter_backward_word_starts              = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_word_starts"}
+	gtk_text_iter_forward_visible_line              = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_visible_line"}
+	gtk_text_iter_backward_visible_line             = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_visible_line"}
+	gtk_text_iter_forward_visible_lines             = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_visible_lines"}
+	gtk_text_iter_backward_visible_lines            = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_visible_lines"}
+	gtk_text_iter_forward_visible_word_end          = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_visible_word_end"}
+	gtk_text_iter_backward_visible_word_start       = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_visible_word_start"}
+	gtk_text_iter_forward_visible_word_ends         = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_visible_word_ends"}
+	gtk_text_iter_backward_visible_word_starts      = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_visible_word_starts"}
+	gtk_text_iter_forward_sentence_end              = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_sentence_end"}
+	gtk_text_iter_backward_sentence_start           = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_sentence_start"}
+	gtk_text_iter_forward_sentence_ends             = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_sentence_ends"}
+	gtk_text_iter_backward_sentence_starts          = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_sentence_starts"}
+	gtk_text_iter_forward_cursor_position           = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_cursor_position"}
+	gtk_text_iter_backward_cursor_position          = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_cursor_position"}
+	gtk_text_iter_forward_cursor_positions          = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_cursor_positions"}
+	gtk_text_iter_backward_cursor_positions         = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_cursor_positions"}
+	gtk_text_iter_forward_visible_cursor_position   = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_visible_cursor_position"}
+	gtk_text_iter_backward_visible_cursor_position  = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_backward_visible_cursor_position"}
+	gtk_text_iter_forward_visible_cursor_positions  = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_forward_visible_cursor_positions"}
+	gtk_text_iter_backward_visible_cursor_positions = cc.DlFunc[func(iter *TextIter, count int32) int32, int32]{Name: "gtk_text_iter_backward_visible_cursor_positions"}
 	gtk_text_iter_set_offset                        = cc.DlFunc[func(iter *TextIter, charOffset int32), cc.Void]{Name: "gtk_text_iter_set_offset"}
 	gtk_text_iter_set_line                          = cc.DlFunc[func(iter *TextIter, lineNumber int32), cc.Void]{Name: "gtk_text_iter_set_line"}
 	gtk_text_iter_set_line_offset                   = cc.DlFunc[func(iter *TextIter, charOnLine int32), cc.Void]{Name: "gtk_text_iter_set_line_offset"}
 	gtk_text_iter_set_line_index                    = cc.DlFunc[func(iter *TextIter, byteOnLine int32), cc.Void]{Name: "gtk_text_iter_set_line_index"}
 	gtk_text_iter_forward_to_end                    = cc.DlFunc[func(iter *TextIter), cc.Void]{Name: "gtk_text_iter_forward_to_end"}
-	gtk_text_iter_forward_to_line_end               = cc.DlFunc[func(iter *TextIter) bool, bool]{Name: "gtk_text_iter_forward_to_line_end"}
+	gtk_text_iter_forward_to_line_end               = cc.DlFunc[func(iter *TextIter) int32, int32]{Name: "gtk_text_iter_forward_to_line_end"}
 	gtk_text_iter_set_visible_line_offset           = cc.DlFunc[func(iter *TextIter, charOnLine int32), cc.Void]{Name: "gtk_text_iter_set_visible_line_offset"}
 	gtk_text_iter_set_visible_line_index            = cc.DlFunc[func(iter *TextIter, byteOnLine int32), cc.Void]{Name: "gtk_text_iter_set_visible_line_index"}
-	gtk_text_iter_forward_to_tag_toggle             = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_forward_to_tag_toggle"}
-	gtk_text_iter_backward_to_tag_toggle            = cc.DlFunc[func(iter *TextIter, tag *TextTag) bool, bool]{Name: "gtk_text_iter_backward_to_tag_toggle"}
-	gtk_text_iter_forward_find_char                 = cc.DlFunc[func(iter *TextIter, pred UPtr, userData UPtr, limit *TextIter) bool, bool]{Name: "gtk_text_iter_forward_find_char"}
-	gtk_text_iter_backward_find_char                = cc.DlFunc[func(iter *TextIter, pred UPtr, userData UPtr, limit *TextIter) bool, bool]{Name: "gtk_text_iter_backward_find_char"}
-	gtk_text_iter_forward_search                    = cc.DlFunc[func(iter *TextIter, str cc.String, flags uint32, matchStart, matchEnd *TextIter, limit *TextIter) bool, bool]{Name: "gtk_text_iter_forward_search"}
-	gtk_text_iter_backward_search                   = cc.DlFunc[func(iter *TextIter, str cc.String, flags uint32, matchStart, matchEnd *TextIter, limit *TextIter) bool, bool]{Name: "gtk_text_iter_backward_search"}
-	gtk_text_iter_equal                             = cc.DlFunc[func(lhs *TextIter, rhs *TextIter) bool, bool]{Name: "gtk_text_iter_equal"}
+	gtk_text_iter_forward_to_tag_toggle             = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_forward_to_tag_toggle"}
+	gtk_text_iter_backward_to_tag_toggle            = cc.DlFunc[func(iter *TextIter, tag *TextTag) int32, int32]{Name: "gtk_text_iter_backward_to_tag_toggle"}
+	gtk_text_iter_forward_find_char                 = cc.DlFunc[func(iter *TextIter, pred uptr, userData uptr, limit *TextIter) int32, int32]{Name: "gtk_text_iter_forward_find_char"}
+	gtk_text_iter_backward_find_char                = cc.DlFunc[func(iter *TextIter, pred uptr, userData uptr, limit *TextIter) int32, int32]{Name: "gtk_text_iter_backward_find_char"}
+	gtk_text_iter_forward_search                    = cc.DlFunc[func(iter *TextIter, str cc.String, flags uint32, matchStart, matchEnd *TextIter, limit *TextIter) int32, int32]{Name: "gtk_text_iter_forward_search"}
+	gtk_text_iter_backward_search                   = cc.DlFunc[func(iter *TextIter, str cc.String, flags uint32, matchStart, matchEnd *TextIter, limit *TextIter) int32, int32]{Name: "gtk_text_iter_backward_search"}
+	gtk_text_iter_equal                             = cc.DlFunc[func(lhs *TextIter, rhs *TextIter) int32, int32]{Name: "gtk_text_iter_equal"}
 	gtk_text_iter_compare                           = cc.DlFunc[func(lhs *TextIter, rhs *TextIter) int32, int32]{Name: "gtk_text_iter_compare"}
-	gtk_text_iter_in_range                          = cc.DlFunc[func(iter *TextIter, start *TextIter, end *TextIter) bool, bool]{Name: "gtk_text_iter_in_range"}
+	gtk_text_iter_in_range                          = cc.DlFunc[func(iter *TextIter, start *TextIter, end *TextIter) int32, int32]{Name: "gtk_text_iter_in_range"}
 	gtk_text_iter_order                             = cc.DlFunc[func(first *TextIter, second *TextIter), cc.Void]{Name: "gtk_text_iter_order"}
 	// #endregion
 
@@ -3012,27 +3012,27 @@ var (
 	gtk_text_tag_new          = cc.DlFunc[func(name cc.String) *TextTag, *TextTag]{Name: "gtk_text_tag_new"}
 	gtk_text_tag_get_priority = cc.DlFunc[func(tag *TextTag) int32, int32]{Name: "gtk_text_tag_get_priority"}
 	gtk_text_tag_set_priority = cc.DlFunc[func(tag *TextTag, priority int32), cc.Void]{Name: "gtk_text_tag_set_priority"}
-	gtk_text_tag_changed      = cc.DlFunc[func(tag *TextTag, sizeChanged bool), cc.Void]{Name: "gtk_text_tag_changed"}
+	gtk_text_tag_changed      = cc.DlFunc[func(tag *TextTag, sizeChanged int32), cc.Void]{Name: "gtk_text_tag_changed"}
 	// #endregion
 
 	// #region TextMark
 	gtk_text_mark_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_text_mark_get_type"}
-	gtk_text_mark_new              = cc.DlFunc[func(name cc.String, leftGravity bool) *TextMark, *TextMark]{Name: "gtk_text_mark_new"}
-	gtk_text_mark_set_visible      = cc.DlFunc[func(mark *TextMark, setting bool), cc.Void]{Name: "gtk_text_mark_set_visible"}
-	gtk_text_mark_get_visible      = cc.DlFunc[func(mark *TextMark) bool, bool]{Name: "gtk_text_mark_get_visible"}
+	gtk_text_mark_new              = cc.DlFunc[func(name cc.String, leftGravity int32) *TextMark, *TextMark]{Name: "gtk_text_mark_new"}
+	gtk_text_mark_set_visible      = cc.DlFunc[func(mark *TextMark, setting int32), cc.Void]{Name: "gtk_text_mark_set_visible"}
+	gtk_text_mark_get_visible      = cc.DlFunc[func(mark *TextMark) int32, int32]{Name: "gtk_text_mark_get_visible"}
 	gtk_text_mark_get_name         = cc.DlFunc[func(mark *TextMark) cc.String, cc.String]{Name: "gtk_text_mark_get_name"}
-	gtk_text_mark_get_deleted      = cc.DlFunc[func(mark *TextMark) bool, bool]{Name: "gtk_text_mark_get_deleted"}
+	gtk_text_mark_get_deleted      = cc.DlFunc[func(mark *TextMark) int32, int32]{Name: "gtk_text_mark_get_deleted"}
 	gtk_text_mark_get_buffer       = cc.DlFunc[func(mark *TextMark) *TextBuffer, *TextBuffer]{Name: "gtk_text_mark_get_buffer"}
-	gtk_text_mark_get_left_gravity = cc.DlFunc[func(mark *TextMark) bool, bool]{Name: "gtk_text_mark_get_left_gravity"}
+	gtk_text_mark_get_left_gravity = cc.DlFunc[func(mark *TextMark) int32, int32]{Name: "gtk_text_mark_get_left_gravity"}
 	// #endregion
 
 	// #region TextTagTable
 	gtk_text_tag_table_get_type = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_text_tag_table_get_type"}
 	gtk_text_tag_table_new      = cc.DlFunc[func() *TextTagTable, *TextTagTable]{Name: "gtk_text_tag_table_new"}
-	gtk_text_tag_table_add      = cc.DlFunc[func(table *TextTagTable, tag *TextTag) bool, bool]{Name: "gtk_text_tag_table_add"}
+	gtk_text_tag_table_add      = cc.DlFunc[func(table *TextTagTable, tag *TextTag) int32, int32]{Name: "gtk_text_tag_table_add"}
 	gtk_text_tag_table_remove   = cc.DlFunc[func(table *TextTagTable, tag *TextTag), cc.Void]{Name: "gtk_text_tag_table_remove"}
 	gtk_text_tag_table_lookup   = cc.DlFunc[func(table *TextTagTable, name cc.String) *TextTag, *TextTag]{Name: "gtk_text_tag_table_lookup"}
-	gtk_text_tag_table_foreach  = cc.DlFunc[func(table *TextTagTable, fn UPtr, data UPtr), cc.Void]{Name: "gtk_text_tag_table_foreach"}
+	gtk_text_tag_table_foreach  = cc.DlFunc[func(table *TextTagTable, fn uptr, data uptr), cc.Void]{Name: "gtk_text_tag_table_foreach"}
 	gtk_text_tag_table_get_size = cc.DlFunc[func(table *TextTagTable) int32, int32]{Name: "gtk_text_tag_table_get_size"}
 	// #endregion
 
@@ -3042,31 +3042,31 @@ var (
 	gtk_text_view_new_with_buffer             = cc.DlFunc[func(buffer *TextBuffer) *TextView, *TextView]{Name: "gtk_text_view_new_with_buffer"}
 	gtk_text_view_set_buffer                  = cc.DlFunc[func(textView *TextView, buffer *TextBuffer), cc.Void]{Name: "gtk_text_view_set_buffer"}
 	gtk_text_view_get_buffer                  = cc.DlFunc[func(textView *TextView) *TextBuffer, *TextBuffer]{Name: "gtk_text_view_get_buffer"}
-	gtk_text_view_scroll_to_iter              = cc.DlFunc[func(textView *TextView, iter *TextIter, withinMargin float64, useAlign bool, xalign float64, yalign float64) bool, bool]{Name: "gtk_text_view_scroll_to_iter"}
-	gtk_text_view_scroll_to_mark              = cc.DlFunc[func(textView *TextView, mark *TextMark, withinMargin float64, useAlign bool, xalign float64, yalign float64), cc.Void]{Name: "gtk_text_view_scroll_to_mark"}
+	gtk_text_view_scroll_to_iter              = cc.DlFunc[func(textView *TextView, iter *TextIter, withinMargin float64, useAlign int32, xalign float64, yalign float64) int32, int32]{Name: "gtk_text_view_scroll_to_iter"}
+	gtk_text_view_scroll_to_mark              = cc.DlFunc[func(textView *TextView, mark *TextMark, withinMargin float64, useAlign int32, xalign float64, yalign float64), cc.Void]{Name: "gtk_text_view_scroll_to_mark"}
 	gtk_text_view_scroll_mark_onscreen        = cc.DlFunc[func(textView *TextView, mark *TextMark), cc.Void]{Name: "gtk_text_view_scroll_mark_onscreen"}
-	gtk_text_view_move_mark_onscreen          = cc.DlFunc[func(textView *TextView, mark *TextMark) bool, bool]{Name: "gtk_text_view_move_mark_onscreen"}
-	gtk_text_view_place_cursor_onscreen       = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_place_cursor_onscreen"}
+	gtk_text_view_move_mark_onscreen          = cc.DlFunc[func(textView *TextView, mark *TextMark) int32, int32]{Name: "gtk_text_view_move_mark_onscreen"}
+	gtk_text_view_place_cursor_onscreen       = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_place_cursor_onscreen"}
 	gtk_text_view_get_visible_rect            = cc.DlFunc[func(textView *TextView, visibleRect *gdk.Rectangle), cc.Void]{Name: "gtk_text_view_get_visible_rect"}
 	gtk_text_view_get_visible_offset          = cc.DlFunc[func(textView *TextView, xOffset *float64, yOffset *float64), cc.Void]{Name: "gtk_text_view_get_visible_offset"}
-	gtk_text_view_set_cursor_visible          = cc.DlFunc[func(textView *TextView, setting bool), cc.Void]{Name: "gtk_text_view_set_cursor_visible"}
-	gtk_text_view_get_cursor_visible          = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_get_cursor_visible"}
+	gtk_text_view_set_cursor_visible          = cc.DlFunc[func(textView *TextView, setting int32), cc.Void]{Name: "gtk_text_view_set_cursor_visible"}
+	gtk_text_view_get_cursor_visible          = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_cursor_visible"}
 	gtk_text_view_reset_cursor_blink          = cc.DlFunc[func(textView *TextView), cc.Void]{Name: "gtk_text_view_reset_cursor_blink"}
 	gtk_text_view_get_cursor_locations        = cc.DlFunc[func(textView *TextView, iter *TextIter, strong, weak *gdk.Rectangle), cc.Void]{Name: "gtk_text_view_get_cursor_locations"}
 	gtk_text_view_get_iter_location           = cc.DlFunc[func(textView *TextView, iter *TextIter, location *gdk.Rectangle), cc.Void]{Name: "gtk_text_view_get_iter_location"}
-	gtk_text_view_get_iter_at_location        = cc.DlFunc[func(textView *TextView, iter *TextIter, x, y int32) bool, bool]{Name: "gtk_text_view_get_iter_at_location"}
-	gtk_text_view_get_iter_at_position        = cc.DlFunc[func(textView *TextView, iter *TextIter, trailing *int32, x, y int32) bool, bool]{Name: "gtk_text_view_get_iter_at_position"}
+	gtk_text_view_get_iter_at_location        = cc.DlFunc[func(textView *TextView, iter *TextIter, x, y int32) int32, int32]{Name: "gtk_text_view_get_iter_at_location"}
+	gtk_text_view_get_iter_at_position        = cc.DlFunc[func(textView *TextView, iter *TextIter, trailing *int32, x, y int32) int32, int32]{Name: "gtk_text_view_get_iter_at_position"}
 	gtk_text_view_get_line_yrange             = cc.DlFunc[func(textView *TextView, iter *TextIter, y, height *int32), cc.Void]{Name: "gtk_text_view_get_line_yrange"}
 	gtk_text_view_get_line_at_y               = cc.DlFunc[func(textView *TextView, targetIter *TextIter, y int32, lineTop *int32), cc.Void]{Name: "gtk_text_view_get_line_at_y"}
 	gtk_text_view_buffer_to_window_coords     = cc.DlFunc[func(textView *TextView, win int32, bufferX, bufferY int32, windowX, windowY *int32), cc.Void]{Name: "gtk_text_view_buffer_to_window_coords"}
 	gtk_text_view_window_to_buffer_coords     = cc.DlFunc[func(textView *TextView, win int32, windowX, windowY int32, bufferX, bufferY *int32), cc.Void]{Name: "gtk_text_view_window_to_buffer_coords"}
-	gtk_text_view_forward_display_line        = cc.DlFunc[func(textView *TextView, iter *TextIter) bool, bool]{Name: "gtk_text_view_forward_display_line"}
-	gtk_text_view_backward_display_line       = cc.DlFunc[func(textView *TextView, iter *TextIter) bool, bool]{Name: "gtk_text_view_backward_display_line"}
-	gtk_text_view_forward_display_line_end    = cc.DlFunc[func(textView *TextView, iter *TextIter) bool, bool]{Name: "gtk_text_view_forward_display_line_end"}
-	gtk_text_view_backward_display_line_start = cc.DlFunc[func(textView *TextView, iter *TextIter) bool, bool]{Name: "gtk_text_view_backward_display_line_start"}
-	gtk_text_view_starts_display_line         = cc.DlFunc[func(textView *TextView, iter *TextIter) bool, bool]{Name: "gtk_text_view_starts_display_line"}
-	gtk_text_view_move_visually               = cc.DlFunc[func(textView *TextView, iter *TextIter, count int32) bool, bool]{Name: "gtk_text_view_move_visually"}
-	gtk_text_view_im_context_filter_keypress  = cc.DlFunc[func(textView *TextView, event *gdk.Event) bool, bool]{Name: "gtk_text_view_im_context_filter_keypress"}
+	gtk_text_view_forward_display_line        = cc.DlFunc[func(textView *TextView, iter *TextIter) int32, int32]{Name: "gtk_text_view_forward_display_line"}
+	gtk_text_view_backward_display_line       = cc.DlFunc[func(textView *TextView, iter *TextIter) int32, int32]{Name: "gtk_text_view_backward_display_line"}
+	gtk_text_view_forward_display_line_end    = cc.DlFunc[func(textView *TextView, iter *TextIter) int32, int32]{Name: "gtk_text_view_forward_display_line_end"}
+	gtk_text_view_backward_display_line_start = cc.DlFunc[func(textView *TextView, iter *TextIter) int32, int32]{Name: "gtk_text_view_backward_display_line_start"}
+	gtk_text_view_starts_display_line         = cc.DlFunc[func(textView *TextView, iter *TextIter) int32, int32]{Name: "gtk_text_view_starts_display_line"}
+	gtk_text_view_move_visually               = cc.DlFunc[func(textView *TextView, iter *TextIter, count int32) int32, int32]{Name: "gtk_text_view_move_visually"}
+	gtk_text_view_im_context_filter_keypress  = cc.DlFunc[func(textView *TextView, event *gdk.Event) int32, int32]{Name: "gtk_text_view_im_context_filter_keypress"}
 	gtk_text_view_reset_im_context            = cc.DlFunc[func(textView *TextView), cc.Void]{Name: "gtk_text_view_reset_im_context"}
 	gtk_text_view_get_gutter                  = cc.DlFunc[func(textView *TextView, win int32) *Widget, *Widget]{Name: "gtk_text_view_get_gutter"}
 	gtk_text_view_set_gutter                  = cc.DlFunc[func(textView *TextView, win int32, widget *Widget), cc.Void]{Name: "gtk_text_view_set_gutter"}
@@ -3076,12 +3076,12 @@ var (
 	gtk_text_view_remove                      = cc.DlFunc[func(textView *TextView, child *Widget), cc.Void]{Name: "gtk_text_view_remove"}
 	gtk_text_view_set_wrap_mode               = cc.DlFunc[func(textView *TextView, wrapMode WrapMode), cc.Void]{Name: "gtk_text_view_set_wrap_mode"}
 	gtk_text_view_get_wrap_mode               = cc.DlFunc[func(textView *TextView) WrapMode, WrapMode]{Name: "gtk_text_view_get_wrap_mode"}
-	gtk_text_view_set_editable                = cc.DlFunc[func(textView *TextView, setting bool), cc.Void]{Name: "gtk_text_view_set_editable"}
-	gtk_text_view_get_editable                = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_get_editable"}
-	gtk_text_view_set_overwrite               = cc.DlFunc[func(textView *TextView, overwrite bool), cc.Void]{Name: "gtk_text_view_set_overwrite"}
-	gtk_text_view_get_overwrite               = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_get_overwrite"}
-	gtk_text_view_set_accepts_tab             = cc.DlFunc[func(textView *TextView, acceptsTab bool), cc.Void]{Name: "gtk_text_view_set_accepts_tab"}
-	gtk_text_view_get_accepts_tab             = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_get_accepts_tab"}
+	gtk_text_view_set_editable                = cc.DlFunc[func(textView *TextView, setting int32), cc.Void]{Name: "gtk_text_view_set_editable"}
+	gtk_text_view_get_editable                = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_editable"}
+	gtk_text_view_set_overwrite               = cc.DlFunc[func(textView *TextView, overwrite int32), cc.Void]{Name: "gtk_text_view_set_overwrite"}
+	gtk_text_view_get_overwrite               = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_overwrite"}
+	gtk_text_view_set_accepts_tab             = cc.DlFunc[func(textView *TextView, acceptsTab int32), cc.Void]{Name: "gtk_text_view_set_accepts_tab"}
+	gtk_text_view_get_accepts_tab             = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_accepts_tab"}
 	gtk_text_view_set_pixels_above_lines      = cc.DlFunc[func(textView *TextView, pixelsAboveLines int32), cc.Void]{Name: "gtk_text_view_set_pixels_above_lines"}
 	gtk_text_view_get_pixels_above_lines      = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_pixels_above_lines"}
 	gtk_text_view_set_pixels_below_lines      = cc.DlFunc[func(textView *TextView, pixelsBelowLines int32), cc.Void]{Name: "gtk_text_view_set_pixels_below_lines"}
@@ -3106,8 +3106,8 @@ var (
 	gtk_text_view_get_input_purpose           = cc.DlFunc[func(textView *TextView) InputPurpose, InputPurpose]{Name: "gtk_text_view_get_input_purpose"}
 	gtk_text_view_set_input_hints             = cc.DlFunc[func(textView *TextView, hints InputHints), cc.Void]{Name: "gtk_text_view_set_input_hints"}
 	gtk_text_view_get_input_hints             = cc.DlFunc[func(textView *TextView) InputHints, InputHints]{Name: "gtk_text_view_get_input_hints"}
-	gtk_text_view_set_monospace               = cc.DlFunc[func(textView *TextView, monospace bool), cc.Void]{Name: "gtk_text_view_set_monospace"}
-	gtk_text_view_get_monospace               = cc.DlFunc[func(textView *TextView) bool, bool]{Name: "gtk_text_view_get_monospace"}
+	gtk_text_view_set_monospace               = cc.DlFunc[func(textView *TextView, monospace int32), cc.Void]{Name: "gtk_text_view_set_monospace"}
+	gtk_text_view_get_monospace               = cc.DlFunc[func(textView *TextView) int32, int32]{Name: "gtk_text_view_get_monospace"}
 	gtk_text_view_set_extra_menu              = cc.DlFunc[func(textView *TextView, model *gio.GMenuModel), cc.Void]{Name: "gtk_text_view_set_extra_menu"}
 	gtk_text_view_get_extra_menu              = cc.DlFunc[func(textView *TextView) *gio.GMenuModel, *gio.GMenuModel]{Name: "gtk_text_view_get_extra_menu"}
 	gtk_text_view_get_rtl_context             = cc.DlFunc[func(textView *TextView) *pango.Context, *pango.Context]{Name: "gtk_text_view_get_rtl_context"}
@@ -3119,8 +3119,8 @@ var (
 	gtk_toggle_button_new               = cc.DlFunc[func() *ToggleButton, *ToggleButton]{Name: "gtk_toggle_button_new"}
 	gtk_toggle_button_new_with_label    = cc.DlFunc[func(label cc.String) *ToggleButton, *ToggleButton]{Name: "gtk_toggle_button_new_with_label"}
 	gtk_toggle_button_new_with_mnemonic = cc.DlFunc[func(label cc.String) *ToggleButton, *ToggleButton]{Name: "gtk_toggle_button_new_with_mnemonic"}
-	gtk_toggle_button_set_active        = cc.DlFunc[func(tb *ToggleButton, isActive bool), cc.Void]{Name: "gtk_toggle_button_set_active"}
-	gtk_toggle_button_get_active        = cc.DlFunc[func(tb *ToggleButton) bool, bool]{Name: "gtk_toggle_button_get_active"}
+	gtk_toggle_button_set_active        = cc.DlFunc[func(tb *ToggleButton, isActive int32), cc.Void]{Name: "gtk_toggle_button_set_active"}
+	gtk_toggle_button_get_active        = cc.DlFunc[func(tb *ToggleButton) int32, int32]{Name: "gtk_toggle_button_get_active"}
 	gtk_toggle_button_toggled           = cc.DlFunc[func(tb *ToggleButton), cc.Void]{Name: "gtk_toggle_button_toggled"}
 	gtk_toggle_button_set_group         = cc.DlFunc[func(tb *ToggleButton, group *ToggleButton), cc.Void]{Name: "gtk_toggle_button_set_group"}
 	// #endregion
@@ -3141,32 +3141,32 @@ var (
 	gtk_tree_expander_new                  = cc.DlFunc[func() *TreeExpander, *TreeExpander]{Name: "gtk_tree_expander_new"}
 	gtk_tree_expander_get_child            = cc.DlFunc[func(te *TreeExpander) *Widget, *Widget]{Name: "gtk_tree_expander_get_child"}
 	gtk_tree_expander_set_child            = cc.DlFunc[func(te *TreeExpander, child *Widget), cc.Void]{Name: "gtk_tree_expander_set_child"}
-	gtk_tree_expander_get_item             = cc.DlFunc[func(te *TreeExpander) UPtr, UPtr]{Name: "gtk_tree_expander_get_item"}
+	gtk_tree_expander_get_item             = cc.DlFunc[func(te *TreeExpander) uptr, uptr]{Name: "gtk_tree_expander_get_item"}
 	gtk_tree_expander_get_list_row         = cc.DlFunc[func(te *TreeExpander) *TreeListRow, *TreeListRow]{Name: "gtk_tree_expander_get_list_row"}
 	gtk_tree_expander_set_list_row         = cc.DlFunc[func(te *TreeExpander, listRow *TreeListRow), cc.Void]{Name: "gtk_tree_expander_set_list_row"}
-	gtk_tree_expander_get_indent_for_depth = cc.DlFunc[func(te *TreeExpander) bool, bool]{Name: "gtk_tree_expander_get_indent_for_depth"}
-	gtk_tree_expander_set_indent_for_depth = cc.DlFunc[func(te *TreeExpander, indentForDepth bool), cc.Void]{Name: "gtk_tree_expander_set_indent_for_depth"}
-	gtk_tree_expander_get_indent_for_icon  = cc.DlFunc[func(te *TreeExpander) bool, bool]{Name: "gtk_tree_expander_get_indent_for_icon"}
-	gtk_tree_expander_set_indent_for_icon  = cc.DlFunc[func(te *TreeExpander, indentForIcon bool), cc.Void]{Name: "gtk_tree_expander_set_indent_for_icon"}
-	gtk_tree_expander_get_hide_expander    = cc.DlFunc[func(te *TreeExpander) bool, bool]{Name: "gtk_tree_expander_get_hide_expander"}
-	gtk_tree_expander_set_hide_expander    = cc.DlFunc[func(te *TreeExpander, hideExpander bool), cc.Void]{Name: "gtk_tree_expander_set_hide_expander"}
+	gtk_tree_expander_get_indent_for_depth = cc.DlFunc[func(te *TreeExpander) int32, int32]{Name: "gtk_tree_expander_get_indent_for_depth"}
+	gtk_tree_expander_set_indent_for_depth = cc.DlFunc[func(te *TreeExpander, indentForDepth int32), cc.Void]{Name: "gtk_tree_expander_set_indent_for_depth"}
+	gtk_tree_expander_get_indent_for_icon  = cc.DlFunc[func(te *TreeExpander) int32, int32]{Name: "gtk_tree_expander_get_indent_for_icon"}
+	gtk_tree_expander_set_indent_for_icon  = cc.DlFunc[func(te *TreeExpander, indentForIcon int32), cc.Void]{Name: "gtk_tree_expander_set_indent_for_icon"}
+	gtk_tree_expander_get_hide_expander    = cc.DlFunc[func(te *TreeExpander) int32, int32]{Name: "gtk_tree_expander_get_hide_expander"}
+	gtk_tree_expander_set_hide_expander    = cc.DlFunc[func(te *TreeExpander, hideExpander int32), cc.Void]{Name: "gtk_tree_expander_set_hide_expander"}
 	// #endregion
 
 	// #region TreeListModel
 	gtk_tree_list_model_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_tree_list_model_get_type"}
-	gtk_tree_list_model_new             = cc.DlFunc[func(root *gio.GListModel, passthrough bool, autoexpand bool, createFunc UPtr, userData UPtr, userDestroy UPtr) *TreeListModel, *TreeListModel]{Name: "gtk_tree_list_model_new"}
+	gtk_tree_list_model_new             = cc.DlFunc[func(root *gio.GListModel, passthrough int32, autoexpand int32, createFunc uptr, userData uptr, userDestroy uptr) *TreeListModel, *TreeListModel]{Name: "gtk_tree_list_model_new"}
 	gtk_tree_list_model_get_model       = cc.DlFunc[func(tlm *TreeListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_tree_list_model_get_model"}
-	gtk_tree_list_model_get_passthrough = cc.DlFunc[func(tlm *TreeListModel) bool, bool]{Name: "gtk_tree_list_model_get_passthrough"}
-	gtk_tree_list_model_set_autoexpand  = cc.DlFunc[func(tlm *TreeListModel, autoexpand bool), cc.Void]{Name: "gtk_tree_list_model_set_autoexpand"}
-	gtk_tree_list_model_get_autoexpand  = cc.DlFunc[func(tlm *TreeListModel) bool, bool]{Name: "gtk_tree_list_model_get_autoexpand"}
+	gtk_tree_list_model_get_passthrough = cc.DlFunc[func(tlm *TreeListModel) int32, int32]{Name: "gtk_tree_list_model_get_passthrough"}
+	gtk_tree_list_model_set_autoexpand  = cc.DlFunc[func(tlm *TreeListModel, autoexpand int32), cc.Void]{Name: "gtk_tree_list_model_set_autoexpand"}
+	gtk_tree_list_model_get_autoexpand  = cc.DlFunc[func(tlm *TreeListModel) int32, int32]{Name: "gtk_tree_list_model_get_autoexpand"}
 	gtk_tree_list_model_get_child_row   = cc.DlFunc[func(tlm *TreeListModel, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_child_row"}
 	gtk_tree_list_model_get_row         = cc.DlFunc[func(tlm *TreeListModel, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_row"}
 
 	gtk_tree_list_row_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_tree_list_row_get_type"}
-	gtk_tree_list_row_get_item      = cc.DlFunc[func(row *TreeListRow) UPtr, UPtr]{Name: "gtk_tree_list_row_get_item"}
-	gtk_tree_list_row_set_expanded  = cc.DlFunc[func(row *TreeListRow, expanded bool), cc.Void]{Name: "gtk_tree_list_row_set_expanded"}
-	gtk_tree_list_row_get_expanded  = cc.DlFunc[func(row *TreeListRow) bool, bool]{Name: "gtk_tree_list_row_get_expanded"}
-	gtk_tree_list_row_is_expandable = cc.DlFunc[func(row *TreeListRow) bool, bool]{Name: "gtk_tree_list_row_is_expandable"}
+	gtk_tree_list_row_get_item      = cc.DlFunc[func(row *TreeListRow) uptr, uptr]{Name: "gtk_tree_list_row_get_item"}
+	gtk_tree_list_row_set_expanded  = cc.DlFunc[func(row *TreeListRow, expanded int32), cc.Void]{Name: "gtk_tree_list_row_set_expanded"}
+	gtk_tree_list_row_get_expanded  = cc.DlFunc[func(row *TreeListRow) int32, int32]{Name: "gtk_tree_list_row_get_expanded"}
+	gtk_tree_list_row_is_expandable = cc.DlFunc[func(row *TreeListRow) int32, int32]{Name: "gtk_tree_list_row_is_expandable"}
 	gtk_tree_list_row_get_position  = cc.DlFunc[func(row *TreeListRow) uint32, uint32]{Name: "gtk_tree_list_row_get_position"}
 	gtk_tree_list_row_get_depth     = cc.DlFunc[func(row *TreeListRow) uint32, uint32]{Name: "gtk_tree_list_row_get_depth"}
 	gtk_tree_list_row_get_children  = cc.DlFunc[func(row *TreeListRow) *gio.GListModel, *gio.GListModel]{Name: "gtk_tree_list_row_get_children"}
@@ -3186,8 +3186,8 @@ var (
 	gtk_uri_launcher_new           = cc.DlFunc[func(uri cc.String) *UriLauncher, *UriLauncher]{Name: "gtk_uri_launcher_new"}
 	gtk_uri_launcher_get_uri       = cc.DlFunc[func(ul *UriLauncher) cc.String, cc.String]{Name: "gtk_uri_launcher_get_uri"}
 	gtk_uri_launcher_set_uri       = cc.DlFunc[func(ul *UriLauncher, uri cc.String), cc.Void]{Name: "gtk_uri_launcher_set_uri"}
-	gtk_uri_launcher_launch        = cc.DlFunc[func(ul *UriLauncher, parent *Window, cancellable *gio.GCancellable, callback UPtr, userData UPtr), cc.Void]{Name: "gtk_uri_launcher_launch"}
-	gtk_uri_launcher_launch_finish = cc.DlFunc[func(ul *UriLauncher, result *gio.GAsyncResult, err **glib.GError) bool, bool]{Name: "gtk_uri_launcher_launch_finish"}
+	gtk_uri_launcher_launch        = cc.DlFunc[func(ul *UriLauncher, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_uri_launcher_launch"}
+	gtk_uri_launcher_launch_finish = cc.DlFunc[func(ul *UriLauncher, result *gio.GAsyncResult, err **glib.GError) int32, int32]{Name: "gtk_uri_launcher_launch_finish"}
 	// #endregion
 
 	// #region Version
@@ -3212,10 +3212,10 @@ var (
 	gtk_video_set_file             = cc.DlFunc[func(v *Video, file *gio.GFile), cc.Void]{Name: "gtk_video_set_file"}
 	gtk_video_set_filename         = cc.DlFunc[func(v *Video, filename cc.String), cc.Void]{Name: "gtk_video_set_filename"}
 	gtk_video_set_resource         = cc.DlFunc[func(v *Video, resourcePath cc.String), cc.Void]{Name: "gtk_video_set_resource"}
-	gtk_video_get_autoplay         = cc.DlFunc[func(v *Video) bool, bool]{Name: "gtk_video_get_autoplay"}
-	gtk_video_set_autoplay         = cc.DlFunc[func(v *Video, autoplay bool), cc.Void]{Name: "gtk_video_set_autoplay"}
-	gtk_video_get_loop             = cc.DlFunc[func(v *Video) bool, bool]{Name: "gtk_video_get_loop"}
-	gtk_video_set_loop             = cc.DlFunc[func(v *Video, loop bool), cc.Void]{Name: "gtk_video_set_loop"}
+	gtk_video_get_autoplay         = cc.DlFunc[func(v *Video) int32, int32]{Name: "gtk_video_get_autoplay"}
+	gtk_video_set_autoplay         = cc.DlFunc[func(v *Video, autoplay int32), cc.Void]{Name: "gtk_video_set_autoplay"}
+	gtk_video_get_loop             = cc.DlFunc[func(v *Video) int32, int32]{Name: "gtk_video_get_loop"}
+	gtk_video_set_loop             = cc.DlFunc[func(v *Video, loop int32), cc.Void]{Name: "gtk_video_set_loop"}
 	gtk_video_get_graphics_offload = cc.DlFunc[func(v *Video) GraphicsOffloadEnabled, GraphicsOffloadEnabled]{Name: "gtk_video_get_graphics_offload"}
 	gtk_video_set_graphics_offload = cc.DlFunc[func(v *Video, enabled GraphicsOffloadEnabled), cc.Void]{Name: "gtk_video_set_graphics_offload"}
 	// #endregion
@@ -3223,8 +3223,8 @@ var (
 	// #region Viewport
 	gtk_viewport_get_type            = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_viewport_get_type"}
 	gtk_viewport_new                 = cc.DlFunc[func(hadj, vadj *Adjustment) *Viewport, *Viewport]{Name: "gtk_viewport_new"}
-	gtk_viewport_get_scroll_to_focus = cc.DlFunc[func(vp *Viewport) bool, bool]{Name: "gtk_viewport_get_scroll_to_focus"}
-	gtk_viewport_set_scroll_to_focus = cc.DlFunc[func(vp *Viewport, scrollToFocus bool), cc.Void]{Name: "gtk_viewport_set_scroll_to_focus"}
+	gtk_viewport_get_scroll_to_focus = cc.DlFunc[func(vp *Viewport) int32, int32]{Name: "gtk_viewport_get_scroll_to_focus"}
+	gtk_viewport_set_scroll_to_focus = cc.DlFunc[func(vp *Viewport, scrollToFocus int32), cc.Void]{Name: "gtk_viewport_set_scroll_to_focus"}
 	gtk_viewport_set_child           = cc.DlFunc[func(vp *Viewport, child *Widget), cc.Void]{Name: "gtk_viewport_set_child"}
 	gtk_viewport_get_child           = cc.DlFunc[func(vp *Viewport) *Widget, *Widget]{Name: "gtk_viewport_get_child"}
 	gtk_viewport_scroll_to           = cc.DlFunc[func(vp *Viewport, descendant *Widget, scroll *ScrollInfo), cc.Void]{Name: "gtk_viewport_scroll_to"}
@@ -3252,63 +3252,63 @@ var (
 	gtk_widget_get_layout_manager                  = cc.DlFunc[func(*Widget) *LayoutManager, *LayoutManager]{Name: "gtk_widget_get_layout_manager"}
 	gtk_widget_class_set_layout_manager_type       = cc.DlFunc[func(*WidgetClass, gobject.GType), cc.Void]{Name: "gtk_widget_class_set_layout_manager_type"}
 	gtk_widget_class_get_layout_manager_type       = cc.DlFunc[func(*WidgetClass) gobject.GType, gobject.GType]{Name: "gtk_widget_class_get_layout_manager_type"}
-	gtk_widget_class_add_binding                   = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, UPtr, string, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding", Va: true}
-	gtk_widget_class_add_binding_signal            = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, string, string, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding_signal", Va: true}
-	gtk_widget_class_add_binding_action            = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, string, string, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding_action", Va: true}
+	gtk_widget_class_add_binding                   = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, uptr, cc.String, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding", Va: true}
+	gtk_widget_class_add_binding_signal            = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, cc.String, cc.String, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding_signal", Va: true}
+	gtk_widget_class_add_binding_action            = cc.DlFunc[func(*WidgetClass, uint, gdk.ModifierType, cc.String, cc.String, ...interface{}), cc.Void]{Name: "gtk_widget_class_add_binding_action", Va: true}
 	gtk_widget_class_add_shortcut                  = cc.DlFunc[func(*WidgetClass, *Shortcut), cc.Void]{Name: "gtk_widget_class_add_shortcut"}
 	gtk_widget_class_set_activate_signal           = cc.DlFunc[func(*WidgetClass, uint), cc.Void]{Name: "gtk_widget_class_set_activate_signal"}
 	gtk_widget_class_set_activate_signal_from_name = cc.DlFunc[func(*WidgetClass, cc.String), cc.Void]{Name: "gtk_widget_class_set_activate_signal_from_name"}
 	gtk_widget_class_get_activate_signal           = cc.DlFunc[func(*WidgetClass) uint, uint]{Name: "gtk_widget_class_get_activate_signal"}
-	gtk_widget_mnemonic_activate                   = cc.DlFunc[func(*Widget, bool) bool, bool]{Name: "gtk_widget_mnemonic_activate"}
-	gtk_widget_activate                            = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_activate"}
-	gtk_widget_set_can_focus                       = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_can_focus"}
-	gtk_widget_get_can_focus                       = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_can_focus"}
-	gtk_widget_set_focusable                       = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_focusable"}
-	gtk_widget_get_focusable                       = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_focusable"}
-	gtk_widget_has_focus                           = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_has_focus"}
-	gtk_widget_is_focus                            = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_is_focus"}
-	gtk_widget_has_visible_focus                   = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_has_visible_focus"}
-	gtk_widget_grab_focus                          = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_grab_focus"}
-	gtk_widget_set_focus_on_click                  = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_focus_on_click"}
-	gtk_widget_get_focus_on_click                  = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_focus_on_click"}
-	gtk_widget_set_can_target                      = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_can_target"}
-	gtk_widget_get_can_target                      = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_can_target"}
-	gtk_widget_has_default                         = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_has_default"}
-	gtk_widget_set_receives_default                = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_receives_default"}
-	gtk_widget_get_receives_default                = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_receives_default"}
+	gtk_widget_mnemonic_activate                   = cc.DlFunc[func(*Widget, int32) int32, int32]{Name: "gtk_widget_mnemonic_activate"}
+	gtk_widget_activate                            = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_activate"}
+	gtk_widget_set_can_focus                       = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_can_focus"}
+	gtk_widget_get_can_focus                       = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_can_focus"}
+	gtk_widget_set_focusable                       = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_focusable"}
+	gtk_widget_get_focusable                       = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_focusable"}
+	gtk_widget_has_focus                           = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_has_focus"}
+	gtk_widget_is_focus                            = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_is_focus"}
+	gtk_widget_has_visible_focus                   = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_has_visible_focus"}
+	gtk_widget_grab_focus                          = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_grab_focus"}
+	gtk_widget_set_focus_on_click                  = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_focus_on_click"}
+	gtk_widget_get_focus_on_click                  = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_focus_on_click"}
+	gtk_widget_set_can_target                      = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_can_target"}
+	gtk_widget_get_can_target                      = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_can_target"}
+	gtk_widget_has_default                         = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_has_default"}
+	gtk_widget_set_receives_default                = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_receives_default"}
+	gtk_widget_get_receives_default                = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_receives_default"}
 	gtk_widget_set_name                            = cc.DlFunc[func(*Widget, cc.String), cc.Void]{Name: "gtk_widget_set_name"}
 	gtk_widget_get_name                            = cc.DlFunc[func(*Widget) cc.String, cc.String]{Name: "gtk_widget_get_name"}
-	gtk_widget_set_state_flags                     = cc.DlFunc[func(*Widget, StateFlags, bool), cc.Void]{Name: "gtk_widget_set_state_flags"}
+	gtk_widget_set_state_flags                     = cc.DlFunc[func(*Widget, StateFlags, int32), cc.Void]{Name: "gtk_widget_set_state_flags"}
 	gtk_widget_unset_state_flags                   = cc.DlFunc[func(*Widget, StateFlags), cc.Void]{Name: "gtk_widget_unset_state_flags"}
 	gtk_widget_get_state_flags                     = cc.DlFunc[func(*Widget) StateFlags, StateFlags]{Name: "gtk_widget_get_state_flags"}
-	gtk_widget_set_sensitive                       = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_sensitive"}
-	gtk_widget_get_sensitive                       = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_sensitive"}
-	gtk_widget_is_sensitive                        = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_is_sensitive"}
-	gtk_widget_set_visible                         = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_visible"}
-	gtk_widget_get_visible                         = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_visible"}
-	gtk_widget_is_visible                          = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_is_visible"}
-	gtk_widget_is_drawable                         = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_is_drawable"}
-	gtk_widget_get_realized                        = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_realized"}
-	gtk_widget_get_mapped                          = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_mapped"}
+	gtk_widget_set_sensitive                       = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_sensitive"}
+	gtk_widget_get_sensitive                       = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_sensitive"}
+	gtk_widget_is_sensitive                        = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_is_sensitive"}
+	gtk_widget_set_visible                         = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_visible"}
+	gtk_widget_get_visible                         = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_visible"}
+	gtk_widget_is_visible                          = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_is_visible"}
+	gtk_widget_is_drawable                         = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_is_drawable"}
+	gtk_widget_get_realized                        = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_realized"}
+	gtk_widget_get_mapped                          = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_mapped"}
 	gtk_widget_set_parent                          = cc.DlFunc[func(*Widget, *Widget), cc.Void]{Name: "gtk_widget_set_parent"}
 	gtk_widget_get_parent                          = cc.DlFunc[func(*Widget) *Widget, *Widget]{Name: "gtk_widget_get_parent"}
 	gtk_widget_get_root                            = cc.DlFunc[func(*Widget) *Root, *Root]{Name: "gtk_widget_get_root"}
 	gtk_widget_get_native                          = cc.DlFunc[func(*Widget) *Native, *Native]{Name: "gtk_widget_get_native"}
-	gtk_widget_set_child_visible                   = cc.DlFunc[func(*Widget, bool), cc.Void]{Name: "gtk_widget_set_child_visible"}
-	gtk_widget_get_child_visible                   = cc.DlFunc[func(*Widget) bool, bool]{Name: "gtk_widget_get_child_visible"}
+	gtk_widget_set_child_visible                   = cc.DlFunc[func(*Widget, int32), cc.Void]{Name: "gtk_widget_set_child_visible"}
+	gtk_widget_get_child_visible                   = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_child_visible"}
 	gtk_widget_get_allocated_width                 = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_allocated_width"}
 	gtk_widget_get_allocated_height                = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_allocated_height"}
 	gtk_widget_get_allocated_baseline              = cc.DlFunc[func(*Widget) int32, int32]{Name: "gtk_widget_get_allocated_baseline"}
 	gtk_widget_get_allocation                      = cc.DlFunc[func(*Widget, *Allocation), cc.Void]{Name: "gtk_widget_get_allocation"}
-	gtk_widget_compute_transform                   = cc.DlFunc[func(widget *Widget, target *Widget, outTransform *graphene.Matrix) bool, bool]{Name: "gtk_widget_compute_transform"}
-	gtk_widget_compute_bounds                      = cc.DlFunc[func(widget *Widget, target *Widget, outBounds *graphene.Rect) bool, bool]{Name: "gtk_widget_compute_bounds"}
-	gtk_widget_compute_point                       = cc.DlFunc[func(widget *Widget, target *Widget, point *graphene.Point, outPoint *graphene.Point) bool, bool]{Name: "gtk_widget_compute_point"}
+	gtk_widget_compute_transform                   = cc.DlFunc[func(widget *Widget, target *Widget, outTransform *graphene.Matrix) int32, int32]{Name: "gtk_widget_compute_transform"}
+	gtk_widget_compute_bounds                      = cc.DlFunc[func(widget *Widget, target *Widget, outBounds *graphene.Rect) int32, int32]{Name: "gtk_widget_compute_bounds"}
+	gtk_widget_compute_point                       = cc.DlFunc[func(widget *Widget, target *Widget, point *graphene.Point, outPoint *graphene.Point) int32, int32]{Name: "gtk_widget_compute_point"}
 	gtk_widget_get_width                           = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_width"}
 	gtk_widget_get_height                          = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_height"}
 	gtk_widget_get_baseline                        = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_baseline"}
 	gtk_widget_get_size                            = cc.DlFunc[func(widget *Widget, orientation Orientation) int32, int32]{Name: "gtk_widget_get_size"}
-	gtk_widget_child_focus                         = cc.DlFunc[func(widget *Widget, direction DirectionType) bool, bool]{Name: "gtk_widget_child_focus"}
-	gtk_widget_keynav_failed                       = cc.DlFunc[func(widget *Widget, direction DirectionType) bool, bool]{Name: "gtk_widget_keynav_failed"}
+	gtk_widget_child_focus                         = cc.DlFunc[func(widget *Widget, direction DirectionType) int32, int32]{Name: "gtk_widget_child_focus"}
+	gtk_widget_keynav_failed                       = cc.DlFunc[func(widget *Widget, direction DirectionType) int32, int32]{Name: "gtk_widget_keynav_failed"}
 	gtk_widget_error_bell                          = cc.DlFunc[func(widget *Widget), cc.Void]{Name: "gtk_widget_error_bell"}
 	gtk_widget_set_size_request                    = cc.DlFunc[func(widget *Widget, width int32, height int32), cc.Void]{Name: "gtk_widget_set_size_request"}
 	gtk_widget_get_size_request                    = cc.DlFunc[func(widget *Widget, width *int32, height *int32), cc.Void]{Name: "gtk_widget_get_size_request"}
@@ -3322,15 +3322,15 @@ var (
 	gtk_widget_get_settings                        = cc.DlFunc[func(widget *Widget) *Settings, *Settings]{Name: "gtk_widget_get_settings"}
 	gtk_widget_get_clipboard                       = cc.DlFunc[func(widget *Widget) *gdk.Clipboard, *gdk.Clipboard]{Name: "gtk_widget_get_clipboard"}
 	gtk_widget_get_primary_clipboard               = cc.DlFunc[func(widget *Widget) *gdk.Clipboard, *gdk.Clipboard]{Name: "gtk_widget_get_primary_clipboard"}
-	gtk_widget_get_hexpand                         = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_get_hexpand"}
-	gtk_widget_set_hexpand                         = cc.DlFunc[func(widget *Widget, expand bool), cc.Void]{Name: "gtk_widget_set_hexpand"}
-	gtk_widget_get_hexpand_set                     = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_get_hexpand_set"}
-	gtk_widget_set_hexpand_set                     = cc.DlFunc[func(widget *Widget, set bool), cc.Void]{Name: "gtk_widget_set_hexpand_set"}
-	gtk_widget_get_vexpand                         = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_get_vexpand"}
-	gtk_widget_set_vexpand                         = cc.DlFunc[func(widget *Widget, expand bool), cc.Void]{Name: "gtk_widget_set_vexpand"}
-	gtk_widget_get_vexpand_set                     = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_get_vexpand_set"}
-	gtk_widget_set_vexpand_set                     = cc.DlFunc[func(widget *Widget, set bool), cc.Void]{Name: "gtk_widget_set_vexpand_set"}
-	gtk_widget_compute_expand                      = cc.DlFunc[func(widget *Widget, orientation Orientation) bool, bool]{Name: "gtk_widget_compute_expand"}
+	gtk_widget_get_hexpand                         = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_hexpand"}
+	gtk_widget_set_hexpand                         = cc.DlFunc[func(widget *Widget, expand int32), cc.Void]{Name: "gtk_widget_set_hexpand"}
+	gtk_widget_get_hexpand_set                     = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_hexpand_set"}
+	gtk_widget_set_hexpand_set                     = cc.DlFunc[func(widget *Widget, set int32), cc.Void]{Name: "gtk_widget_set_hexpand_set"}
+	gtk_widget_get_vexpand                         = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_vexpand"}
+	gtk_widget_set_vexpand                         = cc.DlFunc[func(widget *Widget, expand int32), cc.Void]{Name: "gtk_widget_set_vexpand"}
+	gtk_widget_get_vexpand_set                     = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_vexpand_set"}
+	gtk_widget_set_vexpand_set                     = cc.DlFunc[func(widget *Widget, set int32), cc.Void]{Name: "gtk_widget_set_vexpand_set"}
+	gtk_widget_compute_expand                      = cc.DlFunc[func(widget *Widget, orientation Orientation) int32, int32]{Name: "gtk_widget_compute_expand"}
 	gtk_widget_get_halign                          = cc.DlFunc[func(widget *Widget) Align, Align]{Name: "gtk_widget_get_halign"}
 	gtk_widget_set_halign                          = cc.DlFunc[func(widget *Widget, align Align), cc.Void]{Name: "gtk_widget_set_halign"}
 	gtk_widget_get_valign                          = cc.DlFunc[func(widget *Widget) Align, Align]{Name: "gtk_widget_get_valign"}
@@ -3343,9 +3343,9 @@ var (
 	gtk_widget_set_margin_top                      = cc.DlFunc[func(widget *Widget, margin int32), cc.Void]{Name: "gtk_widget_set_margin_top"}
 	gtk_widget_get_margin_bottom                   = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_margin_bottom"}
 	gtk_widget_set_margin_bottom                   = cc.DlFunc[func(widget *Widget, margin int32), cc.Void]{Name: "gtk_widget_set_margin_bottom"}
-	gtk_widget_is_ancestor                         = cc.DlFunc[func(widget *Widget, ancestor *Widget) bool, bool]{Name: "gtk_widget_is_ancestor"}
-	gtk_widget_translate_coordinates               = cc.DlFunc[func(srcWidget *Widget, destWidget *Widget, srcX, srcY float64, destX, destY *float64) bool, bool]{Name: "gtk_widget_translate_coordinates"}
-	gtk_widget_contains                            = cc.DlFunc[func(widget *Widget, x, y float64) bool, bool]{Name: "gtk_widget_contains"}
+	gtk_widget_is_ancestor                         = cc.DlFunc[func(widget *Widget, ancestor *Widget) int32, int32]{Name: "gtk_widget_is_ancestor"}
+	gtk_widget_translate_coordinates               = cc.DlFunc[func(srcWidget *Widget, destWidget *Widget, srcX, srcY float64, destX, destY *float64) int32, int32]{Name: "gtk_widget_translate_coordinates"}
+	gtk_widget_contains                            = cc.DlFunc[func(widget *Widget, x, y float64) int32, int32]{Name: "gtk_widget_contains"}
 	gtk_widget_pick                                = cc.DlFunc[func(widget *Widget, x, y float64, flags PickFlags) *Widget, *Widget]{Name: "gtk_widget_pick"}
 	gtk_widget_add_controller                      = cc.DlFunc[func(widget *Widget, controller *EventController), cc.Void]{Name: "gtk_widget_add_controller"}
 	gtk_widget_remove_controller                   = cc.DlFunc[func(widget *Widget, controller *EventController), cc.Void]{Name: "gtk_widget_remove_controller"}
@@ -3369,20 +3369,20 @@ var (
 	gtk_widget_get_tooltip_text                    = cc.DlFunc[func(widget *Widget) cc.String, cc.String]{Name: "gtk_widget_get_tooltip_text"}
 	gtk_widget_set_tooltip_markup                  = cc.DlFunc[func(widget *Widget, markup cc.String), cc.Void]{Name: "gtk_widget_set_tooltip_markup"}
 	gtk_widget_get_tooltip_markup                  = cc.DlFunc[func(widget *Widget) cc.String, cc.String]{Name: "gtk_widget_get_tooltip_markup"}
-	gtk_widget_set_has_tooltip                     = cc.DlFunc[func(widget *Widget, hasTooltip bool), cc.Void]{Name: "gtk_widget_set_has_tooltip"}
-	gtk_widget_get_has_tooltip                     = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_get_has_tooltip"}
+	gtk_widget_set_has_tooltip                     = cc.DlFunc[func(widget *Widget, hasTooltip int32), cc.Void]{Name: "gtk_widget_set_has_tooltip"}
+	gtk_widget_get_has_tooltip                     = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_get_has_tooltip"}
 	gtk_requisition_get_type                       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_requisition_get_type"}
 	gtk_requisition_new                            = cc.DlFunc[func() *Requisition, *Requisition]{Name: "gtk_requisition_new"}
 	gtk_requisition_copy                           = cc.DlFunc[func(requisition *Requisition) *Requisition, *Requisition]{Name: "gtk_requisition_copy"}
 	gtk_requisition_free                           = cc.DlFunc[func(requisition *Requisition), cc.Void]{Name: "gtk_requisition_free"}
-	gtk_widget_in_destruction                      = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_in_destruction"}
+	gtk_widget_in_destruction                      = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_in_destruction"}
 	gtk_widget_class_set_css_name                  = cc.DlFunc[func(widgetClass *WidgetClass, name cc.String), cc.Void]{Name: "gtk_widget_class_set_css_name"}
 	gtk_widget_class_get_css_name                  = cc.DlFunc[func(widgetClass *WidgetClass) cc.String, cc.String]{Name: "gtk_widget_class_get_css_name"}
-	gtk_widget_add_tick_callback                   = cc.DlFunc[func(widget *Widget, callback, userData, notify UPtr) uint32, uint32]{Name: "gtk_widget_add_tick_callback"}
+	gtk_widget_add_tick_callback                   = cc.DlFunc[func(widget *Widget, callback, userData, notify uptr) uint32, uint32]{Name: "gtk_widget_add_tick_callback"}
 	gtk_widget_remove_tick_callback                = cc.DlFunc[func(widget *Widget, id uint32), cc.Void]{Name: "gtk_widget_remove_tick_callback"}
 	gtk_widget_insert_action_group                 = cc.DlFunc[func(widget *Widget, name cc.String, group *gio.GActionGroup), cc.Void]{Name: "gtk_widget_insert_action_group"}
-	gtk_widget_activate_action                     = cc.DlFunc[func(widget *Widget, name cc.String, formatString cc.String, args ...interface{}) bool, bool]{Name: "gtk_widget_activate_action", Va: true}
-	gtk_widget_activate_action_variant             = cc.DlFunc[func(widget *Widget, name cc.String, variant *glib.GVariant) bool, bool]{Name: "gtk_widget_activate_action_variant"}
+	gtk_widget_activate_action                     = cc.DlFunc[func(widget *Widget, name cc.String, formatString cc.String, args ...interface{}) int32, int32]{Name: "gtk_widget_activate_action", Va: true}
+	gtk_widget_activate_action_variant             = cc.DlFunc[func(widget *Widget, name cc.String, variant *glib.GVariant) int32, int32]{Name: "gtk_widget_activate_action_variant"}
 	gtk_widget_activate_default                    = cc.DlFunc[func(widget *Widget), cc.Void]{Name: "gtk_widget_activate_default"}
 	gtk_widget_set_font_map                        = cc.DlFunc[func(widget *Widget, fontMap *pango.FontMap), cc.Void]{Name: "gtk_widget_set_font_map"}
 	gtk_widget_get_font_map                        = cc.DlFunc[func(widget *Widget) *pango.FontMap, *pango.FontMap]{Name: "gtk_widget_get_font_map"}
@@ -3397,18 +3397,18 @@ var (
 	gtk_widget_set_focus_child                     = cc.DlFunc[func(widget *Widget, child *Widget), cc.Void]{Name: "gtk_widget_set_focus_child"}
 	gtk_widget_get_focus_child                     = cc.DlFunc[func(widget *Widget) *Widget, *Widget]{Name: "gtk_widget_get_focus_child"}
 	gtk_widget_snapshot_child                      = cc.DlFunc[func(widget *Widget, child *Widget, snapshot *Snapshot), cc.Void]{Name: "gtk_widget_snapshot_child"}
-	gtk_widget_should_layout                       = cc.DlFunc[func(widget *Widget) bool, bool]{Name: "gtk_widget_should_layout"}
+	gtk_widget_should_layout                       = cc.DlFunc[func(widget *Widget) int32, int32]{Name: "gtk_widget_should_layout"}
 	gtk_widget_get_css_name                        = cc.DlFunc[func(widget *Widget) cc.String, cc.String]{Name: "gtk_widget_get_css_name"}
 	gtk_widget_add_css_class                       = cc.DlFunc[func(widget *Widget, cssClass cc.String), cc.Void]{Name: "gtk_widget_add_css_class"}
 	gtk_widget_remove_css_class                    = cc.DlFunc[func(widget *Widget, cssClass cc.String), cc.Void]{Name: "gtk_widget_remove_css_class"}
-	gtk_widget_has_css_class                       = cc.DlFunc[func(widget *Widget, cssClass cc.String) bool, bool]{Name: "gtk_widget_has_css_class"}
+	gtk_widget_has_css_class                       = cc.DlFunc[func(widget *Widget, cssClass cc.String) int32, int32]{Name: "gtk_widget_has_css_class"}
 	gtk_widget_get_css_classes                     = cc.DlFunc[func(widget *Widget) cc.Strings, cc.Strings]{Name: "gtk_widget_get_css_classes"}
 	gtk_widget_set_css_classes                     = cc.DlFunc[func(widget *Widget, classes cc.Strings), cc.Void]{Name: "gtk_widget_set_css_classes"}
 	gtk_widget_get_color                           = cc.DlFunc[func(widget *Widget, color *gdk.RGBA), cc.Void]{Name: "gtk_widget_get_color"}
-	gtk_widget_class_install_action                = cc.DlFunc[func(widgetClass *WidgetClass, actionName, parameterType cc.String, activate UPtr), cc.Void]{Name: "gtk_widget_class_install_action"}
+	gtk_widget_class_install_action                = cc.DlFunc[func(widgetClass *WidgetClass, actionName, parameterType cc.String, activate uptr), cc.Void]{Name: "gtk_widget_class_install_action"}
 	gtk_widget_class_install_property_action       = cc.DlFunc[func(widgetClass *WidgetClass, actionName, propertyName cc.String), cc.Void]{Name: "gtk_widget_class_install_property_action"}
-	gtk_widget_class_query_action                  = cc.DlFunc[func(widgetClass *WidgetClass, index uint, owner *gobject.GType, actionName *cc.String, parameterType **glib.GVariantType, propertyName *cc.String) bool, bool]{Name: "gtk_widget_class_query_action"}
-	gtk_widget_action_set_enabled                  = cc.DlFunc[func(widget *Widget, actionName cc.String, enabled bool), cc.Void]{Name: "gtk_widget_action_set_enabled"}
+	gtk_widget_class_query_action                  = cc.DlFunc[func(widgetClass *WidgetClass, index uint, owner *gobject.GType, actionName *cc.String, parameterType **glib.GVariantType, propertyName *cc.String) int32, int32]{Name: "gtk_widget_class_query_action"}
+	gtk_widget_action_set_enabled                  = cc.DlFunc[func(widget *Widget, actionName cc.String, enabled int32), cc.Void]{Name: "gtk_widget_action_set_enabled"}
 	gtk_widget_class_set_accessible_role           = cc.DlFunc[func(widgetClass *WidgetClass, accessibleRole AccessibleRole), cc.Void]{Name: "gtk_widget_class_set_accessible_role"}
 	gtk_widget_class_get_accessible_role           = cc.DlFunc[func(widgetClass *WidgetClass) AccessibleRole, AccessibleRole]{Name: "gtk_widget_class_get_accessible_role"}
 	// #endregion
@@ -3432,29 +3432,29 @@ var (
 	gtk_window_get_default_widget            = cc.DlFunc[func(window *Window) *Widget, *Widget]{Name: "gtk_window_get_default_widget"}
 	gtk_window_set_transient_for             = cc.DlFunc[func(window *Window, parent *Window), cc.Void]{Name: "gtk_window_set_transient_for"}
 	gtk_window_get_transient_for             = cc.DlFunc[func(window *Window) *Window, *Window]{Name: "gtk_window_get_transient_for"}
-	gtk_window_set_destroy_with_parent       = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_destroy_with_parent"}
-	gtk_window_get_destroy_with_parent       = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_destroy_with_parent"}
-	gtk_window_set_hide_on_close             = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_hide_on_close"}
-	gtk_window_get_hide_on_close             = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_hide_on_close"}
-	gtk_window_set_mnemonics_visible         = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_mnemonics_visible"}
-	gtk_window_get_mnemonics_visible         = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_mnemonics_visible"}
-	gtk_window_set_focus_visible             = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_focus_visible"}
-	gtk_window_get_focus_visible             = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_focus_visible"}
-	gtk_window_set_resizable                 = cc.DlFunc[func(window *Window, resizable bool), cc.Void]{Name: "gtk_window_set_resizable"}
-	gtk_window_get_resizable                 = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_resizable"}
+	gtk_window_set_destroy_with_parent       = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_destroy_with_parent"}
+	gtk_window_get_destroy_with_parent       = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_destroy_with_parent"}
+	gtk_window_set_hide_on_close             = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_hide_on_close"}
+	gtk_window_get_hide_on_close             = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_hide_on_close"}
+	gtk_window_set_mnemonics_visible         = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_mnemonics_visible"}
+	gtk_window_get_mnemonics_visible         = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_mnemonics_visible"}
+	gtk_window_set_focus_visible             = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_focus_visible"}
+	gtk_window_get_focus_visible             = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_focus_visible"}
+	gtk_window_set_resizable                 = cc.DlFunc[func(window *Window, resizable int32), cc.Void]{Name: "gtk_window_set_resizable"}
+	gtk_window_get_resizable                 = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_resizable"}
 	gtk_window_set_display                   = cc.DlFunc[func(window *Window, display *gdk.Display), cc.Void]{Name: "gtk_window_set_display"}
-	gtk_window_is_active                     = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_is_active"}
-	gtk_window_set_decorated                 = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_decorated"}
-	gtk_window_get_decorated                 = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_decorated"}
-	gtk_window_set_deletable                 = cc.DlFunc[func(window *Window, setting bool), cc.Void]{Name: "gtk_window_set_deletable"}
-	gtk_window_get_deletable                 = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_deletable"}
+	gtk_window_is_active                     = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_is_active"}
+	gtk_window_set_decorated                 = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_decorated"}
+	gtk_window_get_decorated                 = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_decorated"}
+	gtk_window_set_deletable                 = cc.DlFunc[func(window *Window, setting int32), cc.Void]{Name: "gtk_window_set_deletable"}
+	gtk_window_get_deletable                 = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_deletable"}
 	gtk_window_set_icon_name                 = cc.DlFunc[func(window *Window, name cc.String), cc.Void]{Name: "gtk_window_set_icon_name"}
 	gtk_window_get_icon_name                 = cc.DlFunc[func(window *Window) cc.String, cc.String]{Name: "gtk_window_get_icon_name"}
 	gtk_window_set_default_icon_name         = cc.DlFunc[func(name cc.String), cc.Void]{Name: "gtk_window_set_default_icon_name"}
 	gtk_window_get_default_icon_name         = cc.DlFunc[func() cc.String, cc.String]{Name: "gtk_window_get_default_icon_name"}
-	gtk_window_set_auto_startup_notification = cc.DlFunc[func(setting bool), cc.Void]{Name: "gtk_window_set_auto_startup_notification"}
-	gtk_window_set_modal                     = cc.DlFunc[func(window *Window, modal bool), cc.Void]{Name: "gtk_window_set_modal"}
-	gtk_window_get_modal                     = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_modal"}
+	gtk_window_set_auto_startup_notification = cc.DlFunc[func(setting int32), cc.Void]{Name: "gtk_window_set_auto_startup_notification"}
+	gtk_window_set_modal                     = cc.DlFunc[func(window *Window, modal int32), cc.Void]{Name: "gtk_window_set_modal"}
+	gtk_window_get_modal                     = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_modal"}
 	gtk_window_get_toplevels                 = cc.DlFunc[func() *gio.GListModel, *gio.GListModel]{Name: "gtk_window_get_toplevels"}
 	gtk_window_list_toplevels                = cc.DlFunc[func() *glib.GList[Widget], *glib.GList[Widget]]{Name: "gtk_window_list_toplevels"}
 	gtk_window_present                       = cc.DlFunc[func(window *Window), cc.Void]{Name: "gtk_window_present"}
@@ -3469,20 +3469,20 @@ var (
 	gtk_window_set_default_size              = cc.DlFunc[func(window *Window, width int32, height int32), cc.Void]{Name: "gtk_window_set_default_size"}
 	gtk_window_get_default_size              = cc.DlFunc[func(window *Window, width *int32, height *int32), cc.Void]{Name: "gtk_window_get_default_size"}
 	gtk_window_get_group                     = cc.DlFunc[func(window *Window) *WindowGroup, *WindowGroup]{Name: "gtk_window_get_group"}
-	gtk_window_has_group                     = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_has_group"}
+	gtk_window_has_group                     = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_has_group"}
 	gtk_window_get_application               = cc.DlFunc[func(window *Window) *Application, *Application]{Name: "gtk_window_get_application"}
 	gtk_window_set_application               = cc.DlFunc[func(window *Window, application *Application), cc.Void]{Name: "gtk_window_set_application"}
 	gtk_window_set_child                     = cc.DlFunc[func(window *Window, child *Widget), cc.Void]{Name: "gtk_window_set_child"}
 	gtk_window_get_child                     = cc.DlFunc[func(window *Window) *Widget, *Widget]{Name: "gtk_window_get_child"}
 	gtk_window_set_titlebar                  = cc.DlFunc[func(window *Window, titlebar *Widget), cc.Void]{Name: "gtk_window_set_titlebar"}
 	gtk_window_get_titlebar                  = cc.DlFunc[func(window *Window) *Widget, *Widget]{Name: "gtk_window_get_titlebar"}
-	gtk_window_is_maximized                  = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_is_maximized"}
-	gtk_window_is_fullscreen                 = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_is_fullscreen"}
-	gtk_window_is_suspended                  = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_is_suspended"}
+	gtk_window_is_maximized                  = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_is_maximized"}
+	gtk_window_is_fullscreen                 = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_is_fullscreen"}
+	gtk_window_is_suspended                  = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_is_suspended"}
 	gtk_window_destroy                       = cc.DlFunc[func(window *Window), cc.Void]{Name: "gtk_window_destroy"}
-	gtk_window_set_interactive_debugging     = cc.DlFunc[func(enable bool), cc.Void]{Name: "gtk_window_set_interactive_debugging"}
-	gtk_window_set_handle_menubar_accel      = cc.DlFunc[func(window *Window, handleMenubarAccel bool), cc.Void]{Name: "gtk_window_set_handle_menubar_accel"}
-	gtk_window_get_handle_menubar_accel      = cc.DlFunc[func(window *Window) bool, bool]{Name: "gtk_window_get_handle_menubar_accel"}
+	gtk_window_set_interactive_debugging     = cc.DlFunc[func(enable int32), cc.Void]{Name: "gtk_window_set_interactive_debugging"}
+	gtk_window_set_handle_menubar_accel      = cc.DlFunc[func(window *Window, handleMenubarAccel int32), cc.Void]{Name: "gtk_window_set_handle_menubar_accel"}
+	gtk_window_get_handle_menubar_accel      = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_handle_menubar_accel"}
 	// #endregion
 
 	// #region WindowControls
@@ -3492,9 +3492,9 @@ var (
 	gtk_window_controls_set_side                = cc.DlFunc[func(wc *WindowControls, side PackType), cc.Void]{Name: "gtk_window_controls_set_side"}
 	gtk_window_controls_get_decoration_layout   = cc.DlFunc[func(wc *WindowControls) cc.String, cc.String]{Name: "gtk_window_controls_get_decoration_layout"}
 	gtk_window_controls_set_decoration_layout   = cc.DlFunc[func(wc *WindowControls, layout cc.String), cc.Void]{Name: "gtk_window_controls_set_decoration_layout"}
-	gtk_window_controls_get_use_native_controls = cc.DlFunc[func(wc *WindowControls) bool, bool]{Name: "gtk_window_controls_get_use_native_controls"}
-	gtk_window_controls_set_use_native_controls = cc.DlFunc[func(wc *WindowControls, setting bool), cc.Void]{Name: "gtk_window_controls_set_use_native_controls"}
-	gtk_window_controls_get_empty               = cc.DlFunc[func(wc *WindowControls) bool, bool]{Name: "gtk_window_controls_get_empty"}
+	gtk_window_controls_get_use_native_controls = cc.DlFunc[func(wc *WindowControls) int32, int32]{Name: "gtk_window_controls_get_use_native_controls"}
+	gtk_window_controls_set_use_native_controls = cc.DlFunc[func(wc *WindowControls, setting int32), cc.Void]{Name: "gtk_window_controls_set_use_native_controls"}
+	gtk_window_controls_get_empty               = cc.DlFunc[func(wc *WindowControls) int32, int32]{Name: "gtk_window_controls_get_empty"}
 	// #endregion
 
 	// #region WindowGroup

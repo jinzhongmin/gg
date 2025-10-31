@@ -33,8 +33,13 @@ const (
 	False Bool = 0
 )
 
-func anyptr(a interface{}) uptr    { return (*(*[2]uptr)((uptr(&a))))[1] }
-func Slice(ptr uptr, l int64) uptr { return (uptr)(&([2]iptr{iptr(ptr), iptr(l)})) }
+type Integer interface {
+	~int8 | ~int16 | ~int32 | ~int | ~int64 |
+		~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
+}
+
+func anyptr(a interface{}) uptr               { return (*(*[2]uptr)((uptr(&a))))[1] }
+func Slice[T any, N Integer](ptr *T, l N) []T { return unsafe.Slice(ptr, l) }
 
 func Malloc(size uint64) uptr            { return dl.CMalloc(size) }
 func Free(p uptr)                        { dl.CFree(p) }
@@ -54,15 +59,16 @@ func (p Ptr) Len() uint64 {
 	return idx
 }
 func (p Ptr) Free() { Free(uptr(p)) }
-func (p Ptr) Slice(n ...uint64) uptr {
-	var count uint64
-	if len(n) != 0 {
-		count = n[0]
-	} else {
-		count = p.Len()
-	}
-	return Slice(uptr(p), int64(count))
-}
+
+// func (p Ptr) Slice(n ...uint64) uptr {
+// 	var count uint64
+// 	if len(n) != 0 {
+// 		count = n[0]
+// 	} else {
+// 		count = p.Len()
+// 	}
+// 	return Slice((*uptr)(uptr(p)), count)
+// }
 
 type stringStruct struct {
 	p unsafe.Pointer
@@ -75,7 +81,8 @@ func StringNil() string { return *stringNull }
 
 type String iptr
 
-func StringRef(str string) String { return (String)((*(*[2]uptr)(uptr(&str)))[0]) }
+// func StringRef(str string) String { return *(*String)(uptr(&str)) }
+
 func NewString(str string) String {
 	s, _ := NewStringLen(str)
 	return s
@@ -99,12 +106,9 @@ func NewStringLen(str string) (String, uint64) {
 		return 0, 0
 	}
 
-	strPtr := (*[1 << 30]byte)(p)[:size:size]
-	for i := 0; i < strLen; i++ {
-		strPtr[i] = str[i]
-	}
-	strPtr[strLen] = 0
-	return String(p), size
+	r := String(p)
+	r.Copy(str, (size - 1))
+	return r, size
 }
 func NewStringRef(str string) (ptr String, len int64) {
 	pp := *(*[2]iptr)(uptr(&str))
@@ -125,82 +129,46 @@ func (c String) Free() {
 	if c != 0 {
 		dl.CFree(uptr(c))
 	}
-} // dl.CMiFree(uptr(*c))
+}
 func (c String) TakeString(n ...uint64) string {
 	defer c.Free()
 	return c.String(n...)
 }
 func (c String) String(n ...uint64) string {
-	// if c == 0 {
-	// 	return ""
-	// }
-
-	// var count uint64
-	// if len(n) != 0 {
-	// 	count = n[0]
-	// } else {
-	// 	count = c.Len()
-	// }
-	// if count == 0 {
-	// 	return ""
-	// }
-
-	// b := make([]byte, count)
-	// dl.CMemcpy(uptr(&b[0]), uptr(c), count)
-	// return string(b)
-
-	return string(c.Bytes(n...))
+	return string(c.RefBytes(n...))
 }
 func (c String) TakeBytes(n ...uint64) []byte {
 	defer c.Free()
 	return c.Bytes(n...)
 }
 func (c String) Bytes(n ...uint64) []byte {
-	if c == 0 {
-		return nil
-	}
-
-	var count uint64
-	if len(n) != 0 {
-		count = n[0]
-	} else {
-		count = c.Len()
-	}
-
-	if count == 0 {
-		return []byte{}
-	}
-
-	dt := make([]byte, count)
-	copy(dt, unsafe.Slice((*byte)(uptr(c)), count))
-	return dt
+	l := c.count(n...)
+	dst := make([]byte, l)
+	copy(dst, c.RefBytes(l))
+	return dst
 }
-func (c String) Ref(n ...uint64) string {
-	if c == 0 {
-		return ""
-	}
-
-	var count uint64
-	if len(n) != 0 {
-		count = n[0]
-	} else {
-		count = c.Len()
-	}
-	if count == 0 {
-		return ""
-	}
-
+func (c String) RefString(n ...uint64) string {
 	s := struct {
 		p   String
 		len int
-	}{c, int(count)}
+	}{c, int(c.count(n...))}
 	return *(*string)(uptr(&s))
 }
-func (c String) Copy(src string, n int32) {
-	_dst := (*[]byte)(Slice(uptr(c), int64(n+1)))
-	_src := (*[]byte)(Slice((*[2]uptr)(uptr(&src))[0], int64(len(src))))
-	copy(*_dst, *_src)
-	(*_dst)[n] = 0
+func (c String) RefBytes(n ...uint64) []byte {
+	count := c.count(n...)
+	return unsafe.Slice((*byte)(uptr(c)), count)
+}
+func (c String) Copy(src string, n uint64) {
+	_dst := c.RefBytes(n + 1)
+	_src := Slice((*[2]*byte)(uptr(&src))[0], len(src))
+	copy(_dst, _src)
+	(_dst)[n] = 0
+}
+func (c String) count(n ...uint64) uint64 {
+	if len(n) != 0 {
+		return n[0]
+	}
+	return c.Len()
 }
 
 // func (c String) Bytes(n int) []byte { return unsafe.Slice((*byte)(uptr(c)), n) }
@@ -284,7 +252,7 @@ func (css Strings) Ref(n ...uint64) []string {
 	ss := make([]string, count)
 	cp := (*[1 << 30]String)(uptr(css))
 	for i := 0; i < int(count); i++ {
-		ss[i] = cp[i].Ref()
+		ss[i] = cp[i].RefString()
 	}
 	return ss
 }

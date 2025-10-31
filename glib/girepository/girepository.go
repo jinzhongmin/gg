@@ -1,7 +1,6 @@
 package girepository
 
 import (
-	"errors"
 	"unsafe"
 
 	"github.com/jinzhongmin/gg/cc"
@@ -25,23 +24,23 @@ func (info *ArgInfo) GetDirection() Direction {
 }
 
 func (info *ArgInfo) IsReturnValue() bool {
-	return gi_arg_info_is_return_value.Fn()(info)
+	return gi_arg_info_is_return_value.Fn()(info) != 0
 }
 
 func (info *ArgInfo) IsOptional() bool {
-	return gi_arg_info_is_optional.Fn()(info)
+	return gi_arg_info_is_optional.Fn()(info) != 0
 }
 
 func (info *ArgInfo) IsCallerAllocates() bool {
-	return gi_arg_info_is_caller_allocates.Fn()(info)
+	return gi_arg_info_is_caller_allocates.Fn()(info) != 0
 }
 
 func (info *ArgInfo) MayBeNull() bool {
-	return gi_arg_info_may_be_null.Fn()(info)
+	return gi_arg_info_may_be_null.Fn()(info) != 0
 }
 
 func (info *ArgInfo) IsSkip() bool {
-	return gi_arg_info_is_skip.Fn()(info)
+	return gi_arg_info_is_skip.Fn()(info) != 0
 }
 
 func (info *ArgInfo) GetOwnershipTransfer() Transfer {
@@ -54,13 +53,13 @@ func (info *ArgInfo) GetScope() ScopeType {
 
 func (info *ArgInfo) GetClosureIndex() (uint32, bool) {
 	var index uint32
-	ok := gi_arg_info_get_closure_index.Fn()(info, &index)
+	ok := gi_arg_info_get_closure_index.Fn()(info, &index) != 0
 	return index, ok
 }
 
 func (info *ArgInfo) GetDestroyIndex() (uint32, bool) {
 	var index uint32
-	ok := gi_arg_info_get_destroy_index.Fn()(info, &index)
+	ok := gi_arg_info_get_destroy_index.Fn()(info, &index) != 0
 	return index, ok
 }
 
@@ -91,19 +90,21 @@ func (info *BaseInfo) Clear() {
 }
 
 func (info *BaseInfo) GetName() string {
-	return gi_base_info_get_name.Fn()(info)
+	return gi_base_info_get_name.Fn()(info).String()
 }
 
 func (info *BaseInfo) GetNamespace() string {
-	return gi_base_info_get_namespace.Fn()(info)
+	return gi_base_info_get_namespace.Fn()(info).String()
 }
 
 func (info *BaseInfo) IsDeprecated() bool {
-	return gi_base_info_is_deprecated.Fn()(info)
+	return gi_base_info_is_deprecated.Fn()(info) != 0
 }
 
 func (info *BaseInfo) GetAttribute(name string) string {
-	return gi_base_info_get_attribute.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_base_info_get_attribute.Fn()(info, n).String()
 }
 
 func (info *BaseInfo) IterateAttributes(iter *AttributeIter) (ok bool, name, value string) {
@@ -125,7 +126,7 @@ func (info *BaseInfo) GetTypelib() *Typelib {
 }
 
 func (info1 *BaseInfo) Equal(info2 *BaseInfo) bool {
-	return gi_base_info_equal.Fn()(info1, info2)
+	return gi_base_info_equal.Fn()(info1, info2) != 0
 }
 
 // endregion
@@ -135,11 +136,11 @@ func (info1 *BaseInfo) Equal(info2 *BaseInfo) bool {
 type CallableInfo struct{ BaseInfo }
 
 func (info *CallableInfo) IsMethod() bool {
-	return gi_callable_info_is_method.Fn()(info)
+	return gi_callable_info_is_method.Fn()(info) != 0
 }
 
 func (info *CallableInfo) CanThrowGError() bool {
-	return gi_callable_info_can_throw_gerror.Fn()(info)
+	return gi_callable_info_can_throw_gerror.Fn()(info) != 0
 }
 
 func (info *CallableInfo) GetReturnType() *TypeInfo {
@@ -151,12 +152,14 @@ func (info *CallableInfo) LoadReturnType(typeInfo *TypeInfo) {
 }
 
 func (info *CallableInfo) GetReturnAttribute(name string) string {
-	return gi_callable_info_get_return_attribute.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_callable_info_get_return_attribute.Fn()(info, n).String()
 }
 
 func (info *CallableInfo) IterateReturnAttributes(iter *AttributeIter) (ok bool, name, value string) {
 	var pName, pValue cc.String
-	ok = gi_callable_info_iterate_return_attributes.Fn()(info, iter, &pName, &pValue)
+	ok = gi_callable_info_iterate_return_attributes.Fn()(info, iter, &pName, &pValue) != 0
 	if ok {
 		name = pName.String()
 		value = pValue.String()
@@ -169,11 +172,11 @@ func (info *CallableInfo) GetCallerOwns() Transfer {
 }
 
 func (info *CallableInfo) MayReturnNull() bool {
-	return gi_callable_info_may_return_null.Fn()(info)
+	return gi_callable_info_may_return_null.Fn()(info) != 0
 }
 
 func (info *CallableInfo) SkipReturn() bool {
-	return gi_callable_info_skip_return.Fn()(info)
+	return gi_callable_info_skip_return.Fn()(info) != 0
 }
 
 func (info *CallableInfo) GetNArgs() uint32 {
@@ -254,7 +257,7 @@ func (info *EnumInfo) GetStorageType() TypeTag {
 }
 
 func (info *EnumInfo) GetErrorDomain() string {
-	return gi_enum_info_get_error_domain.Fn()(info)
+	return gi_enum_info_get_error_domain.Fn()(info).String()
 }
 
 // endregion
@@ -280,11 +283,11 @@ func (info *FieldInfo) GetTypeInfo() *TypeInfo {
 }
 
 func (info *FieldInfo) GetField(mem uptr, value *Argument) bool {
-	return gi_field_info_get_field.Fn()(info, mem, value)
+	return gi_field_info_get_field.Fn()(info, mem, value) != 0
 }
 
 func (info *FieldInfo) SetField(mem uptr, value *Argument) bool {
-	return gi_field_info_set_field.Fn()(info, mem, value)
+	return gi_field_info_set_field.Fn()(info, mem, value) != 0
 }
 
 // endregion
@@ -300,7 +303,7 @@ type FlagsInfo struct{ EnumInfo }
 type FunctionInfo struct{ CallableInfo }
 
 func (info *FunctionInfo) GetSymbol() string {
-	return gi_function_info_get_symbol.Fn()(info)
+	return gi_function_info_get_symbol.Fn()(info).String()
 }
 
 func (info *FunctionInfo) GetFlags() FunctionInfoFlags {
@@ -346,7 +349,9 @@ func (info *InterfaceInfo) GetMethod(n uint32) *FunctionInfo {
 }
 
 func (info *InterfaceInfo) FindMethod(name string) *FunctionInfo {
-	return gi_interface_info_find_method.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_interface_info_find_method.Fn()(info, n)
 }
 
 func (info *InterfaceInfo) GetNSignals() uint32 {
@@ -358,7 +363,9 @@ func (info *InterfaceInfo) GetSignal(n uint32) *SignalInfo {
 }
 
 func (info *InterfaceInfo) FindSignal(name string) *SignalInfo {
-	return gi_interface_info_find_signal.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_interface_info_find_signal.Fn()(info, n)
 }
 
 func (info *InterfaceInfo) GetNVFuncs() uint32 {
@@ -370,7 +377,9 @@ func (info *InterfaceInfo) GetVFunc(n uint32) *VFuncInfo {
 }
 
 func (info *InterfaceInfo) FindVFunc(name string) *VFuncInfo {
-	return gi_interface_info_find_vfunc.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_interface_info_find_vfunc.Fn()(info, n)
 }
 
 func (info *InterfaceInfo) GetNConstants() uint32 {
@@ -392,23 +401,23 @@ func (info *InterfaceInfo) GetIfaceStruct() *StructInfo {
 type ObjectInfo struct{ RegisteredTypeInfo }
 
 func (info *ObjectInfo) GetTypeName() string {
-	return gi_object_info_get_type_name.Fn()(info)
+	return gi_object_info_get_type_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetTypeInitFunctionName() string {
-	return gi_object_info_get_type_init_function_name.Fn()(info)
+	return gi_object_info_get_type_init_function_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetAbstract() bool {
-	return gi_object_info_get_abstract.Fn()(info)
+	return gi_object_info_get_abstract.Fn()(info) != 0
 }
 
 func (info *ObjectInfo) GetFinal() bool {
-	return gi_object_info_get_final.Fn()(info)
+	return gi_object_info_get_final.Fn()(info) != 0
 }
 
 func (info *ObjectInfo) GetFundamental() bool {
-	return gi_object_info_get_fundamental.Fn()(info)
+	return gi_object_info_get_fundamental.Fn()(info) != 0
 }
 
 func (info *ObjectInfo) GetParent() *ObjectInfo {
@@ -448,12 +457,16 @@ func (info *ObjectInfo) GetMethod(n uint32) *FunctionInfo {
 }
 
 func (info *ObjectInfo) FindMethod(name string) *FunctionInfo {
-	return gi_object_info_find_method.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_object_info_find_method.Fn()(info, n)
 }
 
 func (info *ObjectInfo) FindMethodUsingInterfaces(name string) (*FunctionInfo, *BaseInfo) {
 	var declarer *BaseInfo
-	method := gi_object_info_find_method_using_interfaces.Fn()(info, name, &declarer)
+	n := cc.NewString(name)
+	defer n.Free()
+	method := gi_object_info_find_method_using_interfaces.Fn()(info, n, &declarer)
 	return method, declarer
 }
 
@@ -466,7 +479,9 @@ func (info *ObjectInfo) GetSignal(n uint32) *SignalInfo {
 }
 
 func (info *ObjectInfo) FindSignal(name string) *SignalInfo {
-	return gi_object_info_find_signal.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_object_info_find_signal.Fn()(info, n)
 }
 
 func (info *ObjectInfo) GetNVFuncs() uint32 {
@@ -478,12 +493,16 @@ func (info *ObjectInfo) GetVFunc(n uint32) *VFuncInfo {
 }
 
 func (info *ObjectInfo) FindVFunc(name string) *VFuncInfo {
-	return gi_object_info_find_vfunc.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_object_info_find_vfunc.Fn()(info, n)
 }
 
 func (info *ObjectInfo) FindVFuncUsingInterfaces(name string) (*VFuncInfo, *BaseInfo) {
 	var declarer *BaseInfo
-	vfunc := gi_object_info_find_vfunc_using_interfaces.Fn()(info, name, &declarer)
+	n := cc.NewString(name)
+	defer n.Free()
+	vfunc := gi_object_info_find_vfunc_using_interfaces.Fn()(info, n, &declarer)
 	return vfunc, declarer
 }
 
@@ -500,7 +519,7 @@ func (info *ObjectInfo) GetClassStruct() *StructInfo {
 }
 
 func (info *ObjectInfo) GetRefFunctionName() string {
-	return gi_object_info_get_ref_function_name.Fn()(info)
+	return gi_object_info_get_ref_function_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetRefFunctionPointer() uptr {
@@ -508,7 +527,7 @@ func (info *ObjectInfo) GetRefFunctionPointer() uptr {
 }
 
 func (info *ObjectInfo) GetUnrefFunctionName() string {
-	return gi_object_info_get_unref_function_name.Fn()(info)
+	return gi_object_info_get_unref_function_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetUnrefFunctionPointer() uptr {
@@ -516,7 +535,7 @@ func (info *ObjectInfo) GetUnrefFunctionPointer() uptr {
 }
 
 func (info *ObjectInfo) GetSetValueFunctionName() string {
-	return gi_object_info_get_set_value_function_name.Fn()(info)
+	return gi_object_info_get_set_value_function_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetSetValueFunctionPointer() uptr {
@@ -524,7 +543,7 @@ func (info *ObjectInfo) GetSetValueFunctionPointer() uptr {
 }
 
 func (info *ObjectInfo) GetGetValueFunctionName() string {
-	return gi_object_info_get_get_value_function_name.Fn()(info)
+	return gi_object_info_get_get_value_function_name.Fn()(info).String()
 }
 
 func (info *ObjectInfo) GetGetValueFunctionPointer() uptr {
@@ -564,11 +583,11 @@ func (info *PropertyInfo) GetGetter() *FunctionInfo {
 type RegisteredTypeInfo struct{ BaseInfo }
 
 func (info *RegisteredTypeInfo) GetTypeName() string {
-	return gi_registered_type_info_get_type_name.Fn()(info)
+	return gi_registered_type_info_get_type_name.Fn()(info).String()
 }
 
 func (info *RegisteredTypeInfo) GetTypeInitFunctionName() string {
-	return gi_registered_type_info_get_type_init_function_name.Fn()(info)
+	return gi_registered_type_info_get_type_init_function_name.Fn()(info).String()
 }
 
 func (info *RegisteredTypeInfo) GetGType() gobject.GType {
@@ -576,7 +595,7 @@ func (info *RegisteredTypeInfo) GetGType() gobject.GType {
 }
 
 func (info *RegisteredTypeInfo) IsBoxed() bool {
-	return gi_registered_type_info_is_boxed.Fn()(info)
+	return gi_registered_type_info_is_boxed.Fn()(info) != 0
 }
 
 // endregion
@@ -587,10 +606,14 @@ type Repository struct{}
 
 func NewRepository() *Repository { return gi_repository_new.Fn()() }
 func (repo *Repository) PrependSearchPath(directory string) {
-	gi_repository_prepend_search_path.Fn()(repo, directory)
+	d := cc.NewString(directory)
+	defer d.Free()
+	gi_repository_prepend_search_path.Fn()(repo, d)
 }
 func (repo *Repository) PrependLibraryPath(directory string) {
-	gi_repository_prepend_library_path.Fn()(repo, directory)
+	d := cc.NewString(directory)
+	defer d.Free()
+	gi_repository_prepend_library_path.Fn()(repo, d)
 }
 func (repo *Repository) GetSearchPath() []string {
 	var nPaths uint64
@@ -604,47 +627,58 @@ func (repo *Repository) GetLibraryPath() []string {
 }
 func (repo *Repository) LoadTypelib(typelib *Typelib, flags RepositoryLoadFlags) (string, error) {
 	var gerr *glib.GError
-	result := gi_repository_load_typelib.Fn()(repo, typelib, flags, &gerr)
-	if gerr != nil {
-		return "", errors.New(gerr.Message.String())
-	}
-	return result, nil
+	result := gi_repository_load_typelib.Fn()(repo, typelib, flags, &gerr).String()
+	return result, gerr.TakeError()
+
 }
 func (repo *Repository) IsRegistered(namespace, version string) bool {
-	return gi_repository_is_registered.Fn()(repo, namespace, version)
+	n, v := cc.NewString(namespace), cc.NewString(version)
+	defer n.Free()
+	defer v.Free()
+	return gi_repository_is_registered.Fn()(repo, n, v) != 0
 }
 func (repo *Repository) FindByName(namespace, name string) *BaseInfo {
-	return gi_repository_find_by_name.Fn()(repo, namespace, name)
+	n, v := cc.NewString(namespace), cc.NewString(name)
+	defer n.Free()
+	defer v.Free()
+	return gi_repository_find_by_name.Fn()(repo, n, v)
 }
 func (repo *Repository) EnumerateVersions(namespace string) []string {
 	var nVersions uint64
-	versions := gi_repository_enumerate_versions.Fn()(repo, namespace, &nVersions)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	versions := gi_repository_enumerate_versions.Fn()(repo, n, &nVersions)
 	return versions.Strings(nVersions)
 }
 func (repo *Repository) Require(namespace, version string, flags RepositoryLoadFlags) (*Typelib, error) {
 	var gerr *glib.GError
-	typelib := gi_repository_require.Fn()(repo, namespace, version, flags, &gerr)
-	if gerr != nil {
-		return nil, errors.New(gerr.Message.String())
-	}
-	return typelib, nil
+	n, v := cc.NewString(namespace), cc.NewString(version)
+	defer n.Free()
+	defer v.Free()
+	typelib := gi_repository_require.Fn()(repo, n, v, flags, &gerr)
+	return typelib, gerr.TakeError()
 }
 func (repo *Repository) RequirePrivate(namespace, version, module string, flags RepositoryLoadFlags) (*Typelib, error) {
 	var gerr *glib.GError
-	typelib := gi_repository_require_private.Fn()(repo, namespace, version, module, flags, &gerr)
-	if gerr != nil {
-		return nil, errors.New(gerr.Message.String())
-	}
-	return typelib, nil
+	n, v, m := cc.NewString(namespace), cc.NewString(version), cc.NewString(module)
+	defer n.Free()
+	defer v.Free()
+	defer m.Free()
+	typelib := gi_repository_require_private.Fn()(repo, n, v, m, flags, &gerr)
+	return typelib, gerr.TakeError()
 }
 func (repo *Repository) GetImmediateDependencies(namespace string) []string {
 	var nDeps uint64
-	deps := gi_repository_get_immediate_dependencies.Fn()(repo, namespace, &nDeps)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	deps := gi_repository_get_immediate_dependencies.Fn()(repo, n, &nDeps)
 	return deps.Strings(nDeps)
 }
 func (repo *Repository) GetDependencies(namespace string) []string {
 	var nDeps uint64
-	deps := gi_repository_get_dependencies.Fn()(repo, namespace, &nDeps)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	deps := gi_repository_get_dependencies.Fn()(repo, n, &nDeps)
 	return deps.Strings(nDeps)
 }
 func (repo *Repository) GetLoadedNamespaces() []string {
@@ -665,38 +699,50 @@ func (repo *Repository) GetObjectGTypeInterfaces(gtype gobject.GType) ([]*Interf
 	return *((*[]*InterfaceInfo)(slice(uptr(ifaces), int(nIfaces)))), nil
 }
 func (repo *Repository) GetNInfos(namespace string) uint32 {
-	return gi_repository_get_n_infos.Fn()(repo, namespace)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	return gi_repository_get_n_infos.Fn()(repo, n)
 }
 func (repo *Repository) GetInfo(namespace string, index uint32) *BaseInfo {
-	return gi_repository_get_info.Fn()(repo, namespace, index)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	return gi_repository_get_info.Fn()(repo, n, index)
 }
 func (repo *Repository) FindByErrorDomain(quark glib.GQuark) *EnumInfo {
 	return gi_repository_find_by_error_domain.Fn()(repo, quark)
 }
 func (repo *Repository) GetTypelibPath(namespace string) string {
-	return gi_repository_get_typelib_path.Fn()(repo, namespace)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	return gi_repository_get_typelib_path.Fn()(repo, n).String()
 }
 func (repo *Repository) GetSharedLibraries(namespace string) []string {
 	var nLibs uint64
-	libs := gi_repository_get_shared_libraries.Fn()(repo, namespace, &nLibs)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	libs := gi_repository_get_shared_libraries.Fn()(repo, n, &nLibs)
 	return libs.Strings(nLibs)
 }
 func (repo *Repository) GetCPrefix(namespace string) string {
-	return gi_repository_get_c_prefix.Fn()(repo, namespace)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	return gi_repository_get_c_prefix.Fn()(repo, n).String()
 }
 func (repo *Repository) GetVersion(namespace string) string {
-	return gi_repository_get_version.Fn()(repo, namespace)
+	n := cc.NewString(namespace)
+	defer n.Free()
+	return gi_repository_get_version.Fn()(repo, n).String()
 }
 func (repo *Repository) GetOptionGroup() *glib.GOptionGroup {
 	return gi_repository_get_option_group.Fn()()
 }
-func (repo *Repository) Dump(inputFilename, outputFilename string) (bool, error) {
+func (repo *Repository) Dump(inputFilename, outputFilename string) error {
 	var gerr *glib.GError
-	success := gi_repository_dump.Fn()(inputFilename, outputFilename, &gerr)
-	if gerr != nil {
-		return false, errors.New(gerr.Message.String())
-	}
-	return success, nil
+	i, o := cc.NewString(inputFilename), cc.NewString(outputFilename)
+	defer i.Free()
+	defer o.Free()
+	gi_repository_dump.Fn()(i, o, &gerr)
+	return gerr.TakeError()
 }
 func (repo *Repository) ErrorQuark() glib.GQuark {
 	return gi_repository_error_quark.Fn()()
@@ -717,7 +763,7 @@ func (info *SignalInfo) GetClassClosure() *VFuncInfo {
 }
 
 func (info *SignalInfo) TrueStopsEmit() bool {
-	return gi_signal_info_true_stops_emit.Fn()(info)
+	return gi_signal_info_true_stops_emit.Fn()(info) != 0
 }
 
 // endregion
@@ -735,7 +781,9 @@ func (info *StructInfo) GetField(n uint32) *FieldInfo {
 }
 
 func (info *StructInfo) FindField(name string) *FieldInfo {
-	return gi_struct_info_find_field.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_struct_info_find_field.Fn()(info, n)
 }
 
 func (info *StructInfo) GetNMethods() uint32 {
@@ -747,7 +795,9 @@ func (info *StructInfo) GetMethod(n uint32) *FunctionInfo {
 }
 
 func (info *StructInfo) FindMethod(name string) *FunctionInfo {
-	return gi_struct_info_find_method.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_struct_info_find_method.Fn()(info, n)
 }
 
 func (info *StructInfo) GetSize() uint {
@@ -759,19 +809,19 @@ func (info *StructInfo) GetAlignment() uint {
 }
 
 func (info *StructInfo) IsGTypeStruct() bool {
-	return gi_struct_info_is_gtype_struct.Fn()(info)
+	return gi_struct_info_is_gtype_struct.Fn()(info) != 0
 }
 
 func (info *StructInfo) IsForeign() bool {
-	return gi_struct_info_is_foreign.Fn()(info)
+	return gi_struct_info_is_foreign.Fn()(info) != 0
 }
 
 func (info *StructInfo) GetCopyFunctionName() string {
-	return gi_struct_info_get_copy_function_name.Fn()(info)
+	return gi_struct_info_get_copy_function_name.Fn()(info).String()
 }
 
 func (info *StructInfo) GetFreeFunctionName() string {
-	return gi_struct_info_get_free_function_name.Fn()(info)
+	return gi_struct_info_get_free_function_name.Fn()(info).String()
 }
 
 // endregion
@@ -781,18 +831,18 @@ func (info *StructInfo) GetFreeFunctionName() string {
 type TypeInfo struct{ BaseInfo }
 
 func TypeTagToString(tag int32) string {
-	return gi_type_tag_to_string.Fn()(tag)
+	return gi_type_tag_to_string.Fn()(tag).String()
 }
 
 func (info *TypeInfo) IsPointer() bool {
-	return gi_type_info_is_pointer.Fn()(info)
+	return gi_type_info_is_pointer.Fn()(info) != 0
 }
 
 func (info *TypeInfo) GetTag() int32 {
 	return gi_type_info_get_tag.Fn()(info)
 }
 func (info *TypeInfo) GetTagString() string {
-	return gi_type_tag_to_string.Fn()(gi_type_info_get_tag.Fn()(info))
+	return gi_type_tag_to_string.Fn()(gi_type_info_get_tag.Fn()(info)).String()
 }
 
 func (info *TypeInfo) GetParamType(n uint32) *TypeInfo {
@@ -805,18 +855,18 @@ func (info *TypeInfo) GetInterface() *BaseInfo {
 
 func (info *TypeInfo) GetArrayLengthIndex() (uint32, bool) {
 	var index uint32
-	ok := gi_type_info_get_array_length_index.Fn()(info, &index)
+	ok := gi_type_info_get_array_length_index.Fn()(info, &index) != 0
 	return index, ok
 }
 
 func (info *TypeInfo) GetArrayFixedSize() (uint, bool) {
 	var size uint
-	ok := gi_type_info_get_array_fixed_size.Fn()(info, &size)
+	ok := gi_type_info_get_array_fixed_size.Fn()(info, &size) != 0
 	return size, ok
 }
 
 func (info *TypeInfo) IsZeroTerminated() bool {
-	return gi_type_info_is_zero_terminated.Fn()(info)
+	return gi_type_info_is_zero_terminated.Fn()(info) != 0
 }
 
 func (info *TypeInfo) GetArrayType() int32 {
@@ -866,12 +916,12 @@ func (info *UnionInfo) GetMethod(n uint32) *FunctionInfo {
 }
 
 func (info *UnionInfo) IsDiscriminated() bool {
-	return gi_union_info_is_discriminated.Fn()(info)
+	return gi_union_info_is_discriminated.Fn()(info) != 0
 }
 
 func (info *UnionInfo) GetDiscriminatorOffset() (uint, bool) {
 	var offset uint
-	ok := gi_union_info_get_discriminator_offset.Fn()(info, &offset)
+	ok := gi_union_info_get_discriminator_offset.Fn()(info, &offset) != 0
 	return offset, ok
 }
 
@@ -884,7 +934,9 @@ func (info *UnionInfo) GetDiscriminator(n uint) *ConstantInfo {
 }
 
 func (info *UnionInfo) FindMethod(name string) *FunctionInfo {
-	return gi_union_info_find_method.Fn()(info, name)
+	n := cc.NewString(name)
+	defer n.Free()
+	return gi_union_info_find_method.Fn()(info, n)
 }
 
 func (info *UnionInfo) GetSize() uint {
@@ -896,11 +948,11 @@ func (info *UnionInfo) GetAlignment() uint {
 }
 
 func (info *UnionInfo) GetCopyFunctionName() string {
-	return gi_union_info_get_copy_function_name.Fn()(info)
+	return gi_union_info_get_copy_function_name.Fn()(info).String()
 }
 
 func (info *UnionInfo) GetFreeFunctionName() string {
-	return gi_union_info_get_free_function_name.Fn()(info)
+	return gi_union_info_get_free_function_name.Fn()(info).String()
 }
 
 // endregion
@@ -944,10 +996,7 @@ func (info *VFuncInfo) GetInvoker() *FunctionInfo {
 func (info *VFuncInfo) GetAddress(implementorGType gobject.GType) (uptr, error) {
 	var gerr *glib.GError
 	addr := gi_vfunc_info_get_address.Fn()(info, implementorGType, &gerr)
-	if gerr != nil {
-		return nil, errors.New(gerr.Message.String())
-	}
-	return addr, nil
+	return addr, gerr.TakeError()
 }
 
 // endregion
@@ -974,10 +1023,7 @@ type Typelib struct{ BaseInfo }
 func NewTypelibFromBytes(bytes uptr) (*Typelib, error) {
 	var gerr *glib.GError
 	typelib := gi_typelib_new_from_bytes.Fn()(bytes, &gerr)
-	if gerr != nil {
-		return nil, errors.New(gerr.Message.String())
-	}
-	return typelib, nil
+	return typelib, gerr.TakeError()
 }
 
 func (typelib *Typelib) Ref() *Typelib {
@@ -990,12 +1036,14 @@ func (typelib *Typelib) Unref() {
 
 func (typelib *Typelib) Symbol(symbolName string) (uptr, bool) {
 	var symbol uptr
-	ok := gi_typelib_symbol.Fn()(typelib, symbolName, &symbol)
+	n := cc.NewString(symbolName)
+	defer n.Free()
+	ok := gi_typelib_symbol.Fn()(typelib, n, &symbol) != 0
 	return symbol, ok
 }
 
 func (typelib *Typelib) GetNamespace() string {
-	return gi_typelib_get_namespace.Fn()(typelib)
+	return gi_typelib_get_namespace.Fn()(typelib).String()
 }
 
 // endregion

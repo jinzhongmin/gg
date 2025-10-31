@@ -1,7 +1,7 @@
 package cairo
 
 import (
-	"runtime"
+	"unsafe"
 
 	"github.com/jinzhongmin/gg/cc"
 	"github.com/jinzhongmin/gg/glib/gobject"
@@ -10,10 +10,17 @@ import (
 // #region cairo.h
 
 func Version() int32        { return cairo_version.Fn()() }
-func VersionString() string { return cairo_version_string.Fn()() }
+func VersionString() string { return cairo_version_string.Fn()().String() }
 
 type Bool int32
 type Context struct{}
+
+func cbool(b bool) Bool {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 type SurfaceIface interface {
 	GetSurfaceIface() *Surface
@@ -74,7 +81,14 @@ func (cr *Context) Destroy()                          { cairo_destroy.Fn()(cr) }
 func (cr *Context) GetReferenceCount() uint32         { return cairo_get_reference_count.Fn()(cr) }
 func (cr *Context) GetUserData(key *UserDataKey) uptr { return cairo_get_user_data.Fn()(cr, key) }
 func (cr *Context) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_set_user_data.Fn()(cr, key, anyptr(user_data), vcbu(destroy))
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_set_user_data.Fn()(cr, key, anyptr(user_data), des)
 }
 func (cr *Context) Save()      { cairo_save.Fn()(cr) }
 func (cr *Context) Restore()   { cairo_restore.Fn()(cr) }
@@ -99,14 +113,14 @@ func (cr *Context) SetSourceSurface(surface SurfaceIface, x, y float64) {
 func (cr *Context) SetTolerance(tolerance float64) { cairo_set_tolerance.Fn()(cr, tolerance) }
 
 func (cr *Context) SetAntialias(antialias Antialias) { cairo_set_antialias.Fn()(cr, antialias) }
-func (cr *Context) SetFillRule(fill_rule FillRule)   { cairo_set_fill_rule.Fn()(cr, fill_rule) }
+func (cr *Context) SetFillRule(fillRule FillRule)    { cairo_set_fill_rule.Fn()(cr, fillRule) }
 func (cr *Context) SetLineWidth(width float64)       { cairo_set_line_width.Fn()(cr, width) }
-func (cr *Context) SetHairline(set_hairline Bool)    { cairo_set_hairline.Fn()(cr, set_hairline) }
+func (cr *Context) SetHairline(setHairline bool)     { cairo_set_hairline.Fn()(cr, cbool(setHairline)) }
 
-func (cr *Context) SetLineCap(line_cap LineCap)    { cairo_set_line_cap.Fn()(cr, line_cap) }
-func (cr *Context) SetLineJoin(line_join LineJoin) { cairo_set_line_join.Fn()(cr, line_join) }
-func (cr *Context) SetDash(dashes []float64, num_dashes int32, offset float64) {
-	cairo_set_dash.Fn()(cr, carry(dashes), num_dashes, offset)
+func (cr *Context) SetLineCap(lineCap LineCap)    { cairo_set_line_cap.Fn()(cr, lineCap) }
+func (cr *Context) SetLineJoin(lineJoin LineJoin) { cairo_set_line_join.Fn()(cr, lineJoin) }
+func (cr *Context) SetDash(dashes []float64, numDashes int32, offset float64) {
+	cairo_set_dash.Fn()(cr, carry(dashes), numDashes, offset)
 }
 func (cr *Context) SetMiterLimit(limit float64) { cairo_set_miter_limit.Fn()(cr, limit) }
 func (cr *Context) Translate(tx, ty float64)    { cairo_translate.Fn()(cr, tx, ty) }
@@ -161,9 +175,9 @@ func (cr *Context) Fill()                      { cairo_fill.Fn()(cr) }
 func (cr *Context) FillPreserve()              { cairo_fill_preserve.Fn()(cr) }
 func (cr *Context) CopyPage()                  { cairo_copy_page.Fn()(cr) }
 func (cr *Context) ShowPage()                  { cairo_show_page.Fn()(cr) }
-func (cr *Context) InStroke(x, y float64) Bool { return cairo_in_stroke.Fn()(cr, x, y) }
-func (cr *Context) InFill(x, y float64) Bool   { return cairo_in_fill.Fn()(cr, x, y) }
-func (cr *Context) InClip(x, y float64) Bool   { return cairo_in_clip.Fn()(cr, x, y) }
+func (cr *Context) InStroke(x, y float64) bool { return cairo_in_stroke.Fn()(cr, x, y) != 0 }
+func (cr *Context) InFill(x, y float64) bool   { return cairo_in_fill.Fn()(cr, x, y) != 0 }
+func (cr *Context) InClip(x, y float64) bool   { return cairo_in_clip.Fn()(cr, x, y) != 0 }
 func (cr *Context) StrokeExtents() (x1, y1, x2, y2 float64) {
 	cairo_stroke_extents.Fn()(cr, &x1, &y1, &x2, &y2)
 	return
@@ -192,23 +206,23 @@ type RectangleList struct {
 }
 
 func (rl *RectangleList) GetList() []Rectangle {
-	return *(*[]Rectangle)(slice(uptr(rl.Rectangles), int(rl.NumRectangles)))
+	return slice(rl.Rectangles, rl.NumRectangles)
 }
 
 func (cr *Context) CopyClipRectangleList() *RectangleList {
 	return cairo_copy_clip_rectangle_list.Fn()(cr)
 }
-func RectangleListDestroy(rectangle_list *RectangleList) {
-	cairo_rectangle_list_destroy.Fn()(rectangle_list)
+func RectangleListDestroy(rectangleList *RectangleList) {
+	cairo_rectangle_list_destroy.Fn()(rectangleList)
 }
-func (cr *Context) TagBegin(tag_name, attributes string) {
-	cTag, cAttr := cc.NewString(tag_name), cc.NewString(attributes)
+func (cr *Context) TagBegin(tagName, attributes string) {
+	cTag, cAttr := cc.NewString(tagName), cc.NewString(attributes)
 	defer cTag.Free()
 	defer cAttr.Free()
 	cairo_tag_begin.Fn()(cr, cTag, cAttr)
 }
-func (cr *Context) TagEnd(tag_name string) {
-	cTag := cc.NewString(tag_name)
+func (cr *Context) TagEnd(tagName string) {
+	cTag := cc.NewString(tagName)
 	defer cTag.Free()
 	cairo_tag_end.Fn()(cr, cTag)
 }
@@ -246,16 +260,16 @@ type Glyph struct {
 	X, Y  float64
 }
 
-func GlyphAllocate(num_glyphs int32) *Glyph { return cairo_glyph_allocate.Fn()(num_glyphs) }
-func GlyphFree(glyphs *Glyph)               { cairo_glyph_free.Fn()(glyphs) }
+func GlyphAllocate(numGlyphs int32) *Glyph { return cairo_glyph_allocate.Fn()(numGlyphs) }
+func GlyphFree(glyphs *Glyph)              { cairo_glyph_free.Fn()(glyphs) }
 
 type TextCluster struct {
 	NumBytes  int32
 	NumGlyphs int32
 }
 
-func TextClusterAllocate(num_clusters int32) *TextCluster {
-	return cairo_text_cluster_allocate.Fn()(num_clusters)
+func TextClusterAllocate(numClusters int32) *TextCluster {
+	return cairo_text_cluster_allocate.Fn()(numClusters)
 }
 func TextClusterFree(clusters *TextCluster) { cairo_text_cluster_free.Fn()(clusters) }
 
@@ -282,8 +296,8 @@ func (fo *FontOptions) Copy() *FontOptions       { return cairo_font_options_cop
 func (fo *FontOptions) Destroy()                 { cairo_font_options_destroy.Fn()(fo) }
 func (fo *FontOptions) Status() Status           { return cairo_font_options_status.Fn()(fo) }
 func (fo *FontOptions) Merge(other *FontOptions) { cairo_font_options_merge.Fn()(fo, other) }
-func (fo *FontOptions) Equal(other *FontOptions) Bool {
-	return cairo_font_options_equal.Fn()(fo, other)
+func (fo *FontOptions) Equal(other *FontOptions) bool {
+	return cairo_font_options_equal.Fn()(fo, other) != 0
 }
 func (fo *FontOptions) Hash() uint64 { return cairo_font_options_hash.Fn()(fo) }
 func (fo *FontOptions) SetAntialias(antialias Antialias) {
@@ -292,20 +306,20 @@ func (fo *FontOptions) SetAntialias(antialias Antialias) {
 func (fo *FontOptions) GetAntialias() Antialias {
 	return Antialias(cairo_font_options_get_antialias.Fn()(fo))
 }
-func (fo *FontOptions) SetSubpixelOrder(subpixel_order SubpixelOrder) {
-	cairo_font_options_set_subpixel_order.Fn()(fo, subpixel_order)
+func (fo *FontOptions) SetSubpixelOrder(subpixelOrder SubpixelOrder) {
+	cairo_font_options_set_subpixel_order.Fn()(fo, subpixelOrder)
 }
 func (fo *FontOptions) GetSubpixelOrder() SubpixelOrder {
 	return SubpixelOrder(cairo_font_options_get_subpixel_order.Fn()(fo))
 }
-func (fo *FontOptions) SetHintStyle(hint_style HintStyle) {
-	cairo_font_options_set_hint_style.Fn()(fo, hint_style)
+func (fo *FontOptions) SetHintStyle(hintStyle HintStyle) {
+	cairo_font_options_set_hint_style.Fn()(fo, hintStyle)
 }
 func (fo *FontOptions) GetHintStyle() HintStyle {
 	return HintStyle(cairo_font_options_get_hint_style.Fn()(fo))
 }
-func (fo *FontOptions) SetHintMetrics(hint_metrics HintMetrics) {
-	cairo_font_options_set_hint_metrics.Fn()(fo, hint_metrics)
+func (fo *FontOptions) SetHintMetrics(hintMetrics HintMetrics) {
+	cairo_font_options_set_hint_metrics.Fn()(fo, hintMetrics)
 }
 func (fo *FontOptions) GetHintMetrics() HintMetrics {
 	return HintMetrics(cairo_font_options_get_hint_metrics.Fn()(fo))
@@ -318,13 +332,13 @@ func (fo *FontOptions) SetVariations(variations string) {
 	defer cVar.Free()
 	cairo_font_options_set_variations.Fn()(fo, cVar)
 }
-func (fo *FontOptions) SetColorMode(color_mode ColorMode) {
-	cairo_font_options_set_color_mode.Fn()(fo, color_mode)
+func (fo *FontOptions) SetColorMode(colorMode ColorMode) {
+	cairo_font_options_set_color_mode.Fn()(fo, colorMode)
 }
 func (fo *FontOptions) GetColorMode() ColorMode { return cairo_font_options_get_color_mode.Fn()(fo) }
 func (fo *FontOptions) GetColorPalette() uint32 { return cairo_font_options_get_color_palette.Fn()(fo) }
-func (fo *FontOptions) SetColorPalette(palette_index uint32) {
-	cairo_font_options_set_color_palette.Fn()(fo, palette_index)
+func (fo *FontOptions) SetColorPalette(paletteIndex uint32) {
+	cairo_font_options_set_color_palette.Fn()(fo, paletteIndex)
 }
 func (fo *FontOptions) SetCustomPaletteColor(index uint32, red, green, blue, alpha float64) {
 	cairo_font_options_set_custom_palette_color.Fn()(fo, index, red, green, blue, alpha)
@@ -347,12 +361,12 @@ func (cr *Context) GetFontOptions() (options FontOptions) {
 	cairo_get_font_options.Fn()(cr, &options)
 	return
 }
-func (cr *Context) SetFontFace(font_face FontFaceIface) {
-	cairo_set_font_face.Fn()(cr, GetFontFaceIface(font_face))
+func (cr *Context) SetFontFace(fontFace FontFaceIface) {
+	cairo_set_font_face.Fn()(cr, GetFontFaceIface(fontFace))
 }
 func (cr *Context) GetFontFace() *FontFace { return cairo_get_font_face.Fn()(cr) }
-func (cr *Context) SetScaledFont(scaled_font *ScaledFont) {
-	cairo_set_scaled_font.Fn()(cr, scaled_font)
+func (cr *Context) SetScaledFont(scaledFont *ScaledFont) {
+	cairo_set_scaled_font.Fn()(cr, scaledFont)
 }
 func (cr *Context) GetScaledFont() *ScaledFont { return cairo_get_scaled_font.Fn()(cr) }
 func (cr *Context) ShowText(utf8 string) {
@@ -363,14 +377,14 @@ func (cr *Context) ShowText(utf8 string) {
 func (cr *Context) ShowGlyphs(glyphs []Glyph) {
 	cairo_show_glyphs.Fn()(cr, carry(glyphs), int32(len(glyphs)))
 }
-func (cr *Context) ShowTextGlyphs(utf8 string, glyphs []Glyph, clusters []TextCluster, cluster_flags int32) {
+func (cr *Context) ShowTextGlyphs(utf8 string, glyphs []Glyph, clusters []TextCluster, clusterFlags int32) {
 	cUtf8 := cc.NewString(utf8)
 	defer cUtf8.Free()
 	cairo_show_text_glyphs.Fn()(cr,
 		cUtf8, int32(len(utf8)),
 		carry(glyphs), int32(len(glyphs)),
 		carry(clusters), int32(len(clusters)),
-		cluster_flags)
+		clusterFlags)
 }
 func (cr *Context) TextPath(utf8 string) {
 	cUtf8 := cc.NewString(utf8)
@@ -398,12 +412,19 @@ func (ff *FontFace) GetType() FontType         { return cairo_font_face_get_type
 func (ff *FontFace) GetUserData(key *UserDataKey) uptr {
 	return cairo_font_face_get_user_data.Fn()(ff, key)
 }
-func (ff *FontFace) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_font_face_set_user_data.Fn()(ff, key, anyptr(user_data), vcbu(destroy))
+func (ff *FontFace) SetUserData(key *UserDataKey, userData interface{}, destroy func(uptr)) Status {
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_font_face_set_user_data.Fn()(ff, key, anyptr(userData), des)
 }
 
-func CreateScaledFont(font_face FontFaceIface, font_matrix, ctm *Matrix, options *FontOptions) *ScaledFont {
-	return cairo_scaled_font_create.Fn()(GetFontFaceIface(font_face), font_matrix, ctm, options)
+func CreateScaledFont(fontFace FontFaceIface, fontMatrix, ctm *Matrix, options *FontOptions) *ScaledFont {
+	return cairo_scaled_font_create.Fn()(GetFontFaceIface(fontFace), fontMatrix, ctm, options)
 }
 func (sf *ScaledFont) Reference() *ScaledFont { return cairo_scaled_font_reference.Fn()(sf) }
 func (sf *ScaledFont) Destroy()               { cairo_scaled_font_destroy.Fn()(sf) }
@@ -415,8 +436,15 @@ func (sf *ScaledFont) GetType() FontType { return cairo_scaled_font_get_type.Fn(
 func (sf *ScaledFont) GetUserData(key *UserDataKey) uptr {
 	return cairo_scaled_font_get_user_data.Fn()(sf, key)
 }
-func (sf *ScaledFont) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_scaled_font_set_user_data.Fn()(sf, key, anyptr(user_data), vcbu(destroy))
+func (sf *ScaledFont) SetUserData(key *UserDataKey, userData interface{}, destroy func(uptr)) Status {
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_scaled_font_set_user_data.Fn()(sf, key, anyptr(userData), des)
 }
 func (sf *ScaledFont) Extents(extents *FontExtents) { cairo_scaled_font_extents.Fn()(sf, extents) }
 func (sf *ScaledFont) TextExtents(utf8 string, extents *TextExtents) {
@@ -438,17 +466,17 @@ func (sf *ScaledFont) TextToGlyphs(x, y float64, utf8 string) (glyphs []Glyph, c
 	status = cairo_scaled_font_text_to_glyphs.Fn()(sf, x, y, cUtf8, int32(len(utf8)),
 		&glyphsPtr, &numGlyphs, &clustersPtr, &numClusters, &flags)
 	if glyphsPtr != nil && numGlyphs > 0 {
-		glyphs = *(*[]Glyph)(slice(uptr(glyphsPtr), int(numGlyphs)))
+		glyphs = slice((glyphsPtr), numGlyphs)
 	}
 	if clustersPtr != nil && numClusters > 0 {
-		clusters = *(*[]TextCluster)(slice(uptr(clustersPtr), int(numClusters)))
+		clusters = slice(clustersPtr, numClusters)
 	}
 	cluster_flags = flags
 	return
 }
 func (sf *ScaledFont) GetFontFace() *FontFace { return cairo_scaled_font_get_font_face.Fn()(sf) }
-func (sf *ScaledFont) GetFontMatrix() (font_matrix Matrix) {
-	cairo_scaled_font_get_font_matrix.Fn()(sf, &font_matrix)
+func (sf *ScaledFont) GetFontMatrix() (fontMatrix Matrix) {
+	cairo_scaled_font_get_font_matrix.Fn()(sf, &fontMatrix)
 	return
 }
 func (sf *ScaledFont) GetCTM() (ctm Matrix) { cairo_scaled_font_get_ctm.Fn()(sf, &ctm); return }
@@ -475,26 +503,40 @@ type UserFontFace struct{ FontFace }
 
 func CreateUserFontFace() *UserFontFace { return cairo_user_font_face_create.Fn()() }
 
-func (ff *UserFontFace) SetInitFunc(init_func func(scaledFont *ScaledFont, cr *Context, extents *FontExtents) Status) {
-	cairo_user_font_face_set_init_func.Fn()(ff, vcbu(init_func))
+// init_func:
+//
+//	func(scaledFont *ScaledFont, cr *Context, extents *FontExtents) Status
+func (ff *UserFontFace) SetInitFunc(initFunc cc.Func) {
+	cairo_user_font_face_set_init_func.Fn()(ff, initFunc)
 }
-func (ff *UserFontFace) SetRenderGlyphFunc(
-	render_glyph_func func(scaledFont *ScaledFont, glyph uint64, cr *Context, extents *TextExtents) Status) {
-	cairo_user_font_face_set_render_glyph_func.Fn()(ff, vcbu(render_glyph_func))
+
+// render_glyph_func:
+//
+//	func(scaledFont *ScaledFont, glyph uint64, cr *Context, extents *TextExtents) Status
+func (ff *UserFontFace) SetRenderGlyphFunc(renderGlyphFunc cc.Func) {
+	cairo_user_font_face_set_render_glyph_func.Fn()(ff, renderGlyphFunc)
 }
-func (ff *UserFontFace) SetRenderColorGlyphFunc(
-	render_glyph_func func(scaledFont *ScaledFont, glyph uint64, cr *Context, extents *TextExtents) Status) {
-	cairo_user_font_face_set_render_color_glyph_func.Fn()(ff, vcbu(render_glyph_func))
+
+// render_glyph_func:
+//
+//	func(scaledFont *ScaledFont, glyph uint64, cr *Context, extents *TextExtents) Status
+func (ff *UserFontFace) SetRenderColorGlyphFunc(renderGlyphFunc cc.Func) {
+	cairo_user_font_face_set_render_color_glyph_func.Fn()(ff, renderGlyphFunc)
 }
-func (ff *UserFontFace) SetTextToGlyphsFunc(
-	text_to_glyphs_func func(scaledFont *ScaledFont,
-		glyphs **Glyph, numGlyphs *int32,
-		clusters **TextCluster, numClusters *int32, clusterFlags *TextClusterFlags) Status) {
-	cairo_user_font_face_set_text_to_glyphs_func.Fn()(ff, vcbu(text_to_glyphs_func))
+
+// text_to_glyphs_func:
+//
+//	 func(scaledFont *ScaledFont,glyphs **Glyph, numGlyphs *int32,
+//			clusters **TextCluster, numClusters *int32, clusterFlags *TextClusterFlags) Status
+func (ff *UserFontFace) SetTextToGlyphsFunc(textToGlyphsFunc cc.Func) {
+	cairo_user_font_face_set_text_to_glyphs_func.Fn()(ff, textToGlyphsFunc)
 }
-func (ff *UserFontFace) SetUnicodeToGlyphFunc(
-	unicode_to_glyph_func func(scaledFont *ScaledFont, unicode uint64, glyphIndex *uint64) Status) {
-	cairo_user_font_face_set_unicode_to_glyph_func.Fn()(ff, vcbu(unicode_to_glyph_func))
+
+// unicode_to_glyph_func:
+//
+//	func(scaledFont *ScaledFont, unicode uint64, glyphIndex *uint64) Status
+func (ff *UserFontFace) SetUnicodeToGlyphFunc(unicodeToGlyphFunc cc.Func) {
+	cairo_user_font_face_set_unicode_to_glyph_func.Fn()(ff, unicodeToGlyphFunc)
 }
 
 func (ff *UserFontFace) GetInitFunc() cc.Func { return cairo_user_font_face_get_init_func.Fn()(ff) }
@@ -524,11 +566,11 @@ func (cr *Context) GetOperator() Operator           { return cairo_get_operator.
 func (cr *Context) GetSource() *Pattern             { return cairo_get_source.Fn()(cr) }
 func (cr *Context) GetTolerance() float64           { return cairo_get_tolerance.Fn()(cr) }
 func (cr *Context) GetAntialias() Antialias         { return cairo_get_antialias.Fn()(cr) }
-func (cr *Context) HasCurrentPoint() Bool           { return cairo_has_current_point.Fn()(cr) }
+func (cr *Context) HasCurrentPoint() bool           { return cairo_has_current_point.Fn()(cr) != 0 }
 func (cr *Context) GetCurrentPoint() (x, y float64) { cairo_get_current_point.Fn()(cr, &x, &y); return }
 func (cr *Context) GetFillRule() FillRule           { return cairo_get_fill_rule.Fn()(cr) }
 func (cr *Context) GetLineWidth() float64           { return cairo_get_line_width.Fn()(cr) }
-func (cr *Context) GetHairline() Bool               { return cairo_get_hairline.Fn()(cr) }
+func (cr *Context) GetHairline() bool               { return cairo_get_hairline.Fn()(cr) != 0 }
 func (cr *Context) GetLineCap() LineCap             { return cairo_get_line_cap.Fn()(cr) }
 func (cr *Context) GetLineJoin() LineJoin           { return cairo_get_line_join.Fn()(cr) }
 func (cr *Context) GetMiterLimit() float64          { return cairo_get_miter_limit.Fn()(cr) }
@@ -561,7 +603,7 @@ type Path struct {
 	NumData int32
 }
 
-func (p *Path) PathData() []PathData { return *(*[]PathData)(slice(uptr(p.Data), int(p.NumData))) }
+func (p *Path) PathData() []PathData { return slice(p.Data, p.NumData) }
 
 func (cr *Context) CopyPath() *Path       { return cairo_copy_path.Fn()(cr) }
 func (cr *Context) CopyPathFlat() *Path   { return cairo_copy_path_flat.Fn()(cr) }
@@ -581,8 +623,15 @@ func (d *Device) Finish()                           { cairo_device_finish.Fn()(d
 func (d *Device) Destroy()                          { cairo_device_destroy.Fn()(d) }
 func (d *Device) GetReferenceCount() uint32         { return cairo_device_get_reference_count.Fn()(d) }
 func (d *Device) GetUserData(key *UserDataKey) uptr { return cairo_device_get_user_data.Fn()(d, key) }
-func (d *Device) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_device_set_user_data.Fn()(d, key, anyptr(user_data), vcbu(destroy))
+func (d *Device) SetUserData(key *UserDataKey, userData interface{}, destroy func(uptr)) Status {
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_device_set_user_data.Fn()(d, key, anyptr(userData), des)
 }
 
 func (s *Surface) CreateSimilar(content int32, width, height int32) *Surface {
@@ -606,43 +655,84 @@ type SurfaceObserver struct{ Surface }
 func (s *Surface) CreateObserver(mode SurfaceObserverMode) *SurfaceObserver {
 	return cairo_surface_create_observer.Fn()(s, mode)
 }
-func (s *SurfaceObserver) AddPaintCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_paint_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddPaintCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_paint_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddMaskCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_mask_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddMaskCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_mask_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddFillCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_fill_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddFillCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_fill_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddStrokeCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_stroke_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddStrokeCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_stroke_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddGlyphsCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_glyphs_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	fn func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddGlyphsCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_glyphs_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddFlushCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_flush_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	fn func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddFlushCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_flush_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) AddFinishCallback(
-	fn func(observer, target *Surface, data uptr), data interface{}) Status {
-	return cairo_surface_observer_add_finish_callback.Fn()(s, vcbu(fn), anyptr(data))
+
+// fn:
+//
+//	fn func(observer, target *Surface, data uptr)
+func (s *SurfaceObserver) AddFinishCallback(fn cc.Func, data interface{}) Status {
+	return cairo_surface_observer_add_finish_callback.Fn()(s, fn, anyptr(data))
 }
-func (s *SurfaceObserver) Print(
-	write_func func(closure, dataCharPtr uptr, lenght uint32), closure uptr) Status {
-	return cairo_surface_observer_print.Fn()(s, vcbu(write_func), closure)
+func (s *SurfaceObserver) Print(writeFunc func([]byte, uint32) Status, closure uptr) Status {
+	var cb uptr
+	cb = cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		ret := writeFunc(bts, l)
+		*(*Status)(out) = ret
+		if ret != StatusSuccess {
+			cc.CbkCloseLate(cb)
+		}
+	})
+	return cairo_surface_observer_print.Fn()(s, cb, closure)
 }
 func (s *SurfaceObserver) Elapsed() float64 { return cairo_surface_observer_elapsed.Fn()(s) }
 
-func (d *Device) ObserverPrint(
-	write_func func(closure, dataCharPtr uptr, lenght uint32), closure uptr) Status {
-	return cairo_device_observer_print.Fn()(d, vcbu(write_func), closure)
+func (d *Device) ObserverPrint(writeFunc func([]byte, uint32) Status) Status {
+	var cb uptr
+	cb = cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		ret := writeFunc(bts, l)
+		*(*Status)(out) = ret
+		if ret != StatusSuccess {
+			cc.CbkCloseLate(cb)
+		}
+	})
+	return cairo_device_observer_print.Fn()(d, cb, nil)
 }
 func (d *Device) ObserverElapsed() float64       { return cairo_device_observer_elapsed.Fn()(d) }
 func (d *Device) ObserverPaintElapsed() float64  { return cairo_device_observer_paint_elapsed.Fn()(d) }
@@ -665,41 +755,59 @@ func (s *Surface) WriteToPNG(filename string) Status {
 	defer cFilename.Free()
 	return cairo_surface_write_to_png.Fn()(s, cFilename)
 }
-func (s *Surface) WriteToPNGStream(write_func func(closure, dataCharPtr uptr, lenght uint32), closure uptr) Status {
-	return cairo_surface_write_to_png_stream.Fn()(s, vcbu(write_func), anyptr(closure))
+func (s *Surface) WriteToPNGStream(writeFunc func([]byte, uint32) Status) Status {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		*(*Status)(out) = writeFunc(bts, l)
+	})
+	defer cc.CbkClose(cb)
+
+	return cairo_surface_write_to_png_stream.Fn()(s, cb, nil)
 }
 func (s *Surface) GetUserData(key *UserDataKey) uptr { return cairo_surface_get_user_data.Fn()(s, key) }
-func (s *Surface) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_surface_set_user_data.Fn()(s, key, anyptr(user_data), vcbu(destroy))
+func (s *Surface) SetUserData(key *UserDataKey, userData interface{}, destroy func(uptr)) Status {
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_surface_set_user_data.Fn()(s, key, anyptr(userData), des)
 }
-func (s *Surface) GetMimeData(mime_type MimeType) (data []byte) {
-	cMime := cc.NewString(string(mime_type))
+func (s *Surface) GetMimeData(mimeType MimeType) (data []byte) {
+	cMime := cc.NewString(string(mimeType))
 	defer cMime.Free()
 	var ptr *byte
 	var length uint64
 	cairo_surface_get_mime_data.Fn()(s, cMime, &ptr, &length)
 	if ptr != nil && length > 0 {
-		data = *(*[]byte)(slice(uptr(ptr), int(length)))
+		data = slice(ptr, length)
 	}
 	return
 }
-func (s *Surface) SetMimeData(mime_type MimeType, data []byte, destroy func(uptr), closure uptr) Status {
-	cMime := cc.NewString(string(mime_type))
+func (s *Surface) SetMimeData(mimeType MimeType, data []byte, destroy func()) Status {
+	cMime := cc.NewString(string(mimeType))
 	defer cMime.Free()
-	pin := runtime.Pinner{}
-	pin.Pin(data)
-	d := func(p uptr) {
-		defer pin.Unpin()
-		if destroy != nil {
-			destroy(p)
+
+	var des uptr
+	des = cc.Cbk(func() func(_ uptr) {
+		hold := data
+		return func(_ uptr) {
+			destroy()
+			_ = hold
+			cc.CbkClose(des)
 		}
-	}
-	return cairo_surface_set_mime_data.Fn()(s, cMime, carry(data), uint64(len(data)), vcbu(d), closure)
+	}())
+
+	return cairo_surface_set_mime_data.Fn()(s, cMime, carry(data), uint64(len(data)), des, nil)
 }
-func (s *Surface) SupportsMimeType(mime_type MimeType) Bool {
-	cMime := cc.NewString(string(mime_type))
+func (s *Surface) SupportsMimeType(mimeType MimeType) bool {
+	cMime := cc.NewString(string(mimeType))
 	defer cMime.Free()
-	return cairo_surface_supports_mime_type.Fn()(s, cMime)
+	return cairo_surface_supports_mime_type.Fn()(s, cMime) != 0
 }
 func (s *Surface) GetFontOptions(options *FontOptions) {
 	cairo_surface_get_font_options.Fn()(s, options)
@@ -709,30 +817,30 @@ func (s *Surface) MarkDirty() { cairo_surface_mark_dirty.Fn()(s) }
 func (s *Surface) MarkDirtyRectangle(x, y, width, height int32) {
 	cairo_surface_mark_dirty_rectangle.Fn()(s, x, y, width, height)
 }
-func (s *Surface) SetDeviceScale(x_scale, y_scale float64) {
-	cairo_surface_set_device_scale.Fn()(s, x_scale, y_scale)
+func (s *Surface) SetDeviceScale(xScale, yScale float64) {
+	cairo_surface_set_device_scale.Fn()(s, xScale, yScale)
 }
-func (s *Surface) GetDeviceScale() (x_scale, y_scale float64) {
-	cairo_surface_get_device_scale.Fn()(s, &x_scale, &y_scale)
+func (s *Surface) GetDeviceScale() (xScale, yScale float64) {
+	cairo_surface_get_device_scale.Fn()(s, &xScale, &yScale)
 	return
 }
-func (s *Surface) SetDeviceOffset(x_offset, y_offset float64) {
-	cairo_surface_set_device_offset.Fn()(s, x_offset, y_offset)
+func (s *Surface) SetDeviceOffset(xOffset, yOffset float64) {
+	cairo_surface_set_device_offset.Fn()(s, xOffset, yOffset)
 }
-func (s *Surface) GetDeviceOffset() (x_offset, y_offset float64) {
-	cairo_surface_get_device_offset.Fn()(s, &x_offset, &y_offset)
+func (s *Surface) GetDeviceOffset() (xOffset, yOffset float64) {
+	cairo_surface_get_device_offset.Fn()(s, &xOffset, &yOffset)
 	return
 }
-func (s *Surface) SetFallbackResolution(x_ppi, y_ppi float64) {
-	cairo_surface_set_fallback_resolution.Fn()(s, x_ppi, y_ppi)
+func (s *Surface) SetFallbackResolution(xPpi, yPpi float64) {
+	cairo_surface_set_fallback_resolution.Fn()(s, xPpi, yPpi)
 }
-func (s *Surface) GetFallbackResolution() (x_ppi, y_ppi float64) {
-	cairo_surface_get_fallback_resolution.Fn()(s, &x_ppi, &y_ppi)
+func (s *Surface) GetFallbackResolution() (xPpi, yPpi float64) {
+	cairo_surface_get_fallback_resolution.Fn()(s, &xPpi, &yPpi)
 	return
 }
 func (s *Surface) CopyPage()               { cairo_surface_copy_page.Fn()(s) }
 func (s *Surface) ShowPage()               { cairo_surface_show_page.Fn()(s) }
-func (s *Surface) HasShowTextGlyphs() Bool { return cairo_surface_has_show_text_glyphs.Fn()(s) }
+func (s *Surface) HasShowTextGlyphs() bool { return cairo_surface_has_show_text_glyphs.Fn()(s) != 0 }
 
 type ImageSurface struct{ Surface }
 
@@ -756,8 +864,16 @@ func CreateImageSurfaceFromPNG(filename string) *ImageSurface {
 	return cairo_image_surface_create_from_png.Fn()(cFilename)
 }
 func CreateImageSurfaceFromPNGStream(
-	read_func func(closure uptr, data uptr, length uint32) Status, closure uptr) *ImageSurface {
-	return cairo_image_surface_create_from_png_stream.Fn()(vcbu(read_func), anyptr(closure))
+	readFunc func(dest []byte, destSize uint32) Status) *ImageSurface {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		ret := readFunc(bts, l)
+		*(*Status)(out) = ret
+	})
+	defer cc.CbkClose(cb)
+	return cairo_image_surface_create_from_png_stream.Fn()(cb, nil)
 }
 
 type RecordingSurface struct{ Surface }
@@ -769,14 +885,14 @@ func (s *RecordingSurface) InkExtents() (x0, y0, width, height float64) {
 	cairo_recording_surface_ink_extents.Fn()(s, &x0, &y0, &width, &height)
 	return
 }
-func (s *RecordingSurface) GetExtents(extents *Rectangle) Bool {
-	return cairo_recording_surface_get_extents.Fn()(s, extents)
+func (s *RecordingSurface) GetExtents(extents *Rectangle) bool {
+	return cairo_recording_surface_get_extents.Fn()(s, extents) != 0
 }
 
 type RasterSourcePattern struct{ Pattern }
 
-func CreatePatternRasterSource(user_data interface{}, content Content, width, height int32) *RasterSourcePattern {
-	return cairo_pattern_create_raster_source.Fn()(anyptr(user_data), content, width, height)
+func CreatePatternRasterSource(userData interface{}, content Content, width, height int32) *RasterSourcePattern {
+	return cairo_pattern_create_raster_source.Fn()(anyptr(userData), content, width, height)
 }
 func (p *RasterSourcePattern) SetCallbackData(data interface{}) {
 	cairo_raster_source_pattern_set_callback_data.Fn()(p, anyptr(data))
@@ -784,29 +900,47 @@ func (p *RasterSourcePattern) SetCallbackData(data interface{}) {
 func (p *RasterSourcePattern) GetCallbackData() uptr {
 	return cairo_raster_source_pattern_get_callback_data.Fn()(p)
 }
-func (p *RasterSourcePattern) SetAcquire(
-	acquire func(pattern *Pattern, callbackData uptr, target *Surface, extents *RectangleInt) *Surface,
-	release func(pattern *Pattern, callbackData uptr, surface *Surface)) {
-	cairo_raster_source_pattern_set_acquire.Fn()(p, vcbu(acquire), vcbu(release))
+
+// acquire:
+//
+//	func(pattern *Pattern, callbackData uptr, target *Surface, extents *RectangleInt) *Surface
+//
+// release:
+//
+//	func(pattern *Pattern, callbackData uptr, surface *Surface)
+func (p *RasterSourcePattern) SetAcquire(acquire, release cc.Func) {
+	cairo_raster_source_pattern_set_acquire.Fn()(p, acquire, release)
 }
 func (p *RasterSourcePattern) GetAcquire() (acquire, release cc.Func) {
 	cairo_raster_source_pattern_get_acquire.Fn()(p, &acquire, &release)
 	return
 }
-func (p *RasterSourcePattern) SetSnapshot(snapshot func(pattern *Pattern, callbackData uptr) Status) {
-	cairo_raster_source_pattern_set_snapshot.Fn()(p, vcbu(snapshot))
+
+// snapshot:
+//
+//	func(pattern *Pattern, callbackData uptr) Status
+func (p *RasterSourcePattern) SetSnapshot(snapshot cc.Func) {
+	cairo_raster_source_pattern_set_snapshot.Fn()(p, snapshot)
 }
 func (p *RasterSourcePattern) GetSnapshot() cc.Func {
 	return cairo_raster_source_pattern_get_snapshot.Fn()(p)
 }
-func (p *RasterSourcePattern) SetCopy(copy func(pattern *Pattern, callbackData uptr, srcOther *Pattern) Status) {
-	cairo_raster_source_pattern_set_copy.Fn()(p, vcbu(copy))
+
+// copy:
+//
+//	func(pattern *Pattern, callbackData uptr, srcOther *Pattern) Status
+func (p *RasterSourcePattern) SetCopy(copy cc.Func) {
+	cairo_raster_source_pattern_set_copy.Fn()(p, copy)
 }
 func (p *RasterSourcePattern) GetCopy() cc.Func {
 	return cairo_raster_source_pattern_get_copy.Fn()(p)
 }
-func (p *RasterSourcePattern) SetFinish(finish func(pattern *Pattern, callbackData uptr)) {
-	cairo_raster_source_pattern_set_finish.Fn()(p, vcbu(finish))
+
+// finish:
+//
+//	func(pattern *Pattern, callbackData uptr)
+func (p *RasterSourcePattern) SetFinish(finish cc.Func) {
+	cairo_raster_source_pattern_set_finish.Fn()(p, finish)
 }
 func (p *RasterSourcePattern) GetFinish() cc.Func {
 	return cairo_raster_source_pattern_get_finish.Fn()(p)
@@ -861,8 +995,15 @@ func (p *Pattern) Status() Status {
 func (p *Pattern) GetUserData(key *UserDataKey) uptr {
 	return cairo_pattern_get_user_data.Fn()(p, key)
 }
-func (p *Pattern) SetUserData(key *UserDataKey, user_data interface{}, destroy func(uptr)) Status {
-	return cairo_pattern_set_user_data.Fn()(p, key, anyptr(user_data), vcbu(destroy))
+func (p *Pattern) SetUserData(key *UserDataKey, userData interface{}, destroy func(uptr)) Status {
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			destroy(d)
+			cc.CbkCloseLate(des)
+		})
+	}
+	return cairo_pattern_set_user_data.Fn()(p, key, anyptr(userData), des)
 }
 
 func (p *Pattern) GetType() PatternType { return cairo_pattern_get_type.Fn()(p) }
@@ -880,14 +1021,14 @@ func (p *MeshPattern) CurveTo(x1, y1, x2, y2, x3, y3 float64) {
 }
 func (p *MeshPattern) LineTo(x, y float64) { cairo_mesh_pattern_line_to.Fn()(p, x, y) }
 func (p *MeshPattern) MoveTo(x, y float64) { cairo_mesh_pattern_move_to.Fn()(p, x, y) }
-func (p *MeshPattern) SetControlPoint(point_num uint32, x, y float64) {
-	cairo_mesh_pattern_set_control_point.Fn()(p, point_num, x, y)
+func (p *MeshPattern) SetControlPoint(pointNum uint32, x, y float64) {
+	cairo_mesh_pattern_set_control_point.Fn()(p, pointNum, x, y)
 }
-func (p *MeshPattern) SetCornerColorRGB(corner_num uint32, red, green, blue float64) {
-	cairo_mesh_pattern_set_corner_color_rgb.Fn()(p, corner_num, red, green, blue)
+func (p *MeshPattern) SetCornerColorRGB(cornerNum uint32, red, green, blue float64) {
+	cairo_mesh_pattern_set_corner_color_rgb.Fn()(p, cornerNum, red, green, blue)
 }
-func (p *MeshPattern) SetCornerColorRGBA(corner_num uint32, red, green, blue, alpha float64) {
-	cairo_mesh_pattern_set_corner_color_rgba.Fn()(p, corner_num, red, green, blue, alpha)
+func (p *MeshPattern) SetCornerColorRGBA(cornerNum uint32, red, green, blue, alpha float64) {
+	cairo_mesh_pattern_set_corner_color_rgba.Fn()(p, cornerNum, red, green, blue, alpha)
 }
 
 func (p *Pattern) SetMatrix(matrix *Matrix)   { cairo_pattern_set_matrix.Fn()(p, matrix) }
@@ -925,15 +1066,15 @@ func (p *MeshPattern) MeshGetPatchCount() (count uint32, status Status) {
 	status = cairo_mesh_pattern_get_patch_count.Fn()(p, &count)
 	return
 }
-func (p *MeshPattern) MeshGetPath(patch_num uint32) *Path {
-	return cairo_mesh_pattern_get_path.Fn()(p, patch_num)
+func (p *MeshPattern) MeshGetPath(patchNum uint32) *Path {
+	return cairo_mesh_pattern_get_path.Fn()(p, patchNum)
 }
-func (p *MeshPattern) MeshGetCornerColorRGBA(patch_num, corner_num uint32) (red, green, blue, alpha float64, status Status) {
-	status = cairo_mesh_pattern_get_corner_color_rgba.Fn()(p, patch_num, corner_num, &red, &green, &blue, &alpha)
+func (p *MeshPattern) MeshGetCornerColorRGBA(patchNum, cornerNum uint32) (red, green, blue, alpha float64, status Status) {
+	status = cairo_mesh_pattern_get_corner_color_rgba.Fn()(p, patchNum, cornerNum, &red, &green, &blue, &alpha)
 	return
 }
-func (p *MeshPattern) MeshGetControlPoint(patch_num, point_num uint32) (x, y float64, status Status) {
-	status = cairo_mesh_pattern_get_control_point.Fn()(p, patch_num, point_num, &x, &y)
+func (p *MeshPattern) MeshGetControlPoint(patchNum, cornerNum uint32) (x, y float64, status Status) {
+	status = cairo_mesh_pattern_get_control_point.Fn()(p, patchNum, cornerNum, &x, &y)
 	return
 }
 
@@ -996,19 +1137,21 @@ func CreateRegionRectangles(rects *RectangleInt, count int32) *Region {
 func (r *Region) Copy() *Region                    { return cairo_region_copy.Fn()(r) }
 func (r *Region) Reference() *Region               { return cairo_region_reference.Fn()(r) }
 func (r *Region) Destroy()                         { cairo_region_destroy.Fn()(r) }
-func RegionEqual(a, b *Region) Bool                { return cairo_region_equal.Fn()(a, b) }
-func (r *Region) Equal(b *Region) Bool             { return cairo_region_equal.Fn()(r, b) }
+func RegionEqual(a, b *Region) bool                { return cairo_region_equal.Fn()(a, b) != 0 }
+func (r *Region) Equal(b *Region) bool             { return cairo_region_equal.Fn()(r, b) != 0 }
 func (r *Region) Status() Status                   { return cairo_region_status.Fn()(r) }
 func (r *Region) GetExtents(extents *RectangleInt) { cairo_region_get_extents.Fn()(r, extents) }
 func (r *Region) NumRectangles() int32             { return cairo_region_num_rectangles.Fn()(r) }
 func (r *Region) GetRectangle(nth int32, rectangle *RectangleInt) {
 	cairo_region_get_rectangle.Fn()(r, nth, rectangle)
 }
-func (r *Region) IsEmpty() Bool { return cairo_region_is_empty.Fn()(r) }
+func (r *Region) IsEmpty() bool { return cairo_region_is_empty.Fn()(r) != 0 }
 func (r *Region) ContainsRectangle(rectangle *RectangleInt) int32 {
 	return cairo_region_contains_rectangle.Fn()(r, rectangle)
 }
-func (r *Region) ContainsPoint(x, y int32) Bool { return cairo_region_contains_point.Fn()(r, x, y) }
+func (r *Region) ContainsPoint(x, y int32) bool {
+	return cairo_region_contains_point.Fn()(r, x, y) != 0
+}
 func (r *Region) Translate(dx, dy int32)        { cairo_region_translate.Fn()(r, dx, dy) }
 func (r *Region) Subtract(other *Region) Status { return cairo_region_subtract.Fn()(r, other) }
 func (r *Region) SubtractRectangle(rectangle *RectangleInt) Status {
@@ -1076,14 +1219,21 @@ func GTypeRegionOverlap() gobject.GType    { return cairo_gobject_region_overlap
 
 type PDFSurface struct{ Surface }
 
-func CreatePdfSurface(filename string, width_in_points, height_in_points float64) *PDFSurface {
+func CreatePdfSurface(filename string, widthInPoints, heightInPoints float64) *PDFSurface {
 	cFilename := cc.NewString(filename)
 	defer cFilename.Free()
-	return cairo_pdf_surface_create.Fn()(cFilename, width_in_points, height_in_points)
+	return cairo_pdf_surface_create.Fn()(cFilename, widthInPoints, heightInPoints)
 }
-func PDFSurfaceCreateForStream(write_func func(closure, data uptr, length uint32) Status, closure interface{},
-	width_in_points, height_in_points float64) *Surface {
-	return cairo_pdf_surface_create_for_stream.Fn()(vcbu(write_func), anyptr(closure), width_in_points, height_in_points)
+func PDFSurfaceCreateForStream(writeFunc func([]byte, uint32) Status,
+	widthInPoints, heightInPoints float64) *Surface {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		*(*Status)(out) = writeFunc(bts, l)
+	})
+	defer cc.CbkClose(cb)
+	return cairo_pdf_surface_create_for_stream.Fn()(cb, nil, widthInPoints, heightInPoints)
 }
 func (surface *PDFSurface) RestrictToVersion(version PDFVersion) {
 	cairo_pdf_surface_restrict_to_version.Fn()(surface, version)
@@ -1093,22 +1243,22 @@ func PDFGetVersions() (versions []PDFVersion) {
 	var n int32
 	cairo_pdf_get_versions.Fn()(&ptr, &n)
 	if ptr != nil && n > 0 {
-		versions = *(*[]PDFVersion)(slice(uptr(ptr), int(n)))
+		versions = slice(ptr, n)
 	}
 	return
 }
 func PDFVersionToString(version PDFVersion) string {
 	return cairo_pdf_version_to_string.Fn()(version).String()
 }
-func (surface *PDFSurface) SetSize(width_in_points, height_in_points float64) {
-	cairo_pdf_surface_set_size.Fn()(surface, width_in_points, height_in_points)
+func (surface *PDFSurface) SetSize(widthInPoints, heightInPoints float64) {
+	cairo_pdf_surface_set_size.Fn()(surface, widthInPoints, heightInPoints)
 }
-func (surface *PDFSurface) AddOutline(parent_id int32, utf8, link_attribs string, flags PDFOutlineFlags) int32 {
+func (surface *PDFSurface) AddOutline(parentId int32, utf8, linkAttribs string, flags PDFOutlineFlags) int32 {
 	cUtf8 := cc.NewString(utf8)
-	cLink := cc.NewString(link_attribs)
+	cLink := cc.NewString(linkAttribs)
 	defer cUtf8.Free()
 	defer cLink.Free()
-	return cairo_pdf_surface_add_outline.Fn()(surface, parent_id, cUtf8, cLink, flags)
+	return cairo_pdf_surface_add_outline.Fn()(surface, parentId, cUtf8, cLink, flags)
 }
 func (surface *PDFSurface) SetMetadata(metadata PDFMetadata, utf8 string) {
 	cUtf8 := cc.NewString(utf8)
@@ -1137,16 +1287,21 @@ func (surface *PDFSurface) SetThumbnailSize(width, height int32) {
 
 type PSSurface struct{ Surface }
 
-func CreatePSSurface(filename string, width_in_points, height_in_points float64) *PSSurface {
+func CreatePSSurface(filename string, widthInPoints, heightInPoints float64) *PSSurface {
 	cFilename := cc.NewString(filename)
 	defer cFilename.Free()
-	return cairo_ps_surface_create.Fn()(cFilename, width_in_points, height_in_points)
+	return cairo_ps_surface_create.Fn()(cFilename, widthInPoints, heightInPoints)
 }
 
-func CreatePSSurfaceForStream(
-	write_func func(closure, data uptr, length uint32) Status,
-	closure interface{}, width_in_points, height_in_points float64) *PSSurface {
-	return cairo_ps_surface_create_for_stream.Fn()(vcbu(write_func), anyptr(closure), width_in_points, height_in_points)
+func CreatePSSurfaceForStream(writeFunc func([]byte, uint32) Status, widthInPoints, heightInPoints float64) *PSSurface {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		*(*Status)(out) = writeFunc(bts, l)
+	})
+	defer cc.CbkClose(cb)
+	return cairo_ps_surface_create_for_stream.Fn()(cb, nil, widthInPoints, heightInPoints)
 }
 
 func (s *PSSurface) RestrictToLevel(level PSLevel) {
@@ -1158,7 +1313,7 @@ func PSGetLevels() (levels []PSLevel) {
 	var n int32
 	cairo_ps_get_levels.Fn()(&ptr, &n)
 	if ptr != nil && n > 0 {
-		levels = *(*[]PSLevel)(slice(uptr(ptr), int(n)))
+		levels = slice((ptr), n)
 	}
 	return
 }
@@ -1171,15 +1326,11 @@ func (level PSLevel) String() string {
 	return cairo_ps_level_to_string.Fn()(level).String()
 }
 func (s *PSSurface) SetEps(eps bool) {
-	var v Bool
-	if eps {
-		v = 1
-	}
-	cairo_ps_surface_set_eps.Fn()(s, v)
+	cairo_ps_surface_set_eps.Fn()(s, cbool(eps))
 }
-func (s *PSSurface) GetEps() Bool { return cairo_ps_surface_get_eps.Fn()(s) }
-func (s *PSSurface) SetSize(width_in_points, height_in_points float64) {
-	cairo_ps_surface_set_size.Fn()(s, width_in_points, height_in_points)
+func (s *PSSurface) GetEps() bool { return cairo_ps_surface_get_eps.Fn()(s) != 0 }
+func (s *PSSurface) SetSize(widthInPoints, heightInPoints float64) {
+	cairo_ps_surface_set_size.Fn()(s, widthInPoints, heightInPoints)
 }
 func (s *PSSurface) DscComment(comment string) {
 	cComment := cc.NewString(comment)
@@ -1200,10 +1351,15 @@ func CreateScriptDevice(filename string) *Script {
 	defer cFilename.Free()
 	return cairo_script_create.Fn()(cFilename)
 }
-func CreateScriptDeviceForStream(
-	write_func func(closure, data uptr, length uint32) Status,
-	closure interface{}) *Script {
-	return cairo_script_create_for_stream.Fn()(vcbu(write_func), anyptr(closure))
+func CreateScriptDeviceForStream(writeFunc func([]byte, uint32) Status) *Script {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		*(*Status)(out) = writeFunc(bts, l)
+	})
+	defer cc.CbkClose(cb)
+	return cairo_script_create_for_stream.Fn()(cb, nil)
 }
 func (d *Script) WriteComment(comment string) {
 	cComment := cc.NewString(comment)
@@ -1218,8 +1374,8 @@ func (d *Script) SurfaceCreate(content Content, width, height float64) *Surface 
 func (d *Script) SurfaceCreateForTarget(target SurfaceIface) *Surface {
 	return cairo_script_surface_create_for_target.Fn()(d, GetSurfaceIface(target))
 }
-func (d *Script) FromRecordingSurface(recording_surface SurfaceIface) Status {
-	return cairo_script_from_recording_surface.Fn()(d, GetSurfaceIface(recording_surface))
+func (d *Script) FromRecordingSurface(recordingSurface SurfaceIface) Status {
+	return cairo_script_from_recording_surface.Fn()(d, GetSurfaceIface(recordingSurface))
 }
 
 // #endregion
@@ -1228,14 +1384,23 @@ func (d *Script) FromRecordingSurface(recording_surface SurfaceIface) Status {
 
 type SVGSurface struct{ Surface }
 
-func CreateSVGSurface(filename string, width_in_points, height_in_points float64) *SVGSurface {
+func CreateSVGSurface(filename string, widthInPoints, heightInPoints float64) *SVGSurface {
 	cFilename := cc.NewString(filename)
 	defer cFilename.Free()
-	return cairo_svg_surface_create.Fn()(cFilename, width_in_points, height_in_points)
+	return cairo_svg_surface_create.Fn()(cFilename, widthInPoints, heightInPoints)
 }
 
-func CreateSVGSurfaceForStream(write_func func(closure, data uptr, length uint32) Status, closure interface{}, width_in_points, height_in_points float64) *SVGSurface {
-	return cairo_svg_surface_create_for_stream.Fn()(vcbu(write_func), anyptr(closure), width_in_points, height_in_points)
+func CreateSVGSurfaceForStream(writeFunc func([]byte, uint32) Status,
+	widthInPoints, heightInPoints float64) *SVGSurface {
+	cb := cc.CbkRaw[func(closure uptr, data *byte, length uint32) Status](func(out, ins uptr) {
+		is := unsafe.Slice((*uptr)(ins), 3)
+		l := *(*uint32)(is[2])
+		bts := unsafe.Slice(*(**byte)(is[1]), l)
+		*(*Status)(out) = writeFunc(bts, l)
+	})
+	defer cc.CbkClose(cb)
+
+	return cairo_svg_surface_create_for_stream.Fn()(cb, nil, widthInPoints, heightInPoints)
 }
 func (s *SVGSurface) RestrictToVersion(version SVGVersion) {
 	cairo_svg_surface_restrict_to_version.Fn()(s, version)
@@ -1245,7 +1410,7 @@ func SVGGetVersions() (versions []SVGVersion) {
 	var n int32
 	cairo_svg_get_versions.Fn()(&ptr, &n)
 	if ptr != nil && n > 0 {
-		versions = *(*[]SVGVersion)(slice(uptr(ptr), int(n)))
+		versions = slice((ptr), n)
 	}
 	return
 }

@@ -12,6 +12,13 @@ import (
 	"github.com/jinzhongmin/gg/pango"
 )
 
+func cbool(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // #region CairoRenderer
 
 type CairoRenderer struct{ Renderer }
@@ -138,10 +145,10 @@ func (b *PathBuilder) RelArcTo(x1, y1, x2, y2 float64) {
 	gsk_path_builder_rel_arc_to.Fn()(b, x1, y1, x2, y2)
 }
 func (b *PathBuilder) SvgArcTo(rx, ry, xAxisRotation float64, largeArc, positiveSweep bool, x, y float64) {
-	gsk_path_builder_svg_arc_to.Fn()(b, rx, ry, xAxisRotation, largeArc, positiveSweep, x, y)
+	gsk_path_builder_svg_arc_to.Fn()(b, rx, ry, xAxisRotation, cbool(largeArc), cbool(positiveSweep), x, y)
 }
 func (b *PathBuilder) RelSvgArcTo(rx, ry, xAxisRotation float64, largeArc, positiveSweep bool, x, y float64) {
-	gsk_path_builder_rel_svg_arc_to.Fn()(b, rx, ry, xAxisRotation, largeArc, positiveSweep, x, y)
+	gsk_path_builder_rel_svg_arc_to.Fn()(b, rx, ry, xAxisRotation, cbool(largeArc), cbool(positiveSweep), x, y)
 }
 func (b *PathBuilder) HtmlArcTo(x1, y1, x2, y2, radius float64) {
 	gsk_path_builder_html_arc_to.Fn()(b, x1, y1, x2, y2, radius)
@@ -898,7 +905,7 @@ func NewTransformFromParse(str string) (tran *Transform, ok bool) {
 	cstr := cc.NewString(str)
 	defer cstr.Free()
 	var out *Transform
-	ok = gsk_transform_parse.Fn()(cstr, &out)
+	ok = gsk_transform_parse.Fn()(cstr, &out) != 0
 	return out, ok
 }
 func (t *Transform) ToMatrix(out *graphene.Matrix) { gsk_transform_to_matrix.Fn()(t, out) }
@@ -919,7 +926,7 @@ func (t *Transform) ToTranslate() (dx, dy float32) {
 	return
 }
 func (t *Transform) GetCategory() TransformCategory { return gsk_transform_get_category.Fn()(t) }
-func (t *Transform) Equal(second *Transform) bool   { return gsk_transform_equal.Fn()(t, second) }
+func (t *Transform) Equal(second *Transform) bool   { return gsk_transform_equal.Fn()(t, second) != 0 }
 func NewTransform() *Transform                      { return gsk_transform_new.Fn()() }
 func (t *Transform) Transform(other *Transform) *Transform {
 	return gsk_transform_transform.Fn()(t, other)

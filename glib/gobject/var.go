@@ -10,16 +10,34 @@ import (
 type uptr = unsafe.Pointer
 type iptr = uintptr
 
-func slice(p uptr, n int) uptr  { return uptr(&[2]uptr{uptr(p), uptr(iptr(n))}) }
-func anyptr(a interface{}) uptr { return (*(*[2]uptr)(uptr(&a)))[1] }
-func carry[T any](arry []T) *T {
-	if len(arry) == 0 {
-		return nil
-	}
-	return &arry[0]
+type ints interface {
+	~int8 | ~int16 | ~int32 | ~int | ~int64 |
+		~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
 }
 
-func vcbu(fn interface{}) uptr { return cc.Cbk(fn) }
+func slice[T any, N ints](p *T, n N) []T { return unsafe.Slice(p, n) }
+func anyptr(a interface{}) uptr          { return (*(*[2]uptr)(uptr(&a)))[1] }
+func cbool(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}
+func carry[T any](slice []T) *T {
+	if len(slice) > 0 {
+		return &slice[0]
+	}
+	return nil
+}
+func carryLen[T any, E ints](slice []T) (*T, E) {
+	p, l := (*T)(nil), uint64(len(slice))
+	if l > 0 {
+		p = &slice[0]
+	}
+	return p, E(l)
+}
+
+// func vcbu(fn interface{}) uptr { return cc.Cbk(fn) }
 
 func init() { cc.Open("libgobject-2*") }
 
@@ -83,26 +101,26 @@ var (
 	g_initially_unowned_get_type        = cc.DlFunc[func() GType, GType]{Name: "g_initially_unowned_get_type"}
 	g_object_class_install_property     = cc.DlFunc[func(oclass *GObjectClass, property_id uint32, pspec *GParamSpec), cc.Void]{Name: "g_object_class_install_property"}
 	g_object_class_find_property        = cc.DlFunc[func(oclass *GObjectClass, property_name cc.String) *GParamSpec, *GParamSpec]{Name: "g_object_class_find_property"}
-	g_object_class_list_properties      = cc.DlFunc[func(oclass *GObjectClass, n_properties *uint32) uptr, uptr]{Name: "g_object_class_list_properties"}
+	g_object_class_list_properties      = cc.DlFunc[func(oclass *GObjectClass, n_properties *uint32) **GParamSpec, **GParamSpec]{Name: "g_object_class_list_properties"}
 	g_object_class_override_property    = cc.DlFunc[func(oclass *GObjectClass, property_id uint32, name cc.String), cc.Void]{Name: "g_object_class_override_property"}
 	g_object_class_install_properties   = cc.DlFunc[func(oclass *GObjectClass, n_pspecs uint32, pspecs **GParamSpec), cc.Void]{Name: "g_object_class_install_properties"}
-	g_object_interface_install_property = cc.DlFunc[func(g_iface uptr, pspec *GParamSpec), cc.Void]{Name: "g_object_interface_install_property"}
-	g_object_interface_find_property    = cc.DlFunc[func(g_iface uptr, property_name cc.String) *GParamSpec, *GParamSpec]{Name: "g_object_interface_find_property"}
-	g_object_interface_list_properties  = cc.DlFunc[func(g_iface uptr, n_properties_p *uint32) uptr, uptr]{Name: "g_object_interface_list_properties"}
+	g_object_interface_install_property = cc.DlFunc[func(g_iface *GTypeInterface, pspec *GParamSpec), cc.Void]{Name: "g_object_interface_install_property"}
+	g_object_interface_find_property    = cc.DlFunc[func(g_iface *GTypeInterface, property_name cc.String) *GParamSpec, *GParamSpec]{Name: "g_object_interface_find_property"}
+	g_object_interface_list_properties  = cc.DlFunc[func(g_iface *GTypeInterface, n_properties_p *uint32) **GParamSpec, **GParamSpec]{Name: "g_object_interface_list_properties"}
 	g_object_get_type                   = cc.DlFunc[func() GType, GType]{Name: "g_object_get_type"}
 	g_object_new                        = cc.DlFunc[func(t GType, args ...interface{}) *GObject, *GObject]{Name: "g_object_new", Va: true}
 	g_object_new_with_properties        = cc.DlFunc[func(object_type GType, n_properties uint, names cc.Strings, values *GValue) *GObject, *GObject]{Name: "g_object_new_with_properties"}
 	g_object_set_property               = cc.DlFunc[func(object *GObject, propertyName cc.String, value *GValue), cc.Void]{Name: "g_object_set_property"}
-	g_object_get_property               = cc.DlFunc[func(object *GObject, propertyName string, value *GValue), cc.Void]{Name: "g_object_get_property"}
+	g_object_get_property               = cc.DlFunc[func(object *GObject, propertyName cc.String, value *GValue), cc.Void]{Name: "g_object_get_property"}
 	g_object_freeze_notify              = cc.DlFunc[func(object *GObject), cc.Void]{Name: "g_object_freeze_notify"}
 	g_object_notify                     = cc.DlFunc[func(object *GObject, property_name cc.String), cc.Void]{Name: "g_object_notify"}
 	g_object_notify_by_pspec            = cc.DlFunc[func(object *GObject, pspec *GParamSpec), cc.Void]{Name: "g_object_notify_by_pspec"}
 	g_object_thaw_notify                = cc.DlFunc[func(object *GObject), cc.Void]{Name: "g_object_thaw_notify"}
-	g_object_is_floating                = cc.DlFunc[func(object uptr) bool, bool]{Name: "g_object_is_floating"}
-	g_object_ref_sink                   = cc.DlFunc[func(object uptr) uptr, uptr]{Name: "g_object_ref_sink"}
-	g_object_take_ref                   = cc.DlFunc[func(object uptr) uptr, uptr]{Name: "g_object_take_ref"}
-	g_object_ref                        = cc.DlFunc[func(object uptr) uptr, uptr]{Name: "g_object_ref"}
-	g_object_unref                      = cc.DlFunc[func(object uptr), cc.Void]{Name: "g_object_unref"}
+	g_object_is_floating                = cc.DlFunc[func(object *GObject) int32, int32]{Name: "g_object_is_floating"}
+	g_object_ref_sink                   = cc.DlFunc[func(object *GObject) uptr, uptr]{Name: "g_object_ref_sink"}
+	g_object_take_ref                   = cc.DlFunc[func(object *GObject) uptr, uptr]{Name: "g_object_take_ref"}
+	g_object_ref                        = cc.DlFunc[func(object *GObject) uptr, uptr]{Name: "g_object_ref"}
+	g_object_unref                      = cc.DlFunc[func(object *GObject), cc.Void]{Name: "g_object_unref"}
 	g_object_weak_ref                   = cc.DlFunc[func(object *GObject, notify, data uptr), cc.Void]{Name: "g_object_weak_ref"}
 	g_object_weak_unref                 = cc.DlFunc[func(object *GObject, notify, data uptr), cc.Void]{Name: "g_object_weak_unref"}
 	g_object_add_weak_pointer           = cc.DlFunc[func(object *GObject, weak_pointer_location *uptr), cc.Void]{Name: "g_object_add_weak_pointer"}
@@ -128,7 +146,7 @@ var (
 	g_value_set_object                = cc.DlFunc[func(value *GValue, v_object *GObject), cc.Void]{Name: "g_value_set_object"}
 	g_value_get_object                = cc.DlFunc[func(value *GValue) *GObject, *GObject]{Name: "g_value_get_object"}
 	g_value_dup_object                = cc.DlFunc[func(value *GValue) *GObject, *GObject]{Name: "g_value_dup_object"}
-	g_signal_connect_object           = cc.DlFunc[func(instance *GObject, detailed_signal string, c_handler uptr, gobject *GObject, connect_flags GConnectFlags) uint64, uint64]{Name: "g_signal_connect_object"}
+	g_signal_connect_object           = cc.DlFunc[func(instance *GObject, detailed_signal cc.String, c_handler uptr, gobject *GObject, connect_flags GConnectFlags) uint64, uint64]{Name: "g_signal_connect_object"}
 	g_object_force_floating           = cc.DlFunc[func(object *GObject), cc.Void]{Name: "g_object_force_floating"}
 	g_object_run_dispose              = cc.DlFunc[func(object *GObject), cc.Void]{Name: "g_object_run_dispose"}
 	g_value_take_object               = cc.DlFunc[func(value *GValue, v_object *GObject), cc.Void]{Name: "g_value_take_object"}
@@ -147,10 +165,10 @@ var (
 	g_param_spec_steal_qdata         = cc.DlFunc[func(pspec *GParamSpec, quark glib.GQuark) uptr, uptr]{Name: "g_param_spec_steal_qdata"}
 	g_param_spec_get_redirect_target = cc.DlFunc[func(pspec *GParamSpec) *GParamSpec, *GParamSpec]{Name: "g_param_spec_get_redirect_target"}
 	g_param_value_set_default        = cc.DlFunc[func(pspec *GParamSpec, value *GValue), cc.Void]{Name: "g_param_value_set_default"}
-	g_param_value_defaults           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) bool, bool]{Name: "g_param_value_defaults"}
-	g_param_value_validate           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) bool, bool]{Name: "g_param_value_validate"}
-	g_param_value_is_valid           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) bool, bool]{Name: "g_param_value_is_valid"}
-	g_param_value_convert            = cc.DlFunc[func(pspec *GParamSpec, src_value *GValue, dest_value *GValue, strict_validation bool) bool, bool]{Name: "g_param_value_convert"}
+	g_param_value_defaults           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) int32, int32]{Name: "g_param_value_defaults"}
+	g_param_value_validate           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) int32, int32]{Name: "g_param_value_validate"}
+	g_param_value_is_valid           = cc.DlFunc[func(pspec *GParamSpec, value *GValue) int32, int32]{Name: "g_param_value_is_valid"}
+	g_param_value_convert            = cc.DlFunc[func(pspec *GParamSpec, src_value *GValue, dest_value *GValue, strict_validation int32) int32, int32]{Name: "g_param_value_convert"}
 	g_param_values_cmp               = cc.DlFunc[func(pspec *GParamSpec, value1 *GValue, value2 *GValue) int32, int32]{Name: "g_param_values_cmp"}
 	g_param_spec_get_name            = cc.DlFunc[func(pspec *GParamSpec) cc.String, cc.String]{Name: "g_param_spec_get_name"}
 	g_param_spec_get_nick            = cc.DlFunc[func(pspec *GParamSpec) cc.String, cc.String]{Name: "g_param_spec_get_nick"}
@@ -163,10 +181,10 @@ var (
 	g_param_spec_get_default_value   = cc.DlFunc[func(pspec *GParamSpec) *GValue, *GValue]{Name: "g_param_spec_get_default_value"}
 	g_param_spec_get_name_quark      = cc.DlFunc[func(pspec *GParamSpec) glib.GQuark, glib.GQuark]{Name: "g_param_spec_get_name_quark"}
 	g_param_type_register_static     = cc.DlFunc[func(name cc.String, pspec_info *GParamSpecTypeInfo) GType, GType]{Name: "g_param_type_register_static"}
-	g_param_spec_is_valid_name       = cc.DlFunc[func(name cc.String) bool, bool]{Name: "g_param_spec_is_valid_name"}
+	g_param_spec_is_valid_name       = cc.DlFunc[func(name cc.String) int32, int32]{Name: "g_param_spec_is_valid_name"}
 	g_param_spec_char                = cc.DlFunc[func(name, nick, blurb cc.String, minimum, maximum, default_value int8, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_char"}
 	g_param_spec_uchar               = cc.DlFunc[func(name, nick, blurb cc.String, minimum, maximum, default_value uint8, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_uchar"}
-	g_param_spec_boolean             = cc.DlFunc[func(name, nick, blurb cc.String, default_value bool, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_boolean"}
+	g_param_spec_boolean             = cc.DlFunc[func(name, nick, blurb cc.String, default_value int32, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_boolean"}
 	g_param_spec_int                 = cc.DlFunc[func(name, nick, blurb cc.String, minimum, maximum, default_value int32, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_int"}
 	g_param_spec_uint                = cc.DlFunc[func(name, nick, blurb cc.String, minimum, maximum, default_value uint32, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_uint"}
 	g_param_spec_long                = cc.DlFunc[func(name, nick, blurb cc.String, minimum, maximum, default_value int64, flags GParamFlags) *GParamSpec, *GParamSpec]{Name: "g_param_spec_long"}
@@ -197,19 +215,19 @@ var (
 	g_signal_name                          = cc.DlFunc[func(signalId uint32) cc.String, cc.String]{Name: "g_signal_name"}
 	g_signal_query                         = cc.DlFunc[func(signalId uint32, query *GSignalQuery), cc.Void]{Name: "g_signal_query"}
 	g_signal_list_ids                      = cc.DlFunc[func(itype GType, nIds *uint32) *uint32, *uint32]{Name: "g_signal_list_ids"}
-	g_signal_is_valid_name                 = cc.DlFunc[func(name cc.String) bool, bool]{Name: "g_signal_is_valid_name"}
-	g_signal_parse_name                    = cc.DlFunc[func(detailedSignal cc.String, itype GType, signalIdP *uint32, detailP *glib.GQuark, forceDetailQuark bool) bool, bool]{Name: "g_signal_parse_name"}
+	g_signal_is_valid_name                 = cc.DlFunc[func(name cc.String) int32, int32]{Name: "g_signal_is_valid_name"}
+	g_signal_parse_name                    = cc.DlFunc[func(detailedSignal cc.String, itype GType, signalIdP *uint32, detailP *glib.GQuark, forceDetailQuark int32) int32, int32]{Name: "g_signal_parse_name"}
 	g_signal_get_invocation_hint           = cc.DlFunc[func(instance *GObject) *GSignalInvocationHint, *GSignalInvocationHint]{Name: "g_signal_get_invocation_hint"}
 	g_signal_stop_emission                 = cc.DlFunc[func(instance *GObject, signalId uint32, detail glib.GQuark), cc.Void]{Name: "g_signal_stop_emission"}
 	g_signal_stop_emission_by_name         = cc.DlFunc[func(instance *GObject, detailedSignal cc.String), cc.Void]{Name: "g_signal_stop_emission_by_name"}
 	g_signal_add_emission_hook             = cc.DlFunc[func(signalId uint32, detail glib.GQuark, hookFunc uptr, hookData uptr, dataDestroy uptr) uint64, uint64]{Name: "g_signal_add_emission_hook"}
 	g_signal_remove_emission_hook          = cc.DlFunc[func(signalId uint32, hookId uint64), cc.Void]{Name: "g_signal_remove_emission_hook"}
-	g_signal_has_handler_pending           = cc.DlFunc[func(instance *GObject, signalId uint32, detail glib.GQuark, mayBeBlocked bool) bool, bool]{Name: "g_signal_has_handler_pending"}
+	g_signal_has_handler_pending           = cc.DlFunc[func(instance *GObject, signalId uint32, detail glib.GQuark, mayBeBlocked int32) int32, int32]{Name: "g_signal_has_handler_pending"}
 	g_signal_connect_data                  = cc.DlFunc[func(*GObject, cc.String, uptr, uptr, uptr, GConnectFlags) uint64, uint64]{Name: "g_signal_connect_data"}
 	g_signal_handler_block                 = cc.DlFunc[func(instance *GObject, handlerId uint64), cc.Void]{Name: "g_signal_handler_block"}
 	g_signal_handler_unblock               = cc.DlFunc[func(instance *GObject, handlerId uint64), cc.Void]{Name: "g_signal_handler_unblock"}
 	g_signal_handler_disconnect            = cc.DlFunc[func(instance *GObject, handlerId uint64), cc.Void]{Name: "g_signal_handler_disconnect"}
-	g_signal_handler_is_connected          = cc.DlFunc[func(instance *GObject, handlerId uint64) bool, bool]{Name: "g_signal_handler_is_connected"}
+	g_signal_handler_is_connected          = cc.DlFunc[func(instance *GObject, handlerId uint64) int32, int32]{Name: "g_signal_handler_is_connected"}
 	g_clear_signal_handler                 = cc.DlFunc[func(handlerIdPtr *uint64, instance *GObject), cc.Void]{Name: "g_clear_signal_handler"}
 	g_signal_override_class_handler        = cc.DlFunc[func(signalName cc.String, instanceType GType, classHandler uptr), cc.Void]{Name: "g_signal_override_class_handler"}
 	g_signal_chain_from_overridden_handler = cc.DlFunc[func(instance *GObject, args ...interface{}), cc.Void]{Name: "g_signal_chain_from_overridden_handler", Va: true}
@@ -250,8 +268,8 @@ var (
 	g_type_default_interface_ref                 = cc.DlFunc[func(GType) uptr, uptr]{Name: "g_type_default_interface_ref"}
 	g_type_default_interface_peek                = cc.DlFunc[func(GType) uptr, uptr]{Name: "g_type_default_interface_peek"}
 	g_type_default_interface_unref               = cc.DlFunc[func(uptr), cc.Void]{Name: "g_type_default_interface_unref"}
-	g_type_children                              = cc.DlFunc[func(GType, *int32) uptr, uptr]{Name: "g_type_children"}
-	g_type_interfaces                            = cc.DlFunc[func(GType, *int32) uptr, uptr]{Name: "g_type_interfaces"}
+	g_type_children                              = cc.DlFunc[func(GType, *int32) *GType, *GType]{Name: "g_type_children"}
+	g_type_interfaces                            = cc.DlFunc[func(GType, *int32) *GType, *GType]{Name: "g_type_interfaces"}
 	g_type_set_qdata                             = cc.DlFunc[func(GType, glib.GQuark, uptr), cc.Void]{Name: "g_type_set_qdata"}
 	g_type_get_qdata                             = cc.DlFunc[func(GType, glib.GQuark) uptr, uptr]{Name: "g_type_get_qdata"}
 	g_type_query                                 = cc.DlFunc[func(GType, *GTypeQuery), cc.Void]{Name: "g_type_query"}
@@ -285,9 +303,9 @@ var (
 	g_value_unset                   = cc.DlFunc[func(*GValue), cc.Void]{Name: "g_value_unset"}
 	g_value_set_instance            = cc.DlFunc[func(*GValue, *GTypeInstance), cc.Void]{Name: "g_value_set_instance"}
 	g_value_init_from_instance      = cc.DlFunc[func(*GValue, *GTypeInstance), cc.Void]{Name: "g_value_init_from_instance"}
-	g_value_type_compatible         = cc.DlFunc[func(GType, GType) bool, bool]{Name: "g_value_type_compatible"}
-	g_value_type_transformable      = cc.DlFunc[func(GType, GType) bool, bool]{Name: "g_value_type_transformable"}
-	g_value_transform               = cc.DlFunc[func(*GValue, *GValue) bool, bool]{Name: "g_value_transform"}
+	g_value_type_compatible         = cc.DlFunc[func(GType, GType) int32, int32]{Name: "g_value_type_compatible"}
+	g_value_type_transformable      = cc.DlFunc[func(GType, GType) int32, int32]{Name: "g_value_type_transformable"}
+	g_value_transform               = cc.DlFunc[func(*GValue, *GValue) int32, int32]{Name: "g_value_transform"}
 	g_value_register_transform_func = cc.DlFunc[func(GType, GType, uptr), cc.Void]{Name: "g_value_register_transform_func"}
 	g_value_set_char                = cc.DlFunc[func(*GValue, int8), cc.Void]{Name: "g_value_set_char"}
 	g_value_get_char                = cc.DlFunc[func(*GValue) int8, int8]{Name: "g_value_get_char"}
@@ -295,8 +313,8 @@ var (
 	g_value_get_schar               = cc.DlFunc[func(*GValue) int8, int8]{Name: "g_value_get_schar"}
 	g_value_set_uchar               = cc.DlFunc[func(*GValue, uint8), cc.Void]{Name: "g_value_set_uchar"}
 	g_value_get_uchar               = cc.DlFunc[func(*GValue) uint8, uint8]{Name: "g_value_get_uchar"}
-	g_value_set_boolean             = cc.DlFunc[func(*GValue, bool), cc.Void]{Name: "g_value_set_boolean"}
-	g_value_get_boolean             = cc.DlFunc[func(*GValue) bool, bool]{Name: "g_value_get_boolean"}
+	g_value_set_boolean             = cc.DlFunc[func(*GValue, int32), cc.Void]{Name: "g_value_set_boolean"}
+	g_value_get_boolean             = cc.DlFunc[func(*GValue) int32, int32]{Name: "g_value_get_boolean"}
 	g_value_set_int                 = cc.DlFunc[func(*GValue, int32), cc.Void]{Name: "g_value_set_int"}
 	g_value_get_int                 = cc.DlFunc[func(*GValue) int32, int32]{Name: "g_value_get_int"}
 	g_value_set_uint                = cc.DlFunc[func(*GValue, uint32), cc.Void]{Name: "g_value_set_uint"}

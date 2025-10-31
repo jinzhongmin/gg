@@ -729,7 +729,7 @@ func ShowStyleSelector(label cc.String) bool {
 }
 func ShowFontSelector(label cc.String) { imGui_ShowFontSelector.Fn()(label) }
 func ShowUserGuide()                   { imGui_ShowUserGuide.Fn()() }
-func GetVersion() string               { return imGui_GetVersion.Fn()().Ref() }
+func GetVersion() string               { return imGui_GetVersion.Fn()().RefString() }
 
 func StyleColorsDark(dst *ImGuiStyle)    { imGui_StyleColorsDark.Fn()(dst) }
 func StyleColorsLight(dst *ImGuiStyle)   { imGui_StyleColorsLight.Fn()(dst) }

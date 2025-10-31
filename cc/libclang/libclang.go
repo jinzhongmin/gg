@@ -305,7 +305,7 @@ func (tu CXTranslationUnit) GetFile(file_name string) CXFile {
 func (tu CXTranslationUnit) GetFileContents(file CXFile) string {
 	var size cc.SizeT
 	s := clang_getFileContents.Fn()(tu, file, &size)
-	return s.Ref(uint64(size))
+	return s.RefString(uint64(size))
 }
 func (tu CXTranslationUnit) GetLocation(file CXFile, line, column uint32) *CXSourceLocation {
 	return addr(clang_getLocation.Fn()(tu, file, line, column))
@@ -359,7 +359,7 @@ type CXSourceRangeList struct {
 }
 
 func (srl *CXSourceRangeList) List() []CXSourceRange {
-	return *(*[]CXSourceRange)(cc.Slice(uptr(srl.Ranges), int64(srl.Count)))
+	return cc.Slice(srl.Ranges, int64(srl.Count))
 }
 
 // #endregion
@@ -460,7 +460,7 @@ func (cur *CXCursor) GetOverriddenCursors() (overridden CXCursors) {
 		return nil
 	}
 
-	return *(*CXCursors)(cc.Slice(uptr(overriddenPtr), int64(numOverridden)))
+	return cc.Slice(overriddenPtr, numOverridden)
 }
 
 func (overridden CXCursors) Dispose() {
@@ -498,8 +498,8 @@ type CXString struct {
 	PrivateFlags uint32
 }
 
-func (cur *CXString) GetCString() string { return clang_getCString.Fn()(*cur).Ref() }
-func (cur *CXString) String() string     { return clang_getCString.Fn()(*cur).Ref() }
+func (cur *CXString) GetCString() string { return clang_getCString.Fn()(*cur).RefString() }
+func (cur *CXString) String() string     { return clang_getCString.Fn()(*cur).RefString() }
 func (cur *CXString) Dispose()           { clang_disposeString.Fn()(*cur) }
 
 type CXVersion struct {

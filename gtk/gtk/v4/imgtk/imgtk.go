@@ -538,5 +538,5 @@ func timeoutAdd(ms uint32, fn func() (Continue bool)) uint32 {
 }
 
 func connect[T any](obj gobject.GObjectIface, sig string, fn func(out, ins uptr)) uint64 {
-	return gobject.SignalConnectDataRaw[T](obj, sig, fn, nil, nil, 0)
+	return gobject.GSignalConnectDataRaw[T, int32](obj, sig, fn, nil, nil, 0)
 }

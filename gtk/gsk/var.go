@@ -74,8 +74,8 @@ var (
 	gsk_path_builder_rel_conic_to      = cc.DlFunc[func(*PathBuilder, float64, float64, float64, float64, float64), cc.Void]{Name: "gsk_path_builder_rel_conic_to"}
 	gsk_path_builder_arc_to            = cc.DlFunc[func(*PathBuilder, float64, float64, float64, float64), cc.Void]{Name: "gsk_path_builder_arc_to"}
 	gsk_path_builder_rel_arc_to        = cc.DlFunc[func(*PathBuilder, float64, float64, float64, float64), cc.Void]{Name: "gsk_path_builder_rel_arc_to"}
-	gsk_path_builder_svg_arc_to        = cc.DlFunc[func(*PathBuilder, float64, float64, float64, bool, bool, float64, float64), cc.Void]{Name: "gsk_path_builder_svg_arc_to"}
-	gsk_path_builder_rel_svg_arc_to    = cc.DlFunc[func(*PathBuilder, float64, float64, float64, bool, bool, float64, float64), cc.Void]{Name: "gsk_path_builder_rel_svg_arc_to"}
+	gsk_path_builder_svg_arc_to        = cc.DlFunc[func(*PathBuilder, float64, float64, float64, int32, int32, float64, float64), cc.Void]{Name: "gsk_path_builder_svg_arc_to"}
+	gsk_path_builder_rel_svg_arc_to    = cc.DlFunc[func(*PathBuilder, float64, float64, float64, int32, int32, float64, float64), cc.Void]{Name: "gsk_path_builder_rel_svg_arc_to"}
 	gsk_path_builder_html_arc_to       = cc.DlFunc[func(*PathBuilder, float64, float64, float64, float64, float64), cc.Void]{Name: "gsk_path_builder_html_arc_to"}
 	gsk_path_builder_rel_html_arc_to   = cc.DlFunc[func(*PathBuilder, float64, float64, float64, float64, float64), cc.Void]{Name: "gsk_path_builder_rel_html_arc_to"}
 	gsk_path_builder_close             = cc.DlFunc[func(*PathBuilder), cc.Void]{Name: "gsk_path_builder_close"}
@@ -385,14 +385,14 @@ var (
 	gsk_transform_unref            = cc.DlFunc[func(self *Transform), cc.Void]{Name: "gsk_transform_unref"}
 	gsk_transform_print            = cc.DlFunc[func(self *Transform, str *glib.GString), cc.Void]{Name: "gsk_transform_print"}
 	gsk_transform_to_string        = cc.DlFunc[func(self *Transform) cc.String, cc.String]{Name: "gsk_transform_to_string"}
-	gsk_transform_parse            = cc.DlFunc[func(str cc.String, out_transform **Transform) bool, bool]{Name: "gsk_transform_parse"}
+	gsk_transform_parse            = cc.DlFunc[func(str cc.String, out_transform **Transform) int32, int32]{Name: "gsk_transform_parse"}
 	gsk_transform_to_matrix        = cc.DlFunc[func(self *Transform, out_matrix *graphene.Matrix), cc.Void]{Name: "gsk_transform_to_matrix"}
 	gsk_transform_to_2d            = cc.DlFunc[func(self *Transform, out_xx, out_yx, out_xy, out_yy, out_dx, out_dy *float32), cc.Void]{Name: "gsk_transform_to_2d"}
 	gsk_transform_to_2d_components = cc.DlFunc[func(self *Transform, out_skew_x, out_skew_y, out_scale_x, out_scale_y, out_angle, out_dx, out_dy *float32), cc.Void]{Name: "gsk_transform_to_2d_components"}
 	gsk_transform_to_affine        = cc.DlFunc[func(self *Transform, out_scale_x, out_scale_y, out_dx, out_dy *float32), cc.Void]{Name: "gsk_transform_to_affine"}
 	gsk_transform_to_translate     = cc.DlFunc[func(self *Transform, out_dx, out_dy *float32), cc.Void]{Name: "gsk_transform_to_translate"}
 	gsk_transform_get_category     = cc.DlFunc[func(self *Transform) TransformCategory, TransformCategory]{Name: "gsk_transform_get_category"}
-	gsk_transform_equal            = cc.DlFunc[func(first, second *Transform) bool, bool]{Name: "gsk_transform_equal"}
+	gsk_transform_equal            = cc.DlFunc[func(first, second *Transform) int32, int32]{Name: "gsk_transform_equal"}
 	gsk_transform_new              = cc.DlFunc[func() *Transform, *Transform]{Name: "gsk_transform_new"}
 	gsk_transform_transform        = cc.DlFunc[func(next, other *Transform) *Transform, *Transform]{Name: "gsk_transform_transform"}
 	gsk_transform_invert           = cc.DlFunc[func(self *Transform) *Transform, *Transform]{Name: "gsk_transform_invert"}

@@ -13,8 +13,8 @@ import (
 
 type uptr = unsafe.Pointer
 
-func vcbu(fn interface{}) uptr { return cc.Cbk(fn) }
-func init()                    { cc.Open("libgtk-4*") }
+// func vcbu(fn interface{}) uptr { return cc.Cbk(fn) }
+func init() { cc.Open("libgtk-4*") }
 func carry[T any](arry []T) *T {
 	if len(arry) == 0 {
 		return nil
@@ -298,7 +298,7 @@ var (
 	gdk_dmabuf_texture_builder_get_modifier       = cc.DlFunc[func(*DmabufTextureBuilder) uint64, uint64]{Name: "gdk_dmabuf_texture_builder_get_modifier"}
 	gdk_dmabuf_texture_builder_set_modifier       = cc.DlFunc[func(*DmabufTextureBuilder, uint64), cc.Void]{Name: "gdk_dmabuf_texture_builder_set_modifier"}
 	gdk_dmabuf_texture_builder_get_premultiplied  = cc.DlFunc[func(*DmabufTextureBuilder) int32, int32]{Name: "gdk_dmabuf_texture_builder_get_premultiplied"}
-	gdk_dmabuf_texture_builder_set_premultiplied  = cc.DlFunc[func(*DmabufTextureBuilder, bool), cc.Void]{Name: "gdk_dmabuf_texture_builder_set_premultiplied"}
+	gdk_dmabuf_texture_builder_set_premultiplied  = cc.DlFunc[func(*DmabufTextureBuilder, int32), cc.Void]{Name: "gdk_dmabuf_texture_builder_set_premultiplied"}
 	gdk_dmabuf_texture_builder_get_n_planes       = cc.DlFunc[func(*DmabufTextureBuilder) uint32, uint32]{Name: "gdk_dmabuf_texture_builder_get_n_planes"}
 	gdk_dmabuf_texture_builder_set_n_planes       = cc.DlFunc[func(*DmabufTextureBuilder, uint32), cc.Void]{Name: "gdk_dmabuf_texture_builder_set_n_planes"}
 	gdk_dmabuf_texture_builder_get_fd             = cc.DlFunc[func(*DmabufTextureBuilder, uint32) int32, int32]{Name: "gdk_dmabuf_texture_builder_get_fd"}
@@ -325,7 +325,7 @@ var (
 	gdk_drag_get_selected_action = cc.DlFunc[func(*Drag) DragAction, DragAction]{Name: "gdk_drag_get_selected_action"}
 	gdk_drag_action_is_unique    = cc.DlFunc[func(DragAction) int32, int32]{Name: "gdk_drag_action_is_unique"}
 	gdk_drag_begin               = cc.DlFunc[func(*Surface, *Device, *ContentProvider, DragAction, float64, float64) *Drag, *Drag]{Name: "gdk_drag_begin"}
-	gdk_drag_drop_done           = cc.DlFunc[func(*Drag, bool), cc.Void]{Name: "gdk_drag_drop_done"}
+	gdk_drag_drop_done           = cc.DlFunc[func(*Drag, int32), cc.Void]{Name: "gdk_drag_drop_done"}
 	gdk_drag_get_drag_surface    = cc.DlFunc[func(*Drag) *Surface, *Surface]{Name: "gdk_drag_get_drag_surface"}
 	gdk_drag_set_hotspot         = cc.DlFunc[func(*Drag, int32, int32), cc.Void]{Name: "gdk_drag_set_hotspot"}
 	gdk_drag_get_content         = cc.DlFunc[func(*Drag) *ContentProvider, *ContentProvider]{Name: "gdk_drag_get_content"}
@@ -378,33 +378,33 @@ var (
 	gdk_event_get_display                    = cc.DlFunc[func(event *Event) *Display, *Display]{Name: "gdk_event_get_display"}
 	gdk_event_get_event_sequence             = cc.DlFunc[func(event *Event) *EventSequence, *EventSequence]{Name: "gdk_event_get_event_sequence"}
 	gdk_event_get_modifier_state             = cc.DlFunc[func(event *Event) ModifierType, ModifierType]{Name: "gdk_event_get_modifier_state"}
-	gdk_event_get_position                   = cc.DlFunc[func(event *Event, x, y *float64) bool, bool]{Name: "gdk_event_get_position"}
-	gdk_event_get_axes                       = cc.DlFunc[func(event *Event, axes **float64, n_axes *uint32) bool, bool]{Name: "gdk_event_get_axes"}
-	gdk_event_get_axis                       = cc.DlFunc[func(event *Event, axis_use AxisUse, value *float64) bool, bool]{Name: "gdk_event_get_axis"}
+	gdk_event_get_position                   = cc.DlFunc[func(event *Event, x, y *float64) int32, int32]{Name: "gdk_event_get_position"}
+	gdk_event_get_axes                       = cc.DlFunc[func(event *Event, axes **float64, n_axes *uint32) int32, int32]{Name: "gdk_event_get_axes"}
+	gdk_event_get_axis                       = cc.DlFunc[func(event *Event, axis_use AxisUse, value *float64) int32, int32]{Name: "gdk_event_get_axis"}
 	gdk_event_get_history                    = cc.DlFunc[func(event *Event, out_n_coords *uint32) *TimeCoord, *TimeCoord]{Name: "gdk_event_get_history"}
-	gdk_event_get_pointer_emulated           = cc.DlFunc[func(event *Event) bool, bool]{Name: "gdk_event_get_pointer_emulated"}
+	gdk_event_get_pointer_emulated           = cc.DlFunc[func(event *Event) int32, int32]{Name: "gdk_event_get_pointer_emulated"}
 	gdk_button_event_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_button_event_get_type"}
 	gdk_button_event_get_button              = cc.DlFunc[func(event *ButtonEvent) uint32, uint32]{Name: "gdk_button_event_get_button"}
 	gdk_scroll_event_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_scroll_event_get_type"}
 	gdk_scroll_event_get_direction           = cc.DlFunc[func(event *ScrollEvent) ScrollDirection, ScrollDirection]{Name: "gdk_scroll_event_get_direction"}
 	gdk_scroll_event_get_deltas              = cc.DlFunc[func(event *ScrollEvent, delta_x, delta_y *float64), cc.Void]{Name: "gdk_scroll_event_get_deltas"}
 	gdk_scroll_event_get_unit                = cc.DlFunc[func(event *ScrollEvent) ScrollUnit, ScrollUnit]{Name: "gdk_scroll_event_get_unit"}
-	gdk_scroll_event_is_stop                 = cc.DlFunc[func(event *ScrollEvent) bool, bool]{Name: "gdk_scroll_event_is_stop"}
+	gdk_scroll_event_is_stop                 = cc.DlFunc[func(event *ScrollEvent) int32, int32]{Name: "gdk_scroll_event_is_stop"}
 	gdk_key_event_get_type                   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_key_event_get_type"}
 	gdk_key_event_get_keyval                 = cc.DlFunc[func(event *KeyEvent) uint32, uint32]{Name: "gdk_key_event_get_keyval"}
 	gdk_key_event_get_keycode                = cc.DlFunc[func(event *KeyEvent) uint32, uint32]{Name: "gdk_key_event_get_keycode"}
 	gdk_key_event_get_consumed_modifiers     = cc.DlFunc[func(event *KeyEvent) ModifierType, ModifierType]{Name: "gdk_key_event_get_consumed_modifiers"}
 	gdk_key_event_get_layout                 = cc.DlFunc[func(event *KeyEvent) uint32, uint32]{Name: "gdk_key_event_get_layout"}
 	gdk_key_event_get_level                  = cc.DlFunc[func(event *KeyEvent) uint32, uint32]{Name: "gdk_key_event_get_level"}
-	gdk_key_event_is_modifier                = cc.DlFunc[func(event *KeyEvent) bool, bool]{Name: "gdk_key_event_is_modifier"}
+	gdk_key_event_is_modifier                = cc.DlFunc[func(event *KeyEvent) int32, int32]{Name: "gdk_key_event_is_modifier"}
 	gdk_focus_event_get_type                 = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_focus_event_get_type"}
-	gdk_focus_event_get_in                   = cc.DlFunc[func(event *FocusEvent) bool, bool]{Name: "gdk_focus_event_get_in"}
+	gdk_focus_event_get_in                   = cc.DlFunc[func(event *FocusEvent) int32, int32]{Name: "gdk_focus_event_get_in"}
 	gdk_touch_event_get_type                 = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_touch_event_get_type"}
-	gdk_touch_event_get_emulating_pointer    = cc.DlFunc[func(event *TouchEvent) bool, bool]{Name: "gdk_touch_event_get_emulating_pointer"}
+	gdk_touch_event_get_emulating_pointer    = cc.DlFunc[func(event *TouchEvent) int32, int32]{Name: "gdk_touch_event_get_emulating_pointer"}
 	gdk_crossing_event_get_type              = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_crossing_event_get_type"}
 	gdk_crossing_event_get_mode              = cc.DlFunc[func(event *CrossingEvent) CrossingMode, CrossingMode]{Name: "gdk_crossing_event_get_mode"}
 	gdk_crossing_event_get_detail            = cc.DlFunc[func(event *CrossingEvent) NotifyType, NotifyType]{Name: "gdk_crossing_event_get_detail"}
-	gdk_crossing_event_get_focus             = cc.DlFunc[func(event *CrossingEvent) bool, bool]{Name: "gdk_crossing_event_get_focus"}
+	gdk_crossing_event_get_focus             = cc.DlFunc[func(event *CrossingEvent) int32, int32]{Name: "gdk_crossing_event_get_focus"}
 	gdk_touchpad_event_get_type              = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_touchpad_event_get_type"}
 	gdk_touchpad_event_get_gesture_phase     = cc.DlFunc[func(event *TouchpadEvent) TouchpadGesturePhase, TouchpadGesturePhase]{Name: "gdk_touchpad_event_get_gesture_phase"}
 	gdk_touchpad_event_get_n_fingers         = cc.DlFunc[func(event *TouchpadEvent) uint32, uint32]{Name: "gdk_touchpad_event_get_n_fingers"}
@@ -419,16 +419,16 @@ var (
 	gdk_dnd_event_get_drop                   = cc.DlFunc[func(event *DNDEvent) *Drop, *Drop]{Name: "gdk_dnd_event_get_drop"}
 	gdk_grab_broken_event_get_type           = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_grab_broken_event_get_type"}
 	gdk_grab_broken_event_get_grab_surface   = cc.DlFunc[func(event *GrabBrokenEvent) *Surface, *Surface]{Name: "gdk_grab_broken_event_get_grab_surface"}
-	gdk_grab_broken_event_get_implicit       = cc.DlFunc[func(event *GrabBrokenEvent) bool, bool]{Name: "gdk_grab_broken_event_get_implicit"}
+	gdk_grab_broken_event_get_implicit       = cc.DlFunc[func(event *GrabBrokenEvent) int32, int32]{Name: "gdk_grab_broken_event_get_implicit"}
 	gdk_motion_event_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_motion_event_get_type"}
 	gdk_delete_event_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_delete_event_get_type"}
 	gdk_proximity_event_get_type             = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_proximity_event_get_type"}
-	gdk_event_triggers_context_menu          = cc.DlFunc[func(event *Event) bool, bool]{Name: "gdk_event_triggers_context_menu"}
-	gdk_events_get_distance                  = cc.DlFunc[func(event1, event2 *Event, distance *float64) bool, bool]{Name: "gdk_events_get_distance"}
-	gdk_events_get_angle                     = cc.DlFunc[func(event1, event2 *Event, angle *float64) bool, bool]{Name: "gdk_events_get_angle"}
-	gdk_events_get_center                    = cc.DlFunc[func(event1, event2 *Event, x, y *float64) bool, bool]{Name: "gdk_events_get_center"}
+	gdk_event_triggers_context_menu          = cc.DlFunc[func(event *Event) int32, int32]{Name: "gdk_event_triggers_context_menu"}
+	gdk_events_get_distance                  = cc.DlFunc[func(event1, event2 *Event, distance *float64) int32, int32]{Name: "gdk_events_get_distance"}
+	gdk_events_get_angle                     = cc.DlFunc[func(event1, event2 *Event, angle *float64) int32, int32]{Name: "gdk_events_get_angle"}
+	gdk_events_get_center                    = cc.DlFunc[func(event1, event2 *Event, x, y *float64) int32, int32]{Name: "gdk_events_get_center"}
 	gdk_key_event_matches                    = cc.DlFunc[func(event *Event, keyval uint32, modifiers ModifierType) KeyMatch, KeyMatch]{Name: "gdk_key_event_matches"}
-	gdk_key_event_get_match                  = cc.DlFunc[func(event *Event, keyval *uint32, modifiers *ModifierType) bool, bool]{Name: "gdk_key_event_get_match"}
+	gdk_key_event_get_match                  = cc.DlFunc[func(event *Event, keyval *uint32, modifiers *ModifierType) int32, int32]{Name: "gdk_key_event_get_match"}
 	// #endregion
 
 	// #region FrameClock
@@ -468,9 +468,9 @@ var (
 	gdk_gl_context_is_shared              = cc.DlFunc[func(*GLContext, *GLContext) int32, int32]{Name: "gdk_gl_context_is_shared"}
 	gdk_gl_context_set_required_version   = cc.DlFunc[func(*GLContext, int, int), cc.Void]{Name: "gdk_gl_context_set_required_version"}
 	gdk_gl_context_get_required_version   = cc.DlFunc[func(*GLContext, *int, *int), cc.Void]{Name: "gdk_gl_context_get_required_version"}
-	gdk_gl_context_set_debug_enabled      = cc.DlFunc[func(*GLContext, bool), cc.Void]{Name: "gdk_gl_context_set_debug_enabled"}
+	gdk_gl_context_set_debug_enabled      = cc.DlFunc[func(*GLContext, int32), cc.Void]{Name: "gdk_gl_context_set_debug_enabled"}
 	gdk_gl_context_get_debug_enabled      = cc.DlFunc[func(*GLContext) int32, int32]{Name: "gdk_gl_context_get_debug_enabled"}
-	gdk_gl_context_set_forward_compatible = cc.DlFunc[func(*GLContext, bool), cc.Void]{Name: "gdk_gl_context_set_forward_compatible"}
+	gdk_gl_context_set_forward_compatible = cc.DlFunc[func(*GLContext, int32), cc.Void]{Name: "gdk_gl_context_set_forward_compatible"}
 	gdk_gl_context_get_forward_compatible = cc.DlFunc[func(*GLContext) int32, int32]{Name: "gdk_gl_context_get_forward_compatible"}
 	gdk_gl_context_set_allowed_apis       = cc.DlFunc[func(*GLContext, GLAPI), cc.Void]{Name: "gdk_gl_context_set_allowed_apis"}
 	gdk_gl_context_get_allowed_apis       = cc.DlFunc[func(*GLContext) GLAPI, GLAPI]{Name: "gdk_gl_context_get_allowed_apis"}
@@ -502,8 +502,8 @@ var (
 	gdk_gl_texture_builder_set_height         = cc.DlFunc[func(*GLTextureBuilder, int32), cc.Void]{Name: "gdk_gl_texture_builder_set_height"}
 	gdk_gl_texture_builder_get_format         = cc.DlFunc[func(*GLTextureBuilder) MemoryFormat, MemoryFormat]{Name: "gdk_gl_texture_builder_get_format"}
 	gdk_gl_texture_builder_set_format         = cc.DlFunc[func(*GLTextureBuilder, MemoryFormat), cc.Void]{Name: "gdk_gl_texture_builder_set_format"}
-	gdk_gl_texture_builder_get_has_mipmap     = cc.DlFunc[func(*GLTextureBuilder) bool, bool]{Name: "gdk_gl_texture_builder_get_has_mipmap"}
-	gdk_gl_texture_builder_set_has_mipmap     = cc.DlFunc[func(*GLTextureBuilder, bool), cc.Void]{Name: "gdk_gl_texture_builder_set_has_mipmap"}
+	gdk_gl_texture_builder_get_has_mipmap     = cc.DlFunc[func(*GLTextureBuilder) int32, int32]{Name: "gdk_gl_texture_builder_get_has_mipmap"}
+	gdk_gl_texture_builder_set_has_mipmap     = cc.DlFunc[func(*GLTextureBuilder, int32), cc.Void]{Name: "gdk_gl_texture_builder_set_has_mipmap"}
 	gdk_gl_texture_builder_get_sync           = cc.DlFunc[func(*GLTextureBuilder) uptr, uptr]{Name: "gdk_gl_texture_builder_get_sync"}
 	gdk_gl_texture_builder_set_sync           = cc.DlFunc[func(*GLTextureBuilder, uptr), cc.Void]{Name: "gdk_gl_texture_builder_set_sync"}
 	gdk_gl_texture_builder_get_color_state    = cc.DlFunc[func(*GLTextureBuilder) *ColorState, *ColorState]{Name: "gdk_gl_texture_builder_get_color_state"}
@@ -521,8 +521,8 @@ var (
 	gdk_keyval_convert_case = cc.DlFunc[func(uint32, *uint32, *uint32), cc.Void]{Name: "gdk_keyval_convert_case"}
 	gdk_keyval_to_upper     = cc.DlFunc[func(uint32) uint32, uint32]{Name: "gdk_keyval_to_upper"}
 	gdk_keyval_to_lower     = cc.DlFunc[func(uint32) uint32, uint32]{Name: "gdk_keyval_to_lower"}
-	gdk_keyval_is_upper     = cc.DlFunc[func(uint32) bool, bool]{Name: "gdk_keyval_is_upper"}
-	gdk_keyval_is_lower     = cc.DlFunc[func(uint32) bool, bool]{Name: "gdk_keyval_is_lower"}
+	gdk_keyval_is_upper     = cc.DlFunc[func(uint32) int32, int32]{Name: "gdk_keyval_is_upper"}
+	gdk_keyval_is_lower     = cc.DlFunc[func(uint32) int32, int32]{Name: "gdk_keyval_is_lower"}
 	gdk_keyval_to_unicode   = cc.DlFunc[func(uint32) uint32, uint32]{Name: "gdk_keyval_to_unicode"}
 	gdk_unicode_to_keyval   = cc.DlFunc[func(uint32) uint32, uint32]{Name: "gdk_unicode_to_keyval"}
 	// #endregion
@@ -567,7 +567,7 @@ var (
 	gdk_monitor_get_scale           = cc.DlFunc[func(*Monitor) float64, float64]{Name: "gdk_monitor_get_scale"}
 	gdk_monitor_get_refresh_rate    = cc.DlFunc[func(*Monitor) int32, int32]{Name: "gdk_monitor_get_refresh_rate"}
 	gdk_monitor_get_subpixel_layout = cc.DlFunc[func(*Monitor) SubpixelLayout, SubpixelLayout]{Name: "gdk_monitor_get_subpixel_layout"}
-	gdk_monitor_is_valid            = cc.DlFunc[func(*Monitor) bool, bool]{Name: "gdk_monitor_is_valid"}
+	gdk_monitor_is_valid            = cc.DlFunc[func(*Monitor) int32, int32]{Name: "gdk_monitor_is_valid"}
 	gdk_monitor_get_description     = cc.DlFunc[func(*Monitor) cc.String, cc.String]{Name: "gdk_monitor_get_description"}
 	// #endregion
 
@@ -655,7 +655,7 @@ var (
 	// #region Surface
 	gdk_surface_get_type               = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gdk_surface_get_type"}
 	gdk_surface_new_toplevel           = cc.DlFunc[func(*Display) *Surface, *Surface]{Name: "gdk_surface_new_toplevel"}
-	gdk_surface_new_popup              = cc.DlFunc[func(*Surface, bool) *Surface, *Surface]{Name: "gdk_surface_new_popup"}
+	gdk_surface_new_popup              = cc.DlFunc[func(*Surface, int32) *Surface, *Surface]{Name: "gdk_surface_new_popup"}
 	gdk_surface_destroy                = cc.DlFunc[func(*Surface), cc.Void]{Name: "gdk_surface_destroy"}
 	gdk_surface_is_destroyed           = cc.DlFunc[func(*Surface) int32, int32]{Name: "gdk_surface_is_destroyed"}
 	gdk_surface_get_display            = cc.DlFunc[func(*Surface) *Display, *Display]{Name: "gdk_surface_get_display"}
@@ -726,11 +726,11 @@ var (
 	gdk_toplevel_set_title                 = cc.DlFunc[func(*Toplevel, cc.String), cc.Void]{Name: "gdk_toplevel_set_title"}
 	gdk_toplevel_set_startup_id            = cc.DlFunc[func(*Toplevel, cc.String), cc.Void]{Name: "gdk_toplevel_set_startup_id"}
 	gdk_toplevel_set_transient_for         = cc.DlFunc[func(*Toplevel, *Surface), cc.Void]{Name: "gdk_toplevel_set_transient_for"}
-	gdk_toplevel_set_modal                 = cc.DlFunc[func(*Toplevel, bool), cc.Void]{Name: "gdk_toplevel_set_modal"}
+	gdk_toplevel_set_modal                 = cc.DlFunc[func(*Toplevel, int32), cc.Void]{Name: "gdk_toplevel_set_modal"}
 	gdk_toplevel_set_icon_list             = cc.DlFunc[func(*Toplevel, uptr), cc.Void]{Name: "gdk_toplevel_set_icon_list"}
 	gdk_toplevel_show_window_menu          = cc.DlFunc[func(*Toplevel, *Event) int32, int32]{Name: "gdk_toplevel_show_window_menu"}
-	gdk_toplevel_set_decorated             = cc.DlFunc[func(*Toplevel, bool), cc.Void]{Name: "gdk_toplevel_set_decorated"}
-	gdk_toplevel_set_deletable             = cc.DlFunc[func(*Toplevel, bool), cc.Void]{Name: "gdk_toplevel_set_deletable"}
+	gdk_toplevel_set_decorated             = cc.DlFunc[func(*Toplevel, int32), cc.Void]{Name: "gdk_toplevel_set_decorated"}
+	gdk_toplevel_set_deletable             = cc.DlFunc[func(*Toplevel, int32), cc.Void]{Name: "gdk_toplevel_set_deletable"}
 	gdk_toplevel_supports_edge_constraints = cc.DlFunc[func(*Toplevel) int32, int32]{Name: "gdk_toplevel_supports_edge_constraints"}
 	gdk_toplevel_inhibit_system_shortcuts  = cc.DlFunc[func(*Toplevel, *Event), cc.Void]{Name: "gdk_toplevel_inhibit_system_shortcuts"}
 	gdk_toplevel_restore_system_shortcuts  = cc.DlFunc[func(*Toplevel), cc.Void]{Name: "gdk_toplevel_restore_system_shortcuts"}
@@ -746,12 +746,12 @@ var (
 	gdk_toplevel_layout_unref                  = cc.DlFunc[func(*ToplevelLayout), cc.Void]{Name: "gdk_toplevel_layout_unref"}
 	gdk_toplevel_layout_copy                   = cc.DlFunc[func(*ToplevelLayout) *ToplevelLayout, *ToplevelLayout]{Name: "gdk_toplevel_layout_copy"}
 	gdk_toplevel_layout_equal                  = cc.DlFunc[func(*ToplevelLayout, *ToplevelLayout) int32, int32]{Name: "gdk_toplevel_layout_equal"}
-	gdk_toplevel_layout_set_maximized          = cc.DlFunc[func(*ToplevelLayout, bool), cc.Void]{Name: "gdk_toplevel_layout_set_maximized"}
-	gdk_toplevel_layout_set_fullscreen         = cc.DlFunc[func(*ToplevelLayout, bool, *Monitor), cc.Void]{Name: "gdk_toplevel_layout_set_fullscreen"}
-	gdk_toplevel_layout_get_maximized          = cc.DlFunc[func(*ToplevelLayout, *bool) int32, int32]{Name: "gdk_toplevel_layout_get_maximized"}
-	gdk_toplevel_layout_get_fullscreen         = cc.DlFunc[func(*ToplevelLayout, *bool) int32, int32]{Name: "gdk_toplevel_layout_get_fullscreen"}
+	gdk_toplevel_layout_set_maximized          = cc.DlFunc[func(*ToplevelLayout, int32), cc.Void]{Name: "gdk_toplevel_layout_set_maximized"}
+	gdk_toplevel_layout_set_fullscreen         = cc.DlFunc[func(*ToplevelLayout, int32, *Monitor), cc.Void]{Name: "gdk_toplevel_layout_set_fullscreen"}
+	gdk_toplevel_layout_get_maximized          = cc.DlFunc[func(*ToplevelLayout, *int32) int32, int32]{Name: "gdk_toplevel_layout_get_maximized"}
+	gdk_toplevel_layout_get_fullscreen         = cc.DlFunc[func(*ToplevelLayout, *int32) int32, int32]{Name: "gdk_toplevel_layout_get_fullscreen"}
 	gdk_toplevel_layout_get_fullscreen_monitor = cc.DlFunc[func(*ToplevelLayout) *Monitor, *Monitor]{Name: "gdk_toplevel_layout_get_fullscreen_monitor"}
-	gdk_toplevel_layout_set_resizable          = cc.DlFunc[func(*ToplevelLayout, bool), cc.Void]{Name: "gdk_toplevel_layout_set_resizable"}
+	gdk_toplevel_layout_set_resizable          = cc.DlFunc[func(*ToplevelLayout, int32), cc.Void]{Name: "gdk_toplevel_layout_set_resizable"}
 	gdk_toplevel_layout_get_resizable          = cc.DlFunc[func(*ToplevelLayout) int32, int32]{Name: "gdk_toplevel_layout_get_resizable"}
 	// #endregion
 

@@ -11,6 +11,13 @@ import (
 	"github.com/jinzhongmin/gg/pango"
 )
 
+func cbool(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 type EventSequence struct{}
 type Pixbuf struct{}
 
@@ -90,12 +97,12 @@ func (cb *Clipboard) GetContent() *ContentProvider { return gdk_clipboard_get_co
 
 func (cb *Clipboard) StoreAsync(ioPriority int32, cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
 			callback(cb, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		cb.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
 	gdk_clipboard_store_async.Fn()(cb, ioPriority, cancellable, cbk, nil)
 }
 func (cb *Clipboard) StoreFinish(res *gio.GAsyncResult) error {
@@ -111,12 +118,13 @@ func (cb *Clipboard) ReadAsync(mimeTypes []string, ioPriority int32, cancellable
 	cMimeTypes := cc.NewStrings(mimeTypes)
 	defer cMimeTypes.Free()
 	var cbk uptr
-	cbk = vcbu(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if cancellable != nil {
+		cbk = cc.Cbk(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
 			callback(cb, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		cb.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	gdk_clipboard_read_async.Fn()(cb, cMimeTypes, ioPriority, cancellable, cbk, nil)
 }
 func (cb *Clipboard) ReadFinish(res *gio.GAsyncResult) (mimeType string, stream *gio.GInputStream, err error) {
@@ -129,12 +137,12 @@ func (cb *Clipboard) ReadFinish(res *gio.GAsyncResult) (mimeType string, stream 
 }
 func (cb *Clipboard) ReadValueAsync(typ gobject.GType, ioPriority int32, cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
 			callback(cb, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		cb.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
 	gdk_clipboard_read_value_async.Fn()(cb, typ, ioPriority, cancellable, cbk, nil)
 }
 func (cb *Clipboard) ReadValueFinish(res *gio.GAsyncResult) (val *gobject.GValue, err error) {
@@ -145,12 +153,12 @@ func (cb *Clipboard) ReadValueFinish(res *gio.GAsyncResult) (val *gobject.GValue
 
 func (cb *Clipboard) ReadTextureAsync(cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
 			callback(cb, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		cb.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
 	gdk_clipboard_read_texture_async.Fn()(cb, cancellable, cbk, nil)
 }
 func (cb *Clipboard) ReadTextureFinish(res *gio.GAsyncResult) (tex *Texture, err error) {
@@ -161,12 +169,12 @@ func (cb *Clipboard) ReadTextureFinish(res *gio.GAsyncResult) (tex *Texture, err
 
 func (cb *Clipboard) ReadTextAsync(cancellable *gio.GCancellable, callback func(cb *Clipboard, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(cb *Clipboard, res *gio.GAsyncResult, _ uptr) {
 			callback(cb, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		cb.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
 	gdk_clipboard_read_text_async.Fn()(cb, cancellable, cbk, nil)
 }
 func (cb *Clipboard) ReadTextFinish(res *gio.GAsyncResult) (txt string, err error) {
@@ -249,7 +257,12 @@ func (d *ContentDeserializer) GetUserData() uptr {
 	return gdk_content_deserializer_get_user_data.Fn()(d)
 }
 func (d *ContentDeserializer) SetTaskData(data uptr, notify func(uptr)) {
-	gdk_content_deserializer_set_task_data.Fn()(d, data, vcbu(notify))
+	var cb uptr
+	if notify != nil {
+		cb := cc.Cbk(notify)
+		d.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cb) })
+	}
+	gdk_content_deserializer_set_task_data.Fn()(d, data, cb)
 }
 func (d *ContentDeserializer) GetTaskData() uptr {
 	return gdk_content_deserializer_get_task_data.Fn()(d)
@@ -269,12 +282,10 @@ func (f *ContentFormats) UnionDeserializeMimeTypes() *ContentFormats {
 func ContentRegisterDeserializer(mimeType string, typ gobject.GType, deserialize func(*ContentDeserializer)) {
 	cMimeType := cc.NewString(mimeType)
 	defer cMimeType.Free()
-	fn := vcbu(deserialize)
+	fn := cc.Cbk(deserialize)
 	var des uptr
-	des = vcbu(func(uptr) {
-		if fn != nil {
-			cc.CbkCloseLate(fn)
-		}
+	des = cc.Cbk(func(uptr) {
+		cc.CbkClose(fn)
 		cc.CbkCloseLate(des)
 	})
 	gdk_content_register_deserializer.Fn()(cMimeType, typ, fn, nil, des)
@@ -284,12 +295,13 @@ func ContentDeserializeAsync(stream *gio.GInputStream, mimeType string, typ gobj
 	cMimeType := cc.NewString(mimeType)
 	defer cMimeType.Free()
 	var cbk uptr
-	cbk = vcbu(func(res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(res *gio.GAsyncResult, _ uptr) {
 			callback(res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		stream.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	gdk_content_deserialize_async.Fn()(stream, cMimeType, typ, ioPriority, cancellable, cbk, nil)
 }
 func ContentDeserializeFinish(result *gio.GAsyncResult, value *gobject.GValue) error {
@@ -333,7 +345,7 @@ func ContentFormatsParse(s string) *ContentFormats {
 func (f *ContentFormats) Ref() *ContentFormats    { return gdk_content_formats_ref.Fn()(f) }
 func (f *ContentFormats) Unref()                  { gdk_content_formats_unref.Fn()(f) }
 func (f *ContentFormats) Print(str *glib.GString) { gdk_content_formats_print.Fn()(f, str) }
-func (f *ContentFormats) ToString() string        { return gdk_content_formats_to_string.Fn()(f).String() }
+func (f *ContentFormats) ToString() string        { return gdk_content_formats_to_string.Fn()(f).TakeString() }
 func (f *ContentFormats) GetGtypes() (types []gobject.GType, nGtypes uint64) {
 	var n uint64
 	ptr := gdk_content_formats_get_gtypes.Fn()(f, &n)
@@ -463,12 +475,13 @@ func (provider *ContentProvider) ContentChanged() {
 }
 func (provider *ContentProvider) WriteMimeTypeAsync(mime_type string, stream *gio.GOutputStream, io_priority int32, cancellable *gio.GCancellable, callback func(provider *ContentProvider, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(provider *ContentProvider, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(provider *ContentProvider, res *gio.GAsyncResult, _ uptr) {
 			callback(provider, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		provider.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	cMimeType := cc.NewString(mime_type)
 	defer cMimeType.Free()
 	gdk_content_provider_write_mime_type_async.Fn()(provider, cMimeType, stream, io_priority, cancellable, cbk, nil)
@@ -540,7 +553,12 @@ func (s *ContentSerializer) GetCancellable() *gio.GCancellable {
 }
 func (s *ContentSerializer) GetUserData() uptr { return gdk_content_serializer_get_user_data.Fn()(s) }
 func (s *ContentSerializer) SetTaskData(data uptr, notify func(uptr)) {
-	gdk_content_serializer_set_task_data.Fn()(s, data, vcbu(notify))
+	var n uptr
+	if notify != nil {
+		n = cc.Cbk(notify)
+		s.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(n) })
+	}
+	gdk_content_serializer_set_task_data.Fn()(s, data, n)
 }
 func (s *ContentSerializer) GetTaskData() uptr { return gdk_content_serializer_get_task_data.Fn()(s) }
 func (s *ContentSerializer) ReturnSuccess()    { gdk_content_serializer_return_success.Fn()(s) }
@@ -556,24 +574,25 @@ func (f *ContentFormats) UnionSerializeMimeTypes() *ContentFormats {
 func ContentRegisterSerializer(typ gobject.GType, mimeType string, serialize func(serial *ContentSerializer)) {
 	cMimeType := cc.NewString(mimeType)
 	defer cMimeType.Free()
-	fn := vcbu(serialize)
+	fn := cc.Cbk(serialize)
 	var notify uptr
-	notify = vcbu(func(_ uptr) {
-		if fn != nil {
-			cc.CbkCloseLate(fn)
-		}
-		cc.CbkCloseLate(notify)
-	})
+	if serialize != nil {
+		notify = cc.Cbk(func(_ uptr) {
+			cc.CbkClose(fn)
+			cc.CbkCloseLate(notify)
+		})
+	}
 	gdk_content_register_serializer.Fn()(typ, cMimeType, fn, nil, notify)
 }
 func ContentSerializeAsync(stream *gio.GOutputStream, mimeType string, value *gobject.GValue, ioPriority int32, cancellable *gio.GCancellable, callback func(res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(res *gio.GAsyncResult, _ uptr) {
 			callback(res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		stream.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	cMimeType := cc.NewString(mimeType)
 	defer cMimeType.Free()
 	gdk_content_serialize_async.Fn()(stream, cMimeType, value, ioPriority, cancellable, cbk, nil)
@@ -596,7 +615,7 @@ type CrossingEvent struct{ Event }
 func GTypeCrossingEvent() gobject.GType                { return gdk_crossing_event_get_type.Fn()() }
 func (e *CrossingEvent) GetCrossingMode() CrossingMode { return gdk_crossing_event_get_mode.Fn()(e) }
 func (e *CrossingEvent) GetCrossingDetail() NotifyType { return gdk_crossing_event_get_detail.Fn()(e) }
-func (e *CrossingEvent) GetCrossingFocus() bool        { return gdk_crossing_event_get_focus.Fn()(e) }
+func (e *CrossingEvent) GetCrossingFocus() bool        { return gdk_crossing_event_get_focus.Fn()(e) != 0 }
 
 // #endregion
 
@@ -949,7 +968,7 @@ func (b *DmabufTextureBuilder) GetPremultiplied() bool {
 	return gdk_dmabuf_texture_builder_get_premultiplied.Fn()(b) != 0
 }
 func (b *DmabufTextureBuilder) SetPremultiplied(premultiplied bool) {
-	gdk_dmabuf_texture_builder_set_premultiplied.Fn()(b, premultiplied)
+	gdk_dmabuf_texture_builder_set_premultiplied.Fn()(b, cbool(premultiplied))
 }
 func (b *DmabufTextureBuilder) GetNPlanes() uint32 {
 	return gdk_dmabuf_texture_builder_get_n_planes.Fn()(b)
@@ -994,12 +1013,10 @@ func (b *DmabufTextureBuilder) SetUpdateRegion(region *cairo.Region) {
 	gdk_dmabuf_texture_builder_set_update_region.Fn()(b, region)
 }
 func (b *DmabufTextureBuilder) Build(destroy func()) (tex *Texture, err error) {
-	var des = uptr(nil)
+	var des uptr
 	if destroy != nil {
-		des = vcbu(func(_ uptr) {
-			destroy()
-			cc.CbkCloseLate(des)
-		})
+		des = cc.Cbk(func(_ uptr) { destroy() })
+		b.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(des) })
 	}
 	var gerr *glib.GError
 	tex, err = gdk_dmabuf_texture_builder_build.Fn()(b, des, nil, &gerr), gerr.TakeError()
@@ -1031,7 +1048,7 @@ func DragActionIsUnique(action DragAction) bool { return gdk_drag_action_is_uniq
 func DragBegin(surface *Surface, device *Device, content *ContentProvider, actions DragAction, dx, dy float64) *Drag {
 	return gdk_drag_begin.Fn()(surface, device, content, actions, dx, dy)
 }
-func (d *Drag) DropDone(success bool)        { gdk_drag_drop_done.Fn()(d, success) }
+func (d *Drag) DropDone(success bool)        { gdk_drag_drop_done.Fn()(d, cbool(success)) }
 func (d *Drag) GetDragSurface() *Surface     { return gdk_drag_get_drag_surface.Fn()(d) }
 func (d *Drag) SetHotspot(hotX, hotY int32)  { gdk_drag_set_hotspot.Fn()(d, hotX, hotY) }
 func (d *Drag) GetContent() *ContentProvider { return gdk_drag_get_content.Fn()(d) }
@@ -1115,12 +1132,13 @@ func (d *Drop) Finish(action DragAction)             { gdk_drop_finish.Fn()(d, a
 
 func (d *Drop) ReadAsync(mimeTypes []string, ioPriority int32, cancellable *gio.GCancellable, callback func(d *Drop, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(d *Drop, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(d *Drop, res *gio.GAsyncResult, _ uptr) {
 			callback(d, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		d.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	ctypes := cc.NewStrings(mimeTypes)
 	defer ctypes.Free()
 	gdk_drop_read_async.Fn()(d, ctypes, ioPriority, cancellable, cbk, nil)
@@ -1136,12 +1154,13 @@ func (d *Drop) ReadFinish(res *gio.GAsyncResult) (stream *gio.GInputStream, mime
 
 func (d *Drop) ReadValueAsync(typ gobject.GType, ioPriority int32, cancellable *gio.GCancellable, callback func(d *Drop, res *gio.GAsyncResult)) {
 	var cbk uptr
-	cbk = vcbu(func(d *Drop, res *gio.GAsyncResult, _ uptr) {
-		if callback != nil {
+	if callback != nil {
+		cbk = cc.Cbk(func(d *Drop, res *gio.GAsyncResult, _ uptr) {
 			callback(d, res)
-		}
-		cc.CbkCloseLate(cbk)
-	})
+		})
+		d.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cbk) })
+	}
+
 	gdk_drop_read_value_async.Fn()(d, typ, ioPriority, cancellable, cbk, nil)
 }
 
@@ -1186,57 +1205,57 @@ func (e *Event) GetDisplay() *Display             { return gdk_event_get_display
 func (e *Event) GetEventSequence() *EventSequence { return gdk_event_get_event_sequence.Fn()(e) }
 func (e *Event) GetModifierState() ModifierType   { return gdk_event_get_modifier_state.Fn()(e) }
 func (e *Event) GetPosition() (x, y float64, ok bool) {
-	ok = gdk_event_get_position.Fn()(e, &x, &y)
+	ok = gdk_event_get_position.Fn()(e, &x, &y) != 0
 	return
 }
 func (e *Event) GetAxes() (axes []float64, ok bool) {
 	var p *float64
 	var n uint32
-	ok = gdk_event_get_axes.Fn()(e, &p, &n)
-	axes = *(*[]float64)(cc.Slice(uptr(p), int64(n)))
+	ok = gdk_event_get_axes.Fn()(e, &p, &n) != 0
+	axes = cc.Slice(p, n)
 	return
 }
 func (e *Event) GetAxis(axisUse AxisUse) (value float64, ok bool) {
-	ok = gdk_event_get_axis.Fn()(e, axisUse, &value)
+	ok = gdk_event_get_axis.Fn()(e, axisUse, &value) != 0
 	return
 }
 func (e *Event) GetHistory() []TimeCoord {
 	var outNCoords uint32
 	coord := gdk_event_get_history.Fn()(e, &outNCoords)
-	return *(*[]TimeCoord)(cc.Slice(uptr(coord), int64(outNCoords)))
+	return cc.Slice(coord, outNCoords)
 }
-func (e *Event) GetPointerEmulated() bool { return gdk_event_get_pointer_emulated.Fn()(e) }
+func (e *Event) GetPointerEmulated() bool { return gdk_event_get_pointer_emulated.Fn()(e) != 0 }
 
-func (e *Event) TriggersContextMenu() bool { return gdk_event_triggers_context_menu.Fn()(e) }
+func (e *Event) TriggersContextMenu() bool { return gdk_event_triggers_context_menu.Fn()(e) != 0 }
 func EventsGetDistance(e1, e2 *Event) (distance float64, ok bool) {
-	ok = gdk_events_get_distance.Fn()(e1, e2, &distance)
+	ok = gdk_events_get_distance.Fn()(e1, e2, &distance) != 0
 	return
 }
 func (e1 *Event) GetDistance(e2 *Event) (distance float64, ok bool) {
-	ok = gdk_events_get_distance.Fn()(e1, e2, &distance)
+	ok = gdk_events_get_distance.Fn()(e1, e2, &distance) != 0
 	return
 }
 func EventsGetAngle(e1, e2 *Event) (angle float64, ok bool) {
-	ok = gdk_events_get_angle.Fn()(e1, e2, &angle)
+	ok = gdk_events_get_angle.Fn()(e1, e2, &angle) != 0
 	return
 }
 func (e1 *Event) GetAngle(e2 *Event) (angle float64, ok bool) {
-	ok = gdk_events_get_angle.Fn()(e1, e2, &angle)
+	ok = gdk_events_get_angle.Fn()(e1, e2, &angle) != 0
 	return
 }
 func EventsGetCenter(e1, e2 *Event) (x, y float64, ok bool) {
-	ok = gdk_events_get_center.Fn()(e1, e2, &x, &y)
+	ok = gdk_events_get_center.Fn()(e1, e2, &x, &y) != 0
 	return
 }
 func (e1 *Event) GetCenter(e2 *Event) (x, y float64, ok bool) {
-	ok = gdk_events_get_center.Fn()(e1, e2, &x, &y)
+	ok = gdk_events_get_center.Fn()(e1, e2, &x, &y) != 0
 	return
 }
 func (e *Event) KeyEventMatches(keyval uint32, modifiers ModifierType) KeyMatch {
 	return gdk_key_event_matches.Fn()(e, keyval, modifiers)
 }
 func (e *Event) KeyEventGetMatch() (keyval uint32, modifiers ModifierType, ok bool) {
-	ok = gdk_key_event_get_match.Fn()(e, &keyval, &modifiers)
+	ok = gdk_key_event_get_match.Fn()(e, &keyval, &modifiers) != 0
 	return
 }
 
@@ -1247,7 +1266,7 @@ func (e *Event) KeyEventGetMatch() (keyval uint32, modifiers ModifierType, ok bo
 type FocusEvent struct{ Event }
 
 func GTypeFocusEvent() gobject.GType   { return gdk_focus_event_get_type.Fn()() }
-func (e *FocusEvent) GetFocusIn() bool { return gdk_focus_event_get_in.Fn()(e) }
+func (e *FocusEvent) GetFocusIn() bool { return gdk_focus_event_get_in.Fn()(e) != 0 }
 
 // #endregion
 
@@ -1354,11 +1373,11 @@ func (ctx *GLContext) GetRequiredVersion() (major, minor int) {
 	return
 }
 func (ctx *GLContext) SetDebugEnabled(enabled bool) {
-	gdk_gl_context_set_debug_enabled.Fn()(ctx, enabled)
+	gdk_gl_context_set_debug_enabled.Fn()(ctx, cbool(enabled))
 }
 func (ctx *GLContext) GetDebugEnabled() bool { return gdk_gl_context_get_debug_enabled.Fn()(ctx) != 0 }
 func (ctx *GLContext) SetForwardCompatible(compatible bool) {
-	gdk_gl_context_set_forward_compatible.Fn()(ctx, compatible)
+	gdk_gl_context_set_forward_compatible.Fn()(ctx, cbool(compatible))
 }
 func (ctx *GLContext) GetForwardCompatible() bool {
 	return gdk_gl_context_get_forward_compatible.Fn()(ctx) != 0
@@ -1390,7 +1409,7 @@ func GTypeGLTexture() gobject.GType { return gdk_gl_texture_get_type.Fn()() }
 func NewGLTexture(context *GLContext, id uint32, width, height int32, destroy func()) *Texture {
 	var des uptr
 	if destroy != nil {
-		des = vcbu(func(_ uptr) {
+		des = cc.Cbk(func(_ uptr) {
 			destroy()
 			cc.CbkCloseLate(des)
 		})
@@ -1424,9 +1443,11 @@ func (b *GLTextureBuilder) GetFormat() MemoryFormat { return gdk_gl_texture_buil
 func (b *GLTextureBuilder) SetFormat(format MemoryFormat) {
 	gdk_gl_texture_builder_set_format.Fn()(b, format)
 }
-func (b *GLTextureBuilder) GetHasMipmap() bool { return gdk_gl_texture_builder_get_has_mipmap.Fn()(b) }
+func (b *GLTextureBuilder) GetHasMipmap() bool {
+	return gdk_gl_texture_builder_get_has_mipmap.Fn()(b) != 0
+}
 func (b *GLTextureBuilder) SetHasMipmap(hasMipmap bool) {
-	gdk_gl_texture_builder_set_has_mipmap.Fn()(b, hasMipmap)
+	gdk_gl_texture_builder_set_has_mipmap.Fn()(b, cbool(hasMipmap))
 }
 func (b *GLTextureBuilder) GetSync() uptr     { return gdk_gl_texture_builder_get_sync.Fn()(b) }
 func (b *GLTextureBuilder) SetSync(sync uptr) { gdk_gl_texture_builder_set_sync.Fn()(b, sync) }
@@ -1451,7 +1472,7 @@ func (b *GLTextureBuilder) SetUpdateRegion(region *cairo.Region) {
 func (b *GLTextureBuilder) Build(destroy func()) *Texture {
 	var des uptr
 	if destroy != nil {
-		des = vcbu(func(_ uptr) {
+		des = cc.Cbk(func(_ uptr) {
 			destroy()
 			cc.CbkCloseLate(des)
 		})
@@ -1470,7 +1491,7 @@ func (e *GrabBrokenEvent) GetGrabBrokenSurface() *Surface {
 	return gdk_grab_broken_event_get_grab_surface.Fn()(e)
 }
 func (e *GrabBrokenEvent) GetGrabBrokenImplicit() bool {
-	return gdk_grab_broken_event_get_implicit.Fn()(e)
+	return gdk_grab_broken_event_get_implicit.Fn()(e) != 0
 }
 
 // #endregion
@@ -1487,7 +1508,7 @@ func (e *KeyEvent) GetConsumedModifiers() ModifierType {
 }
 func (e *KeyEvent) GetLayout() uint32 { return gdk_key_event_get_layout.Fn()(e) }
 func (e *KeyEvent) GetLevel() uint32  { return gdk_key_event_get_level.Fn()(e) }
-func (e *KeyEvent) IsModifier() bool  { return gdk_key_event_is_modifier.Fn()(e) }
+func (e *KeyEvent) IsModifier() bool  { return gdk_key_event_is_modifier.Fn()(e) != 0 }
 
 // #endregion
 
@@ -1503,8 +1524,8 @@ func KeyvalConvertCase(symbol uint32) (lower, upper uint32) {
 }
 func KeyvalToUpper(keyval uint32) uint32   { return gdk_keyval_to_upper.Fn()(keyval) }
 func KeyvalToLower(keyval uint32) uint32   { return gdk_keyval_to_lower.Fn()(keyval) }
-func KeyvalIsUpper(keyval uint32) bool     { return gdk_keyval_is_upper.Fn()(keyval) }
-func KeyvalIsLower(keyval uint32) bool     { return gdk_keyval_is_lower.Fn()(keyval) }
+func KeyvalIsUpper(keyval uint32) bool     { return gdk_keyval_is_upper.Fn()(keyval) != 0 }
+func KeyvalIsLower(keyval uint32) bool     { return gdk_keyval_is_lower.Fn()(keyval) != 0 }
 func KeyvalToUnicode(keyval uint32) uint32 { return gdk_keyval_to_unicode.Fn()(keyval) }
 func UnicodeToKeyval(wc uint32) uint32     { return gdk_unicode_to_keyval.Fn()(wc) }
 
@@ -1598,7 +1619,7 @@ func (m *Monitor) GetScaleFactor() int32             { return gdk_monitor_get_sc
 func (m *Monitor) GetScale() float64                 { return gdk_monitor_get_scale.Fn()(m) }
 func (m *Monitor) GetRefreshRate() int32             { return gdk_monitor_get_refresh_rate.Fn()(m) }
 func (m *Monitor) GetSubpixelLayout() SubpixelLayout { return gdk_monitor_get_subpixel_layout.Fn()(m) }
-func (m *Monitor) IsValid() bool                     { return gdk_monitor_is_valid.Fn()(m) }
+func (m *Monitor) IsValid() bool                     { return gdk_monitor_is_valid.Fn()(m) != 0 }
 func (m *Monitor) GetDescription() string            { return gdk_monitor_get_description.Fn()(m).String() }
 func (m *Monitor) ConnectInvalidate(sig func(m *Monitor)) uint64 {
 	return m.SignalConnect("invalidate", sig, nil)
@@ -1652,7 +1673,7 @@ func (e *ScrollEvent) GetScrollDeltas() (deltaX, deltaY float64) {
 	return
 }
 func (e *ScrollEvent) GetScrollUnit() ScrollUnit { return gdk_scroll_event_get_unit.Fn()(e) }
-func (e *ScrollEvent) IsScrollStop() bool        { return gdk_scroll_event_is_stop.Fn()(e) }
+func (e *ScrollEvent) IsScrollStop() bool        { return gdk_scroll_event_is_stop.Fn()(e) != 0 }
 
 // #endregion
 
@@ -1847,10 +1868,7 @@ func (rgba *RGBA) Parse(spec string) bool {
 	return gdk_rgba_parse.Fn()(rgba, cSpec) != 0
 }
 func (rgba *RGBA) ToString() string {
-	str := gdk_rgba_to_string.Fn()(rgba)
-	s := str.String()
-	str.Free()
-	return s
+	return gdk_rgba_to_string.Fn()(rgba).TakeString()
 }
 
 // #endregion
@@ -1897,7 +1915,7 @@ type Surface struct{ gobject.GObjectCore }
 func GTypeSurface() gobject.GType                  { return gdk_surface_get_type.Fn()() }
 func NewSurfaceToplevel(display *Display) *Surface { return gdk_surface_new_toplevel.Fn()(display) }
 func NewSurfacePopup(parent *Surface, autohide bool) *Surface {
-	return gdk_surface_new_popup.Fn()(parent, autohide)
+	return gdk_surface_new_popup.Fn()(parent, cbool(autohide))
 }
 func (surface *Surface) Destroy()             { gdk_surface_destroy.Fn()(surface) }
 func (surface *Surface) IsDestroyed() bool    { return gdk_surface_is_destroyed.Fn()(surface) != 0 }
@@ -2015,8 +2033,10 @@ func (t *Texture) SaveToTIFFBytes() *glib.GBytes { return gdk_texture_save_to_ti
 
 type TouchEvent struct{ Event }
 
-func GTypeTouchEvent() gobject.GType            { return gdk_touch_event_get_type.Fn()() }
-func (e *TouchEvent) GetEmulatingPointer() bool { return gdk_touch_event_get_emulating_pointer.Fn()(e) }
+func GTypeTouchEvent() gobject.GType { return gdk_touch_event_get_type.Fn()() }
+func (e *TouchEvent) GetEmulatingPointer() bool {
+	return gdk_touch_event_get_emulating_pointer.Fn()(e) != 0
+}
 
 // #endregion
 
@@ -2109,13 +2129,13 @@ func (t *Toplevel) SetStartupId(startupId string) {
 	gdk_toplevel_set_startup_id.Fn()(t, cId)
 }
 func (t *Toplevel) SetTransientFor(parent *Surface) { gdk_toplevel_set_transient_for.Fn()(t, parent) }
-func (t *Toplevel) SetModal(modal bool)             { gdk_toplevel_set_modal.Fn()(t, modal) }
+func (t *Toplevel) SetModal(modal bool)             { gdk_toplevel_set_modal.Fn()(t, cbool(modal)) }
 func (t *Toplevel) SetIconList(surfaces uptr)       { gdk_toplevel_set_icon_list.Fn()(t, surfaces) }
 func (t *Toplevel) ShowWindowMenu(event *Event) bool {
 	return gdk_toplevel_show_window_menu.Fn()(t, event) != 0
 }
-func (t *Toplevel) SetDecorated(decorated bool) { gdk_toplevel_set_decorated.Fn()(t, decorated) }
-func (t *Toplevel) SetDeletable(deletable bool) { gdk_toplevel_set_deletable.Fn()(t, deletable) }
+func (t *Toplevel) SetDecorated(decorated bool) { gdk_toplevel_set_decorated.Fn()(t, cbool(decorated)) }
+func (t *Toplevel) SetDeletable(deletable bool) { gdk_toplevel_set_deletable.Fn()(t, cbool(deletable)) }
 func (t *Toplevel) SupportsEdgeConstraints() bool {
 	return gdk_toplevel_supports_edge_constraints.Fn()(t) != 0
 }
@@ -2152,24 +2172,26 @@ func (l *ToplevelLayout) Equal(other *ToplevelLayout) bool {
 	return gdk_toplevel_layout_equal.Fn()(l, other) != 0
 }
 func (l *ToplevelLayout) SetMaximized(maximized bool) {
-	gdk_toplevel_layout_set_maximized.Fn()(l, maximized)
+	gdk_toplevel_layout_set_maximized.Fn()(l, cbool(maximized))
 }
 func (l *ToplevelLayout) SetFullscreen(fullscreen bool, monitor *Monitor) {
-	gdk_toplevel_layout_set_fullscreen.Fn()(l, fullscreen, monitor)
+	gdk_toplevel_layout_set_fullscreen.Fn()(l, cbool(fullscreen), monitor)
 }
 func (l *ToplevelLayout) GetMaximized() (maximized bool, ok bool) {
-	ok = gdk_toplevel_layout_get_maximized.Fn()(l, &maximized) != 0
+	max := int32(0)
+	ok, maximized = gdk_toplevel_layout_get_maximized.Fn()(l, &max) != 0, max != 0
 	return
 }
 func (l *ToplevelLayout) GetFullscreen() (fullscreen bool, ok bool) {
-	ok = gdk_toplevel_layout_get_fullscreen.Fn()(l, &fullscreen) != 0
+	fs := int32(0)
+	ok, fullscreen = gdk_toplevel_layout_get_fullscreen.Fn()(l, &fs) != 0, fs != 0
 	return
 }
 func (l *ToplevelLayout) GetFullscreenMonitor() *Monitor {
 	return gdk_toplevel_layout_get_fullscreen_monitor.Fn()(l)
 }
 func (l *ToplevelLayout) SetResizable(resizable bool) {
-	gdk_toplevel_layout_set_resizable.Fn()(l, resizable)
+	gdk_toplevel_layout_set_resizable.Fn()(l, cbool(resizable))
 }
 func (l *ToplevelLayout) GetResizable() bool { return gdk_toplevel_layout_get_resizable.Fn()(l) != 0 }
 

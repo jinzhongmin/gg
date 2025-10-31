@@ -39,15 +39,43 @@ func (source *GObject) BindProperty(source_property string,
 
 func (source *GObject) BindPropertyFull(source_property string,
 	target GObjectIface, target_property string, flags GBindingFlags,
-	transform_to, transform_from func(binding *GBinding, fromValue, toValue *GValue, _ uptr) bool) *GBinding {
+	transformTo, transformFrom func(binding *GBinding, fromValue, toValue *GValue) bool) *GBinding {
 	cSourceProp := cc.NewString(source_property)
 	cTargetProp := cc.NewString(target_property)
 	defer cSourceProp.Free()
 	defer cTargetProp.Free()
+	var to, from uptr
+
+	if transformTo != nil {
+		to = cc.CbkRaw[func(binding *GBinding, fromValue, toValue *GValue, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 4)
+			if transformTo(*(**GBinding)(is[0]), *(**GValue)(is[1]), *(**GValue)(is[2])) {
+				*(*int32)(out) = 1
+			} else {
+				*(*int32)(out) = 1
+			}
+		})
+	}
+	if transformFrom != nil {
+		from = cc.CbkRaw[func(binding *GBinding, fromValue, toValue *GValue, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 4)
+			if transformFrom(*(**GBinding)(is[0]), *(**GValue)(is[1]), *(**GValue)(is[2])) {
+				*(*int32)(out) = 1
+			} else {
+				*(*int32)(out) = 1
+			}
+		})
+	}
+	var des uptr
+	des = cc.Cbk(func(_ uptr) {
+		cc.CbkClose(to)
+		cc.CbkClose(from)
+		cc.CbkCloseLate(des)
+	})
 	return g_object_bind_property_full.Fn()(
 		GetGObjectIface(source), cSourceProp,
 		GetGObjectIface(target), cTargetProp, flags,
-		vcbu(transform_to), vcbu(transform_from), nil, nil)
+		to, from, nil, des)
 }
 
 // #endregion
@@ -70,23 +98,52 @@ func (g *GBindingGroup) Bind(sourceProperty string, target interface{}, targetPr
 	g_binding_group_bind.Fn()(g, cSource, anyptr(target), cTarget, flags)
 }
 func (g *GBindingGroup) BindFull(sourceProperty string, target interface{}, targetProperty string, flags GBindingFlags,
-	transformTo, transformFrom func(binding *GBinding, fromValue, toValue *GValue, _ uptr) bool) {
+	transformTo, transformFrom func(binding *GBinding, fromValue, toValue *GValue) bool) {
 	cSource := cc.NewString(sourceProperty)
 	cTarget := cc.NewString(targetProperty)
 	defer cSource.Free()
 	defer cTarget.Free()
-	g_binding_group_bind_full.Fn()(g, cSource, anyptr(target), cTarget, flags, vcbu(transformTo), vcbu(transformFrom), nil, nil)
+
+	var to, from uptr
+	if transformTo != nil {
+		to = cc.CbkRaw[func(binding *GBinding, fromValue, toValue *GValue, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 4)
+			if transformTo(*(**GBinding)(is[0]), *(**GValue)(is[1]), *(**GValue)(is[2])) {
+				*(*int32)(out) = 1
+			} else {
+				*(*int32)(out) = 1
+			}
+		})
+	}
+
+	if transformFrom != nil {
+		from = cc.CbkRaw[func(binding *GBinding, fromValue, toValue *GValue, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 4)
+			if transformFrom(*(**GBinding)(is[0]), *(**GValue)(is[1]), *(**GValue)(is[2])) {
+				*(*int32)(out) = 1
+			} else {
+				*(*int32)(out) = 1
+			}
+		})
+	}
+	var des uptr
+	des = cc.Cbk(func(_ uptr) {
+		cc.CbkClose(to)
+		cc.CbkClose(from)
+		cc.CbkCloseLate(des)
+	})
+	g_binding_group_bind_full.Fn()(g, cSource, anyptr(target), cTarget, flags, to, from, nil, des)
 }
 
 // #endregion
 
 // #region Boxed
 
-func GBoxedCopy(boxedType GType, srcBoxed interface{}) uptr {
-	return g_boxed_copy.Fn()(boxedType, anyptr(srcBoxed))
+func GBoxedCopy[T any](boxedType GType, srcBoxed *T) *T {
+	return (*T)(g_boxed_copy.Fn()(boxedType, uptr(srcBoxed)))
 }
-func GBoxedFree(boxedType GType, boxed interface{}) {
-	g_boxed_free.Fn()(boxedType, anyptr(boxed))
+func GBoxedFree[T any](boxedType GType, boxed *T) {
+	g_boxed_free.Fn()(boxedType, uptr(boxed))
 }
 func (value *GValue) SetBoxed(boxed interface{}) *GValue {
 	g_value_set_boxed.Fn()(value, anyptr(boxed))
@@ -108,10 +165,24 @@ func (value *GValue) TakeBoxed(boxed interface{}) *GValue {
 
 func (value *GValue) GetBoxed() uptr { return g_value_get_boxed.Fn()(value) }
 func (value *GValue) DupBoxed() uptr { return g_value_dup_boxed.Fn()(value) }
-func GBoxedTypeRegisterStatic(name string, boxedCopy func(uptr) uptr, boxedFree func(uptr)) GType {
+func GBoxedTypeRegisterStatic[T any](name string, boxedCopy func(*T) *T, boxedFree func(*T)) GType {
 	cName := cc.NewString(name)
 	defer cName.Free()
-	return g_boxed_type_register_static.Fn()(cName, vcbu(boxedCopy), vcbu(boxedFree))
+	var cp, fr uptr
+	if boxedCopy != nil {
+		cp = cc.CbkRaw[func(*T) *T](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 1)
+			*(**T)(out) = boxedCopy(*(**T)(is[0]))
+		})
+	}
+
+	if boxedFree != nil {
+		fr = cc.CbkRaw[func(*T)](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 1)
+			boxedFree(*(**T)(is[0]))
+		})
+	}
+	return g_boxed_type_register_static.Fn()(cName, cp, fr)
 }
 
 // #endregion
@@ -123,15 +194,19 @@ type GEnumClass struct {
 	Minimum   int32
 	Maximum   int32
 	ValuesLen uint32
-	ValuesPtr uptr
+	ValuesPtr *GEnumValue
 }
+
+func (em GEnumClass) List() []GEnumValue { return slice(em.ValuesPtr, em.ValuesLen) }
 
 type GFlagsClass struct {
 	TypeClass GTypeClass
 	Mask      uint32
 	ValuesLen uint32
-	ValuesPtr uptr
+	ValuesPtr *GFlagsValue
 }
+
+func (flg GFlagsClass) ListGFlags() []GFlagsValue { return slice(flg.ValuesPtr, flg.ValuesLen) }
 
 type GEnumValue struct {
 	Value     int32
@@ -171,10 +246,10 @@ func (c *GFlagsClass) GetValueByNick(nick string) *GFlagsValue {
 	defer cNick.Free()
 	return g_flags_get_value_by_nick.Fn()(c, cNick)
 }
-func EnumToString(enumType GType, value int32) string {
+func GEnumToString(enumType GType, value int32) string {
 	return g_enum_to_string.Fn()(enumType, value).String()
 }
-func FlagsToString(flagsType GType, value uint32) string {
+func GFlagsToString(flagsType GType, value uint32) string {
 	return g_flags_to_string.Fn()(flagsType, value).String()
 }
 func (value *GValue) SetEnum(v_enum int32) *GValue {
@@ -186,9 +261,7 @@ func (value *GValue) SetFlags(v_flags uint32) *GValue {
 	g_value_set_flags.Fn()(value, v_flags)
 	return value
 }
-func (value *GValue) GetFlags() uint32 {
-	return g_value_get_flags.Fn()(value)
-}
+func (value *GValue) GetFlags() uint32 { return g_value_get_flags.Fn()(value) }
 func GEnumRegisterStatic(name string, values []GEnumValue) GType {
 	values = append(values, GEnumValue{})
 	cName := cc.NewString(name)
@@ -202,10 +275,10 @@ func GFlagsRegisterStatic(name string, values []GFlagsValue) GType {
 	return g_flags_register_static.Fn()(cName, carry(values))
 }
 func GEnumCompleteTypeInfo(gEnumType GType, info *GTypeInfo, values []GEnumValue) {
-	g_enum_complete_type_info.Fn()(gEnumType, info, carry(values))
+	g_enum_complete_type_info.Fn()(gEnumType, info, carry(append(values, GEnumValue{})))
 }
 func GFlagsCompleteTypeInfo(gFlagsType GType, info *GTypeInfo, values []GFlagsValue) {
-	g_flags_complete_type_info.Fn()(gFlagsType, info, carry(values))
+	g_flags_complete_type_info.Fn()(gFlagsType, info, carry(append(values, GFlagsValue{})))
 }
 
 // #endregion
@@ -279,7 +352,7 @@ func (c *GObjectClass) ListProperties() []*GParamSpec {
 	if ptr == nil || n == 0 {
 		return nil
 	}
-	return *(*[]*GParamSpec)(slice(ptr, int(n)))
+	return slice(ptr, int(n))
 }
 func (c *GObjectClass) OverrideProperty(property_id uint32, name string) {
 	cName := cc.NewString(name)
@@ -287,24 +360,26 @@ func (c *GObjectClass) OverrideProperty(property_id uint32, name string) {
 	g_object_class_override_property.Fn()(c, property_id, cName)
 }
 func (c *GObjectClass) InstallProperties(pspecs []*GParamSpec) {
-	g_object_class_install_properties.Fn()(c, uint32(len(pspecs)), carry(pspecs))
-}
-func GObjectInterfaceInstallProperty(g_iface uptr, pspec *GParamSpec) {
-	g_object_interface_install_property.Fn()(g_iface, pspec)
+	p, l := carryLen[*GParamSpec, uint32](pspecs)
+	g_object_class_install_properties.Fn()(c, l, p)
 }
 
-func GObjectInterfaceFindProperty(g_iface uptr, property_name string) *GParamSpec {
+func (ifc *GTypeInterface) InstallProperty(pspec *GParamSpec) {
+	g_object_interface_install_property.Fn()(ifc, pspec)
+}
+
+func (ifc *GTypeInterface) Property(g_iface uptr, property_name string) *GParamSpec {
 	cName := cc.NewString(property_name)
 	defer cName.Free()
-	return g_object_interface_find_property.Fn()(g_iface, cName)
+	return g_object_interface_find_property.Fn()(ifc, cName)
 }
-func GObjectInterfaceListProperties(g_iface uptr) []*GParamSpec {
+func (ifc *GTypeInterface) ListProperties() []*GParamSpec {
 	var n uint32
-	ptr := g_object_interface_list_properties.Fn()(g_iface, &n)
+	ptr := g_object_interface_list_properties.Fn()(ifc, &n)
 	if ptr == nil || n == 0 {
 		return nil
 	}
-	return *(*[]*GParamSpec)(slice(ptr, int(n)))
+	return slice(ptr, n)
 }
 
 func GTypeGObject() GType { return g_object_get_type.Fn()() }
@@ -328,8 +403,9 @@ func (object *GObject) Set(propertyName string, value interface{}) {
 	g_object_set_property.Fn()(object, prop, NewGValue(value))
 }
 func (object *GObject) Get(propertyName string) interface{} {
-	value := new(GValue)
-	g_object_get_property.Fn()(object, propertyName, value)
+	value, n := new(GValue), cc.NewString(propertyName)
+	defer n.Free()
+	g_object_get_property.Fn()(object, n, value)
 	runtime.SetFinalizer(value, func(v *GValue) { v.Unset() })
 	return value.Get()
 }
@@ -341,24 +417,25 @@ func (object *GObject) Notify(propertyName string) {
 }
 func (object *GObject) NotifyByPspec(pspec *GParamSpec) { g_object_notify_by_pspec.Fn()(object, pspec) }
 func (object *GObject) ThawNotify()                     { g_object_thaw_notify.Fn()(object) }
-func (object *GObject) IsFloating() bool                { return g_object_is_floating.Fn()(anyptr(object)) }
-func (object *GObject) RefSink() *GObject               { return (*GObject)(g_object_ref_sink.Fn()(anyptr(object))) }
-func (object *GObject) TakeRef() *GObject               { return (*GObject)(g_object_take_ref.Fn()(anyptr(object))) }
-func (object *GObject) Ref() *GObject                   { return (*GObject)(g_object_ref.Fn()(anyptr(object))) }
-func (object *GObject) Unref()                          { g_object_unref.Fn()(anyptr(object)) }
-func (object *GObject) WeakRef(notify func(_ uptr, obj *GObject)) {
+func (object *GObject) IsFloating() bool                { return g_object_is_floating.Fn()(object) != 0 }
+func (object *GObject) RefSink() *GObject               { return (*GObject)(g_object_ref_sink.Fn()(object)) }
+func (object *GObject) TakeRef() *GObject               { return (*GObject)(g_object_take_ref.Fn()(object)) }
+func (object *GObject) Ref() *GObject                   { return (*GObject)(g_object_ref.Fn()(object)) }
+func (object *GObject) Unref()                          { g_object_unref.Fn()((object)) }
+func (object *GObject) WeakRef(notify func(obj *GObject)) (forWeakUnref uptr) {
 	var fn uptr
-	fn = vcbu(func(p uptr, obj *GObject) {
-		if notify != nil {
-			notify(p, obj)
-		}
+	fn = cc.CbkRaw[func(_ uptr, obj *GObject)](func(out, ins uptr) {
+		ps := slice((*uptr)(ins), 2)
+		notify(*(**GObject)(ps[0]))
 		cc.CbkCloseLate(fn)
 	})
-
 	g_object_weak_ref.Fn()(object, fn, nil)
+	return fn
 }
-func (object *GObject) WeakUnref(notify func(data uptr, obj *GObject), data interface{}) {
-	g_object_weak_unref.Fn()(object, vcbu(notify), anyptr(data))
+
+// notify from WeakRef return
+func (object *GObject) WeakUnref(notify uptr) {
+	g_object_weak_unref.Fn()(object, notify, nil)
 }
 func (object *GObject) AddWeakPointer() (weakPtr uptr) {
 	g_object_add_weak_pointer.Fn()(object, &weakPtr)
@@ -366,11 +443,20 @@ func (object *GObject) AddWeakPointer() (weakPtr uptr) {
 }
 func (object *GObject) RemoveWeakPointer(ptr uptr) { g_object_remove_weak_pointer.Fn()(object, &ptr) }
 
-func (object *GObject) AddToggleRef(notify func(_ uptr, obj *GObject, isLastRef bool)) {
-	g_object_add_toggle_ref.Fn()(object, vcbu(notify), nil)
+func (object *GObject) AddToggleRef(notify func(obj *GObject, isLastRef bool)) uptr {
+	var cb uptr
+	if notify != nil {
+		cb = cc.CbkRaw[func(_ uptr, obj *GObject, isLastRef int32)](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 3)
+			notify(*(**GObject)(is[1]), *(*int32)(is[2]) != 0)
+		})
+		object.WeakRef(func(obj *GObject) { cc.CbkClose(cb) })
+	}
+	g_object_add_toggle_ref.Fn()(object, cb, nil)
+	return cb
 }
-func (object *GObject) RemoveToggleRef(notify func(_ uptr, obj *GObject, isLastRef bool)) {
-	g_object_remove_toggle_ref.Fn()(object, vcbu(notify), nil)
+func (object *GObject) RemoveToggleRef(notify uptr) {
+	g_object_remove_toggle_ref.Fn()(object, notify, nil)
 }
 func (object *GObject) GetQData(quark glib.GQuark) uptr {
 	return g_object_get_qdata.Fn()(object, quark)
@@ -379,13 +465,26 @@ func (object *GObject) SetQData(quark glib.GQuark, data interface{}) {
 	g_object_set_qdata.Fn()(object, quark, anyptr(data))
 }
 func (object *GObject) SetQDataFull(quark glib.GQuark, data interface{}, destroy func(uptr)) {
-	g_object_set_qdata_full.Fn()(object, quark, anyptr(data), vcbu(destroy))
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(destroy)
+		object.WeakRef(func(obj *GObject) { cc.CbkClose(des) })
+	}
+	g_object_set_qdata_full.Fn()(object, quark, anyptr(data), des)
 }
 func (object *GObject) StealQData(quark glib.GQuark) uptr {
 	return g_object_steal_qdata.Fn()(object, quark)
 }
-func (object *GObject) DupQData(quark glib.GQuark, dupFunc func(data, _ uptr) uptr) uptr {
-	return g_object_dup_qdata.Fn()(object, quark, vcbu(dupFunc), nil)
+func (object *GObject) DupQData(quark glib.GQuark, dupFunc func(data uptr) uptr) uptr {
+	var cb uptr
+	if dupFunc != nil {
+		cb = cc.CbkRaw[func(data, userData uptr) uptr](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 2)
+			*(*uptr)(out) = dupFunc(*(*uptr)(is[0]))
+		})
+		object.WeakRef(func(obj *GObject) { cc.CbkClose(cb) })
+	}
+	return g_object_dup_qdata.Fn()(object, quark, cb, nil)
 }
 
 // func (object *GObject) ReplaceQData(quark glib.GQuark,
@@ -406,17 +505,30 @@ func (object *GObject) SetData(key string, data interface{}) {
 func (object *GObject) SetDataFull(key string, data interface{}, destroy func(uptr)) {
 	cKey := cc.NewString(key)
 	defer cKey.Free()
-	g_object_set_data_full.Fn()(object, cKey, anyptr(data), vcbu(destroy))
+	var cb uptr
+	if destroy != nil {
+		cb = cc.Cbk(destroy)
+		object.WeakRef(func(obj *GObject) { cc.CbkClose(cb) })
+	}
+	g_object_set_data_full.Fn()(object, cKey, anyptr(data), cb)
 }
 func (object *GObject) StealData(key string) uptr {
 	cKey := cc.NewString(key)
 	defer cKey.Free()
 	return g_object_steal_data.Fn()(object, cKey)
 }
-func (object *GObject) DupData(key string, dupFunc func(data, _ uptr) uptr) uptr {
+func (object *GObject) DupData(key string, dupFunc func(data uptr) uptr) uptr {
 	cKey := cc.NewString(key)
 	defer cKey.Free()
-	return g_object_dup_data.Fn()(object, cKey, vcbu(dupFunc), nil)
+	var cb uptr
+	if dupFunc != nil {
+		cb = cc.CbkRaw[func(data, userData uptr) uptr](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 2)
+			*(*uptr)(out) = dupFunc(*(*uptr)(is[0]))
+		})
+		object.WeakRef(func(obj *GObject) { cc.CbkClose(cb) })
+	}
+	return g_object_dup_data.Fn()(object, cKey, cb, nil)
 }
 
 //	func (object *GObject) ReplaceData(key string, oldval, newval interface{}, destroy func(uptr), oldDestroy func(uptr)) bool {
@@ -448,7 +560,12 @@ func (value *GValue) DupObject() *GObject {
 }
 func (object *GObject) SignalConnectObject(detailedSignal string, Handler interface{},
 	gobject GObjectIface, connectFlags GConnectFlags) uint64 {
-	return g_signal_connect_object.Fn()(object, detailedSignal, vcbu(Handler), GetGObjectIface(gobject), connectFlags)
+	sig := cc.NewString(detailedSignal)
+	defer sig.Free()
+
+	cb := cc.Cbk(Handler)
+	object.WeakRef(func(obj *GObject) { cc.CbkClose(cb) })
+	return g_signal_connect_object.Fn()(object, sig, cb, GetGObjectIface(gobject), connectFlags)
 }
 func (object *GObject) ForceFloating() { g_object_force_floating.Fn()(object) }
 func (object *GObject) RunDispose()    { g_object_run_dispose.Fn()(object) }
@@ -463,9 +580,7 @@ var lifeTimePinner = map[*GObject]any{}
 
 func (object *GObject) Pin(goValue any) {
 	lifeTimePinner[object] = goValue
-	object.WeakRef(func(_ uptr, obj *GObject) {
-		delete(lifeTimePinner, obj)
-	})
+	object.WeakRef(func(obj *GObject) { delete(lifeTimePinner, obj) })
 }
 func (object *GObject) GetPinned() (goValue any, ok bool) {
 	goValue, ok = lifeTimePinner[object]
@@ -487,9 +602,10 @@ func (obj *GObjectCore) Set(property string, value interface{}) {
 	obj.GetGObjectIface().Set(property, value)
 }
 func (obj *GObjectCore) Get(property string) interface{} { return obj.GetGObjectIface().Get(property) }
-func (obj *GObjectCore) WeakRef(notif func(_ uptr, obj *GObject)) {
-	obj.GetGObjectIface().WeakRef(notif)
+func (obj *GObjectCore) WeakRef(notif func(obj *GObject)) uptr {
+	return obj.GetGObjectIface().WeakRef(notif)
 }
+func (obj *GObjectCore) WeakUnref(notif uptr) { obj.GetGObjectIface().WeakUnref(notif) }
 func (obj *GObjectCore) SignalConnect(signal string, fn interface{}, data interface{}) uint64 {
 	return obj.GetGObjectIface().SignalConnect(signal, fn, data)
 }
@@ -521,7 +637,7 @@ type GParamSpecObj struct {
 }
 
 type GParamSpecClass struct {
-	GtypeClass GTypeClass
+	GTypeClass GTypeClass
 
 	ValueType GType
 
@@ -547,7 +663,16 @@ func (pspec *GParamSpec) SetQData(quark glib.GQuark, data interface{}) {
 	g_param_spec_set_qdata.Fn()(pspec, quark, anyptr(data))
 }
 func (pspec *GParamSpec) SetQDataFull(quark glib.GQuark, data interface{}, destroy func(uptr)) {
-	g_param_spec_set_qdata_full.Fn()(pspec, quark, anyptr(data), vcbu(destroy))
+	var des uptr
+	if destroy != nil {
+		des = cc.Cbk(func(d uptr) {
+			if destroy != nil {
+				destroy(d)
+			}
+			cc.CbkClose(des)
+		})
+	}
+	g_param_spec_set_qdata_full.Fn()(pspec, quark, anyptr(data), des)
 }
 func (pspec *GParamSpec) StealQData(quark glib.GQuark) uptr {
 	return g_param_spec_steal_qdata.Fn()(pspec, quark)
@@ -557,16 +682,16 @@ func (pspec *GParamSpec) GetRedirectTarget() *GParamSpec {
 }
 func (pspec *GParamSpec) ValueSetDefault(value *GValue) { g_param_value_set_default.Fn()(pspec, value) }
 func (pspec *GParamSpec) ValueDefaults(value *GValue) bool {
-	return g_param_value_defaults.Fn()(pspec, value)
+	return g_param_value_defaults.Fn()(pspec, value) != 0
 }
 func (pspec *GParamSpec) ValueValidate(value *GValue) bool {
-	return g_param_value_validate.Fn()(pspec, value)
+	return g_param_value_validate.Fn()(pspec, value) != 0
 }
 func (pspec *GParamSpec) ValueIsValid(value *GValue) bool {
-	return g_param_value_is_valid.Fn()(pspec, value)
+	return g_param_value_is_valid.Fn()(pspec, value) != 0
 }
 func (pspec *GParamSpec) ValueConvert(srcValue, destValue *GValue, strictValidation bool) bool {
-	return g_param_value_convert.Fn()(pspec, srcValue, destValue, strictValidation)
+	return g_param_value_convert.Fn()(pspec, srcValue, destValue, cbool(strictValidation)) != 0
 }
 func (pspec *GParamSpec) ValuesCmp(value1, value2 *GValue) int32 {
 	return g_param_values_cmp.Fn()(pspec, value1, value2)
@@ -606,7 +731,7 @@ func GParamTypeRegisterStatic(name string, pspecInfo *GParamSpecTypeInfo) GType 
 func GParamSpecIsValidName(name string) bool {
 	cName := cc.NewString(name)
 	defer cName.Free()
-	return g_param_spec_is_valid_name.Fn()(cName)
+	return g_param_spec_is_valid_name.Fn()(cName) != 0
 }
 
 func GParamSpecChar(name, nick, blurb string, minimum, maximum, defaultValue int8, flags GParamFlags) *GParamSpec {
@@ -628,7 +753,7 @@ func GParamSpecBoolean(name, nick, blurb string, defaultValue bool, flags GParam
 	defer cName.Free()
 	defer cNick.Free()
 	defer cBlurb.Free()
-	return g_param_spec_boolean.Fn()(cName, cNick, cBlurb, defaultValue, flags)
+	return g_param_spec_boolean.Fn()(cName, cNick, cBlurb, cbool(defaultValue), flags)
 }
 func GParamSpecInt(name, nick, blurb string, minimum, maximum, defaultValue int32, flags GParamFlags) *GParamSpec {
 	cName, cNick, cBlurb := cc.NewString(name), cc.NewString(nick), cc.NewString(blurb)
@@ -790,41 +915,48 @@ type GSignalQuery struct {
 	PtrParamTypes *GType
 }
 
-func (sq GSignalQuery) ParamTypes() []GType {
-	if sq.NumParams == 0 {
-		return nil
-	}
-	return *(*[]GType)(slice(uptr(sq.PtrParamTypes), int(sq.NumParams)))
+func (sq GSignalQuery) ListParamTypes() []GType {
+	return slice(sq.PtrParamTypes, sq.NumParams)
 }
 
-func NewSignal(signalName string, itype GType,
+func NewGSignal(signalName string, itype GType,
 	signalFlags GSignalFlags, returnType GType, paramTypes ...GType) uint32 {
-	return NewSignalFull(signalName, itype, signalFlags, 0, nil, nil,
+	return NewGSignalFull[uptr](signalName, itype, signalFlags, 0, nil, nil,
 		0, returnType, paramTypes...)
 }
-func NewSignalFull(signalName string, itype GType, signalFlags GSignalFlags, classOffset uint32,
-	accumulator func(*GValue, *GValue, uptr) bool, accuData interface{},
+func NewGSignalFull[T any](signalName string, itype GType, signalFlags GSignalFlags, classOffset uint32,
+	accumulator func(*GValue, *GValue, uptr) bool, accuData *T,
 	cMarshaller iptr, returnType GType, paramTypes ...GType) uint32 {
 
 	cSig := cc.NewString(signalName)
 	defer cSig.Free()
+
+	cbk := cc.CbkRaw[func(*GValue, *GValue, uptr) int32](func(out, ins uptr) {
+		ps := slice((*uptr)(ins), 3)
+		r := accumulator(*(**GValue)(ps[0]), *(**GValue)(ps[1]), *(*uptr)(ps[0]))
+		if r {
+			*(*int32)(out) = 1
+		} else {
+			*(*int32)(out) = 0
+		}
+	})
 	return g_signal_new.FnVa()(
 		cSig,
 		itype,
 		signalFlags,
 		classOffset,
-		vcbu(accumulator),
-		anyptr(accuData),
+		cbk,
+		uptr(accuData),
 		cMarshaller,
 		returnType,
 		uint32(len(paramTypes)),
 		paramTypes...,
 	)
 }
-func SignalEmit(obj GObjectIface, signalId uint32, detail glib.GQuark, args ...interface{}) {
+func GSignalEmit(obj GObjectIface, signalId uint32, detail glib.GQuark, args ...interface{}) {
 	g_signal_emit.FnVa()(GetGObjectIface(obj), signalId, detail, args...)
 }
-func SignalEmitByName(obj GObjectIface, signal string, args ...interface{}) {
+func GSignalEmitByName(obj GObjectIface, signal string, args ...interface{}) {
 	cSignal := cc.NewString(signal)
 	defer cSignal.Free()
 	g_signal_emit_by_name.FnVa()(GetGObjectIface(obj), cSignal, args...)
@@ -833,77 +965,99 @@ func (obj *GObject) SignalEmitID(signalId uint32, detail glib.GQuark, args ...in
 	g_signal_emit.FnVa()(obj, signalId, detail, args...)
 }
 func (obj *GObject) SignalEmit(signal string, args ...interface{}) {
-	SignalEmitByName(obj, signal, args...)
+	GSignalEmitByName(obj, signal, args...)
 }
-func SignalLookup(name string, itype GType) (sigID uint32) {
+func GSignalLookup(name string, itype GType) (sigID uint32) {
 	cName := cc.NewString(name)
 	defer cName.Free()
 	return g_signal_lookup.Fn()(cName, itype)
 }
-func SignalName(sigId uint32) string                { return g_signal_name.Fn()(sigId).String() }
-func SignalQueryInfo(sigId uint32) (q GSignalQuery) { g_signal_query.Fn()(sigId, &q); return }
-func SignalListIds(typ GType) []uint32 {
+func GSignalName(sigId uint32) string                { return g_signal_name.Fn()(sigId).String() }
+func GSignalQueryInfo(sigId uint32) (q GSignalQuery) { g_signal_query.Fn()(sigId, &q); return }
+func GSignalListIds(typ GType) []uint32 {
 	var nIds uint32
 	ptr := g_signal_list_ids.Fn()(typ, &nIds)
 	if ptr == nil || nIds == 0 {
 		return nil
 	}
-	return *(*[]uint32)(slice(uptr(ptr), int(nIds)))
+	return slice(ptr, nIds)
 }
-func (typ GType) SignalLookup(name string) (sigID uint32) { sigID = SignalLookup(name, typ); return }
-func (typ GType) SignalListIds() (ids []uint32)           { return SignalListIds(typ) }
-func SignalIsValidName(name string) bool {
+func (typ GType) SignalLookup(name string) (sigID uint32) { sigID = GSignalLookup(name, typ); return }
+func (typ GType) SignalListIds() (ids []uint32)           { return GSignalListIds(typ) }
+func GSignalIsValidName(name string) bool {
 	cName := cc.NewString(name)
 	defer cName.Free()
-	return g_signal_is_valid_name.Fn()(cName)
+	return g_signal_is_valid_name.Fn()(cName) != 0
 }
-func SignalParseName(detailedSignal string, itype GType, forceDetailQuark bool) (signalId uint32, detail glib.GQuark, success bool) {
+func GSignalParseName(detailedSignal string, itype GType, forceDetailQuark bool) (signalId uint32, detail glib.GQuark, success bool) {
 	cSig := cc.NewString(detailedSignal)
 	defer cSig.Free()
-	success = g_signal_parse_name.Fn()(cSig, itype, &signalId, &detail, forceDetailQuark)
+	success = g_signal_parse_name.Fn()(cSig, itype, &signalId, &detail, cbool(forceDetailQuark)) != 0
 	return
 }
-func SignalGetInvocationHint(obj GObjectIface) *GSignalInvocationHint {
+func GSignalGetInvocationHint(obj GObjectIface) *GSignalInvocationHint {
 	return g_signal_get_invocation_hint.Fn()(GetGObjectIface(obj))
 }
-func SignalStopEmission(obj GObjectIface, signalId uint32, detail glib.GQuark) {
+func GSignalStopEmission(obj GObjectIface, signalId uint32, detail glib.GQuark) {
 	g_signal_stop_emission.Fn()(GetGObjectIface(obj), signalId, detail)
 }
-func SignalStopEmissionByName(obj GObjectIface, detailedSignal string) {
+func GSignalStopEmissionByName(obj GObjectIface, detailedSignal string) {
 	sig := cc.NewString(detailedSignal)
 	defer sig.Free()
 	g_signal_stop_emission_by_name.Fn()(GetGObjectIface(obj), sig)
 }
-func SignalAddEmissionHook(signalId uint32, detail glib.GQuark,
-	hookFunc func(*GSignalInvocationHint, []GValue, uptr) bool, dataDestroy func(uptr)) (hookID uint64) {
-	hf := uptr(nil)
-	if anyptr(hookFunc) != nil {
-		hf = vcbu(func(hint *GSignalInvocationHint, n uint32, p uptr, data uptr) bool {
-			return hookFunc(hint, *(*[]GValue)(slice(p, int(n))), data)
-		})
-	}
+func GSignalAddEmissionHook[T any](signalId uint32, detail glib.GQuark,
+	hookFunc func(*GSignalInvocationHint, []GValue, *T) bool, dataDestroy func(*T), data *T) (hookID uint64) {
+
+	// hf := uptr(nil)
+	// if anyptr(hookFunc) != nil {
+	// 	hf = vcbu(func(hint *GSignalInvocationHint, n uint32, p *GValue, data *T) bool {
+	// 		return hookFunc(hint, slice(p, n), data)
+	// 	})
+	// }
+
+	var hf, des uptr
+	hf = cc.CbkRaw[func(hint *GSignalInvocationHint, n uint32, p *GValue, data *T) int32](func(out, ins uptr) {
+		ps := slice((*uptr)(ins), 4)
+		hint := *(**GSignalInvocationHint)(ps[0])
+		n := *(*uint32)(ps[1])
+		p := *(**GValue)(ps[2])
+		data := *(**T)(ps[3])
+		r := hookFunc(hint, slice(p, n), data)
+		if r {
+			*(*int32)(out) = 1
+		} else {
+			*(*int32)(out) = 0
+		}
+	})
+	des = cc.CbkRaw[func(*T)](func(out, ins uptr) {
+		ps := slice((*uptr)(ins), 1)
+		dataDestroy(*(**T)(ps[0]))
+		cc.CbkClose(hf)
+		cc.CbkCloseLate(des)
+	})
 	return g_signal_add_emission_hook.Fn()(
 		signalId,
 		detail,
 		hf,
-		nil,
-		vcbu(dataDestroy),
+		uptr(data),
+		des,
 	)
 }
-func SignalRemoveEmissionHook(signalId uint32, hookId uint64) {
+func GSignalRemoveEmissionHook(signalId uint32, hookId uint64) {
 	g_signal_remove_emission_hook.Fn()(signalId, hookId)
 }
 func (obj *GObject) SignalGetInvocationHint() *GSignalInvocationHint {
-	return SignalGetInvocationHint(obj)
+	return GSignalGetInvocationHint(obj)
 }
 func (obj *GObject) SignalStopEmission(signalId uint32, detail glib.GQuark) {
-	SignalStopEmission(obj, signalId, detail)
+	GSignalStopEmission(obj, signalId, detail)
 }
 func (obj *GObject) SignalStopEmissionByName(detailedSignal string) {
-	SignalStopEmissionByName(obj, detailedSignal)
+	GSignalStopEmissionByName(obj, detailedSignal)
 }
-func SignalHasHandlerPending(obj GObjectIface, signalId uint32, detail glib.GQuark, mayBeBlocked bool) bool {
-	return g_signal_has_handler_pending.Fn()(GetGObjectIface(obj), signalId, detail, mayBeBlocked)
+func GSignalHasHandlerPending(obj GObjectIface, signalId uint32, detail glib.GQuark, mayBeBlocked bool) bool {
+	return g_signal_has_handler_pending.Fn()(GetGObjectIface(obj), signalId, detail, cbool(mayBeBlocked)) != 0
 }
 
 // type destroyData struct {
@@ -969,23 +1123,31 @@ func SignalHasHandlerPending(obj GObjectIface, signalId uint32, detail glib.GQua
 // 	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, handler, nil, nil, flags)
 // }
 
-func SignalConnectData(obj GObjectIface, signal string,
+func GSignalConnectData(obj GObjectIface, signal string,
 	fn interface{}, data interface{}, data_destroy func(data uptr), flags GConnectFlags) uint64 {
 
-	handler := vcbu(fn)
+	handler := cc.Cbk(fn)
 
 	// var close func()
 	// close = func() func() { return func() { data = close; data = nil; close = nil } }()
 
 	var destroy uptr
-	destroy = vcbu(func(u uptr) {
+	destroy = cc.CbkRaw[func(u uptr)](func(out, ins uptr) {
+		is := slice((*uptr)(ins), 1)
 		if data_destroy != nil {
-			data_destroy(u)
+			data_destroy(*(*uptr)(is[0]))
 		}
 		cc.CbkClose(handler)
 		cc.CbkCloseLate(destroy)
-		// close()
 	})
+	// destroy = vcbu(func(u uptr) {
+	// 	if data_destroy != nil {
+	// 		data_destroy(u)
+	// 	}
+	// 	cc.CbkClose(handler)
+	// 	cc.CbkCloseLate(destroy)
+	// 	// close()
+	// })
 
 	sigs := cc.NewString(signal)
 	defer sigs.Free()
@@ -993,98 +1155,99 @@ func SignalConnectData(obj GObjectIface, signal string,
 	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, handler, anyptr(data), destroy, flags)
 }
 
-func SignalConnectDataRaw[T any](obj GObjectIface, signal string,
+func GSignalConnectDataRaw[Fn, T any](obj GObjectIface, signal string,
 	fn func(out, ins uptr), data *T, data_destroy func(data *T), flags GConnectFlags) uint64 {
 
-	f := cc.CbkRaw[T](fn)
+	f := cc.CbkRaw[Fn](fn)
 
-	var destroy uptr
-	destroy = vcbu(func(u *T) {
+	var des uptr
+	des = cc.CbkRaw[func(data *T)](func(out, ins uptr) {
+		is := slice((*uptr)(ins), 1)
 		if data_destroy != nil {
-			data_destroy(u)
+			data_destroy(*(**T)(is[0]))
 		}
 		cc.CbkClose(f)
-		cc.CbkCloseLate(destroy)
+		cc.CbkCloseLate(des)
 	})
 
 	sigs := cc.NewString(signal)
 	defer sigs.Free()
 
-	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, f, uptr(data), destroy, flags)
+	return g_signal_connect_data.Fn()(GetGObjectIface(obj), sigs, f, uptr(data), des, flags)
 }
 
 func (obj *GObject) SignalHasHandlerPending(signalId uint32, detail glib.GQuark, mayBeBlocked bool) bool {
-	return SignalHasHandlerPending(obj, signalId, detail, mayBeBlocked)
+	return GSignalHasHandlerPending(obj, signalId, detail, mayBeBlocked)
 }
 func (obj *GObject) SignalConnectData(signal string,
 	fn interface{}, data interface{}, data_destroy func(data uptr), flags GConnectFlags) uint64 {
-	return SignalConnectData(obj, signal, fn, data, data_destroy, flags)
+	return GSignalConnectData(obj, signal, fn, data, data_destroy, flags)
 }
-func SignalHandlerBlock(obj GObjectIface, sigId uint64) {
+func GSignalHandlerBlock(obj GObjectIface, sigId uint64) {
 	g_signal_handler_block.Fn()(GetGObjectIface(obj), sigId)
 }
-func SignalHandlerUnblock(obj GObjectIface, sigId uint64) {
+func GSignalHandlerUnblock(obj GObjectIface, sigId uint64) {
 	g_signal_handler_unblock.Fn()(GetGObjectIface(obj), sigId)
 }
-func SignalHandlerDisconnect(obj GObjectIface, sigId uint64) {
+func GSignalHandlerDisconnect(obj GObjectIface, sigId uint64) {
 	g_signal_handler_disconnect.Fn()(GetGObjectIface(obj), sigId)
 }
-func SignalHandlerIsConnected(obj GObjectIface, sigId uint64) bool {
-	return g_signal_handler_is_connected.Fn()(GetGObjectIface(obj), sigId)
+func GSignalHandlerIsConnected(obj GObjectIface, sigId uint64) bool {
+	return g_signal_handler_is_connected.Fn()(GetGObjectIface(obj), sigId) != 0
 }
 
 func (instance *GObject) SignalHandlerBlock(sigId uint64) {
-	SignalHandlerBlock(instance, sigId)
+	GSignalHandlerBlock(instance, sigId)
 }
 func (instance *GObject) SignalHandlerUnblock(sigId uint64) {
-	SignalHandlerUnblock(instance, sigId)
+	GSignalHandlerUnblock(instance, sigId)
 }
 func (instance *GObject) SignalHandlerDisconnect(sigId uint64) {
-	SignalHandlerDisconnect(instance, sigId)
+	GSignalHandlerDisconnect(instance, sigId)
 }
 func (instance *GObject) SignalHandlerIsConnected(sigId uint64) bool {
-	return SignalHandlerIsConnected(instance, sigId)
+	return GSignalHandlerIsConnected(instance, sigId)
 }
-func ClearSignalHandler(sigId *uint64, obj GObjectIface) {
+func GClearSignalHandler(sigId *uint64, obj GObjectIface) {
 	g_clear_signal_handler.Fn()(sigId, GetGObjectIface(obj))
 }
 func (obj *GObject) ClearSignalHandler(sigId *uint64) {
-	ClearSignalHandler(sigId, obj)
+	GClearSignalHandler(sigId, obj)
 }
-func SignalOverrideClassHandler(signalName string, iType GType, handlerFn interface{}) {
+func GSignalOverrideClassHandler(signalName string, iType GType, handlerFn interface{}) {
 	cName := cc.NewString(signalName)
 	defer cName.Free()
-	g_signal_override_class_handler.Fn()(cName, iType, vcbu(handlerFn))
+	g_signal_override_class_handler.Fn()(cName, iType, cc.Cbk(handlerFn))
 }
 func (t GType) SignalOverrideClassHandler(signalName string, handlerFn interface{}) {
 	cName := cc.NewString(signalName)
 	defer cName.Free()
-	g_signal_override_class_handler.Fn()(cName, t, vcbu(handlerFn))
+	g_signal_override_class_handler.Fn()(cName, t, cc.Cbk(handlerFn))
 }
-func SignalChainFromOverriddenHandler(obj GObjectIface, args ...interface{}) {
+func GSignalChainFromOverriddenHandler(obj GObjectIface, args ...interface{}) {
 	g_signal_chain_from_overridden_handler.FnVa()(GetGObjectIface(obj), args...)
 }
 func (obj *GObject) ChainFromOverriddenHandler(args ...interface{}) {
 	g_signal_chain_from_overridden_handler.FnVa()(GetGObjectIface(obj), args...)
 }
 
-func SignalConnect(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagDefault)
+func GSignalConnect(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagDefault)
 }
 func (obj *GObject) SignalConnect(signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagDefault)
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagDefault)
 }
-func SignalConnectAfter(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagAfter)
+func GSignalConnectAfter(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagAfter)
 }
 func (obj *GObject) SignalConnectAfter(signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagAfter)
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagAfter)
 }
-func SignalConnectSwapped(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagSwapped)
+func GSignalConnectSwapped(obj *GObject, signal string, fn interface{}, data interface{}) uint64 {
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagSwapped)
 }
 func (obj *GObject) SignalConnectSwapped(signal string, fn interface{}, data interface{}) uint64 {
-	return SignalConnectData(obj, signal, fn, data, nil, GConnectFlagSwapped)
+	return GSignalConnectData(obj, signal, fn, data, nil, GConnectFlagSwapped)
 }
 
 // #endregion
@@ -1107,25 +1270,22 @@ func (group *SignalGroup) Unblock() { g_signal_group_unblock.Fn()(group) }
 func (group *SignalGroup) ConnectGObject(detailedSignal string, obj GObjectIface, handlerFn interface{}, flags GConnectFlags) {
 	cSigName := cc.NewString(detailedSignal)
 	defer cSigName.Free()
-	fnp := vcbu(handlerFn)
-	group.WeakRef(func(fn uptr) func(_ uptr, obj *GObject) {
-		return func(_ uptr, obj *GObject) {
-			cc.CbkCloseLate(fn)
-		}
-	}(fnp))
+
+	fnp := cc.Cbk(handlerFn)
+	group.WeakRef(func(obj *GObject) { cc.CbkCloseLate(fnp) })
 	g_signal_group_connect_object.Fn()(group, cSigName, fnp, GetGObjectIface(obj), flags)
 }
 func (group *SignalGroup) ConnectData(detailedSignal string, handlerFn,
 	data interface{}, notify func(_ uptr), flags GConnectFlags) {
 	cSigName := cc.NewString(detailedSignal)
 	defer cSigName.Free()
-	c := vcbu(handlerFn)
+	c := cc.Cbk(handlerFn)
 	var d uptr
-	d = vcbu(func(u uptr) {
+	d = cc.Cbk(func(u uptr) {
 		if notify != nil {
 			notify(u)
 		}
-		cc.CbkCloseLate(c)
+		cc.CbkClose(c)
 		cc.CbkCloseLate(d)
 	})
 
@@ -1134,34 +1294,22 @@ func (group *SignalGroup) ConnectData(detailedSignal string, handlerFn,
 func (group *SignalGroup) Connect(detailedSignal string, handlerFn interface{}) {
 	cSigName := cc.NewString(detailedSignal)
 	defer cSigName.Free()
-	fnp := vcbu(handlerFn)
-	group.WeakRef(func(fn uptr) func(_ uptr, obj *GObject) {
-		return func(_ uptr, obj *GObject) {
-			cc.CbkCloseLate(fn)
-		}
-	}(fnp))
+	fnp := cc.Cbk(handlerFn)
+	group.WeakRef(func(obj *GObject) { cc.CbkCloseLate(fnp) })
 	g_signal_group_connect.Fn()(group, cSigName, fnp, nil)
 }
 func (group *SignalGroup) ConnectAfter(detailedSignal string, handlerFn interface{}) {
 	cSigName := cc.NewString(detailedSignal)
 	defer cSigName.Free()
-	fnp := vcbu(handlerFn)
-	group.WeakRef(func(fn uptr) func(_ uptr, obj *GObject) {
-		return func(_ uptr, obj *GObject) {
-			cc.CbkCloseLate(fn)
-		}
-	}(fnp))
+	fnp := cc.Cbk(handlerFn)
+	group.WeakRef(func(obj *GObject) { cc.CbkCloseLate(fnp) })
 	g_signal_group_connect_after.Fn()(group, cSigName, fnp, nil)
 }
 func (group *SignalGroup) ConnectSwapped(detailedSignal string, handlerFn interface{}) {
 	cSigName := cc.NewString(detailedSignal)
 	defer cSigName.Free()
-	fnp := vcbu(handlerFn)
-	group.WeakRef(func(fn uptr) func(_ uptr, obj *GObject) {
-		return func(_ uptr, obj *GObject) {
-			cc.CbkCloseLate(fn)
-		}
-	}(fnp))
+	fnp := cc.Cbk(handlerFn)
+	group.WeakRef(func(obj *GObject) { cc.CbkCloseLate(fnp) })
 	g_signal_group_connect_swapped.Fn()(group, cSigName, fnp, nil)
 }
 
@@ -1198,6 +1346,8 @@ const (
 
 type GTypeClass struct{ GType GType }
 
+type GTypeInstance struct{ GClass *GTypeClass }
+
 type GTypeInstanceIface interface {
 	GetGTypeInstanceIface() *GTypeInstance
 }
@@ -1211,19 +1361,29 @@ func GetGTypeInstanceIface(iface GTypeInstanceIface) *GTypeInstance {
 
 func (ti *GTypeInstance) GetGTypeInstanceIface() *GTypeInstance { return ti }
 
-type GTypeInstance struct{ GTypeClass *GTypeClass }
 type GTypeInterface struct {
 	GType         GType
 	GInstanceType GType
 }
+type GTypeInterfaceIface interface {
+	GetGTypeInterfaceIface() *GTypeInterface
+}
+
+func GetGTypeInterfaceIface(iface GTypeInterfaceIface) *GTypeInterface {
+	if anyptr(iface) == nil {
+		return nil
+	}
+	return iface.GetGTypeInterfaceIface()
+}
+
 type GTypeQuery struct {
-	GType        GType
-	GTypeName    cc.String
+	Type         GType
+	TypeName     cc.String
 	ClassSize    uint32
 	InstanceSize uint32
 }
 
-func (ins GTypeInstance) GType() GType { return ins.GTypeClass.GType }
+func (ins GTypeInstance) GType() GType { return ins.GClass.GType }
 
 func GTypeInit()                                   { g_type_init.Fn()() }
 func GTypeInitWithDebugFlags(flag GTypeDebugFlags) { g_type_init_with_debug_flags.Fn()(flag) }
@@ -1260,10 +1420,10 @@ func (t GType) Children() []GType {
 	if p == nil || n == 0 {
 		return nil
 	}
-	defer cc.Free(p)
+	defer cc.Free(uptr(p))
 
 	ret := make([]GType, n)
-	copy(ret, *(*[]GType)(slice(p, int(n))))
+	copy(ret, slice(p, n))
 
 	return ret
 }
@@ -1273,10 +1433,10 @@ func (t GType) Interfaces() []GType {
 	if p == nil || n == 0 {
 		return nil
 	}
-	defer cc.Free(p)
+	defer cc.Free(uptr(p))
 
 	ret := make([]GType, n)
-	copy(ret, *(*[]GType)(slice(p, int(n))))
+	copy(ret, slice(p, n))
 
 	return ret
 }
@@ -1333,8 +1493,9 @@ func GTypeRegisterStaticSimple(parent GType, typeName string,
 	instaceSize uint32, instaceInit func(Instace, GClass uptr), flags GTypeFlags) GType {
 	cTName := cc.NewString(typeName)
 	defer cTName.Free()
+
 	return g_type_register_static_simple.Fn()(parent, cTName,
-		classSize, vcbu(classInit), instaceSize, vcbu(instaceInit), flags)
+		classSize, cc.Cbk(classInit), instaceSize, cc.Cbk(instaceInit), flags)
 }
 func GTypeRegisterFundamental(gtype GType, typeName string,
 	info *GTypeInfo, finfo *GTypeFundamentalInfo, flags GTypeFlags) {
@@ -1351,14 +1512,14 @@ func (interfaceType GType) InterfaceAddPrerequisite(prerequisiteType GType) {
 func (interfaceType GType) InterfaceInstantiatablePrerequisite() GType {
 	return g_type_interface_instantiatable_prerequisite.Fn()(interfaceType)
 }
-func (classType GType) AddInstancePrivate(privateSize uint32) int32 {
-	return g_type_add_instance_private.Fn()(classType, uint64(privateSize))
+func (classType GType) AddInstancePrivate(privateSize uint64) int32 {
+	return g_type_add_instance_private.Fn()(classType, privateSize)
 }
 func (instance *GTypeInstance) GetPrivate(privateType GType) uptr {
 	return g_type_instance_get_private.Fn()(instance, privateType)
 }
-func (classType GType) AddClassPrivate(privateSize uint32) {
-	g_type_add_class_private.Fn()(classType, uint64(privateSize))
+func (classType GType) AddClassPrivate(privateSize uint64) {
+	g_type_add_class_private.Fn()(classType, privateSize)
 }
 func (kclass *GTypeClass) GetPrivate(privateType GType) uptr {
 	return g_type_class_get_private.Fn()(kclass, privateType)
@@ -1372,12 +1533,22 @@ func GTypeCreateInstance(typ GType) *GTypeInstance { return g_type_create_instan
 func (t GType) CreateInstance() *GTypeInstance     { return g_type_create_instance.Fn()(t) }
 func GTypeFreeInstance(inc GTypeInstanceIface)     { g_type_free_instance.Fn()(GetGTypeInstanceIface(inc)) }
 func (inc *GTypeInstance) Free()                   { g_type_free_instance.Fn()(inc) }
-func GTypeAddClassCacheFunc(fn func(_ uptr, gClass *GTypeClass) bool) (funcID uintptr) {
-	p := vcbu(fn)
-	g_type_add_class_cache_func.Fn()(nil, p)
-	return uintptr(p)
+func GTypeAddClassCacheFunc[T any](cache *T, fn func(cache *T, gClass *GTypeClass) bool) (funcID iptr) {
+	p := cc.CbkRaw[func(cache *T, gClass *GTypeClass) int32](func(out, ins uptr) {
+		is := slice((*uptr)(ins), 2)
+		if fn(*(**T)(is[0]), *(**GTypeClass)(is[1])) {
+			*(*int32)(out) = 1
+		} else {
+			*(*int32)(out) = 0
+		}
+	})
+	g_type_add_class_cache_func.Fn()(uptr(cache), p)
+	return
 }
-func GTypeRemoveClassCacheFunc(funcID iptr)  { g_type_remove_class_cache_func.Fn()(0, funcID) }
+func GTypeRemoveClassCacheFunc(funcID iptr) {
+	g_type_remove_class_cache_func.Fn()(0, funcID)
+	cc.CbkClose(uptr(funcID))
+}
 func (inc *GTypeInstance) GTypeName() string { return g_type_name_from_instance.Fn()(inc).String() }
 func GTypeNameFromInstance(inc GTypeInstanceIface) string {
 	return g_type_name_from_instance.Fn()(GetGTypeInstanceIface(inc)).String()
@@ -1548,23 +1719,30 @@ func InitGValueFromInstance(instance GTypeInstanceIface) *GValue {
 	return &val
 }
 func (value *GValue) Compatible(dest *GValue) bool {
-	return g_value_type_compatible.Fn()(value.GType, dest.GType)
+	return g_value_type_compatible.Fn()(value.GType, dest.GType) != 0
 }
 func (value *GValue) Transformable(dest *GValue) bool {
-	return g_value_type_transformable.Fn()(value.GType, dest.GType)
+	return g_value_type_transformable.Fn()(value.GType, dest.GType) != 0
 }
 func (value *GValue) Transform(dest *GValue) bool {
-	return g_value_transform.Fn()(value, dest)
+	return g_value_transform.Fn()(value, dest) != 0
 }
 func GValueRegisterTransformFunc(srcType, destType GType,
 	transformFunc func(src, dst *GValue)) {
-	g_value_register_transform_func.Fn()(srcType, destType, vcbu(transformFunc))
+	var tf uptr
+	if transformFunc != nil {
+		tf = cc.CbkRaw[func(src, dst *GValue)](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 2)
+			transformFunc(*(**GValue)(is[0]), *(**GValue)(is[1]))
+		})
+	}
+	g_value_register_transform_func.Fn()(srcType, destType, tf)
 }
 func GValueTypeCompatible(srcType, destType GType) bool {
-	return g_value_type_compatible.Fn()(srcType, destType)
+	return g_value_type_compatible.Fn()(srcType, destType) != 0
 }
 func GValueTypeTransformable(srcType, destType GType) bool {
-	return g_value_type_transformable.Fn()(srcType, destType)
+	return g_value_type_transformable.Fn()(srcType, destType) != 0
 }
 
 func (value *GValue) SetChar(v int8)      { g_value_set_char.Fn()(value, v) }
@@ -1573,8 +1751,8 @@ func (value *GValue) SetSChar(v int8)     { g_value_set_schar.Fn()(value, v) }
 func (value *GValue) GetSChar() int8      { return g_value_get_schar.Fn()(value) }
 func (value *GValue) SetUChar(v uint8)    { g_value_set_uchar.Fn()(value, v) }
 func (value *GValue) GetUChar() uint8     { return g_value_get_uchar.Fn()(value) }
-func (value *GValue) SetBoolean(v bool)   { g_value_set_boolean.Fn()(value, v) }
-func (value *GValue) GetBoolean() bool    { return g_value_get_boolean.Fn()(value) }
+func (value *GValue) SetBoolean(v bool)   { g_value_set_boolean.Fn()(value, cbool(v)) }
+func (value *GValue) GetBoolean() bool    { return g_value_get_boolean.Fn()(value) != 0 }
 func (value *GValue) SetInt(v int32)      { g_value_set_int.Fn()(value, v) }
 func (value *GValue) GetInt() int32       { return g_value_get_int.Fn()(value) }
 func (value *GValue) SetUInt(v uint32)    { g_value_set_uint.Fn()(value, v) }
@@ -1597,16 +1775,17 @@ func (value *GValue) SetString(v string) {
 	g_value_set_string.Fn()(value, c)
 }
 func (value *GValue) SetStaticString(v string) {
-	g_value_set_static_string.Fn()(value, cc.NewString(v))
+	s, _ := cc.NewStringRef(v)
+	g_value_set_static_string.Fn()(value, s)
 }
-func (value *GValue) SetInternedString(v string) {
-	g_value_set_interned_string.Fn()(value, cc.NewString(v))
-}
+
+// func (value *GValue) SetInternedString(v string) {
+// 	g_value_set_interned_string.Fn()(value, cc.NewString(v))
+// }
+
 func (value *GValue) GetString() string { return g_value_get_string.Fn()(value).String() }
 func (value *GValue) DupString() string {
-	ss := g_value_dup_string.Fn()(value)
-	defer ss.Free()
-	return ss.String()
+	return g_value_dup_string.Fn()(value).TakeString()
 }
 func (value *GValue) StealString() cc.String       { return g_value_steal_string.Fn()(value) }
 func (value *GValue) SetPointer(v uptr)            { g_value_set_pointer.Fn()(value, v) }
@@ -1901,7 +2080,7 @@ func (sigc *Sigc[Fn]) Connect(fn Fn, liveWith GObjectIface) *SigcID[Fn] {
 	id.fn = v
 
 	if GetGObjectIface(liveWith) != nil {
-		liveWith.GetGObjectIface().WeakRef(func(_ uptr, obj *GObject) {
+		liveWith.GetGObjectIface().WeakRef(func(obj *GObject) {
 			sigc.connectLock.Lock()
 			defer sigc.connectLock.Unlock()
 			sigc.connectList[idx] = reflect.ValueOf(0)

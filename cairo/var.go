@@ -8,10 +8,16 @@ import (
 )
 
 type uptr = unsafe.Pointer
-type iptr = uintptr
 
-func slice(p uptr, n int) uptr  { return uptr(&[2]uptr{uptr(p), uptr(iptr(n))}) }
-func vcbu(fn interface{}) uptr  { return cc.Cbk(fn) }
+type Integer interface {
+	~int8 | ~int16 | ~int32 | ~int | ~int64 |
+		~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
+}
+
+func slice[T any, N Integer](ptr *T, l N) []T { return unsafe.Slice(ptr, l) }
+
+// func vcbu(fn interface{}) uptr                { return cc.Cbk(fn) }
+
 func anyptr(a interface{}) uptr { return (*(*[2]uptr)(uptr(&a)))[1] }
 func carry[T any](arry []T) *T {
 	if len(arry) == 0 {
@@ -26,7 +32,7 @@ var (
 
 	// #region cairo.h
 	cairo_version                               = cc.DlFunc[func() int32, int32]{Name: "cairo_version"}
-	cairo_version_string                        = cc.DlFunc[func() string, string]{Name: "cairo_version_string"}
+	cairo_version_string                        = cc.DlFunc[func() cc.String, cc.String]{Name: "cairo_version_string"}
 	cairo_pattern_set_dither                    = cc.DlFunc[func(pattern *Pattern, dither Dither), cc.Void]{Name: "cairo_pattern_set_dither"}
 	cairo_pattern_get_dither                    = cc.DlFunc[func(pattern *Pattern) Dither, Dither]{Name: "cairo_pattern_get_dither"}
 	cairo_create                                = cc.DlFunc[func(target *Surface) *Context, *Context]{Name: "cairo_create"}
@@ -178,11 +184,11 @@ var (
 	cairo_toy_font_face_get_weight = cc.DlFunc[func(font_face *ToyFontFace) FontWeight, FontWeight]{Name: "cairo_toy_font_face_get_weight"}
 
 	cairo_user_font_face_create                      = cc.DlFunc[func() *UserFontFace, *UserFontFace]{Name: "cairo_user_font_face_create"}
-	cairo_user_font_face_set_init_func               = cc.DlFunc[func(font_face *UserFontFace, init_func uptr), cc.Void]{Name: "cairo_user_font_face_set_init_func"}
-	cairo_user_font_face_set_render_glyph_func       = cc.DlFunc[func(font_face *UserFontFace, render_glyph_func uptr), cc.Void]{Name: "cairo_user_font_face_set_render_glyph_func"}
-	cairo_user_font_face_set_render_color_glyph_func = cc.DlFunc[func(font_face *UserFontFace, render_glyph_func uptr), cc.Void]{Name: "cairo_user_font_face_set_render_color_glyph_func"}
-	cairo_user_font_face_set_text_to_glyphs_func     = cc.DlFunc[func(font_face *UserFontFace, text_to_glyphs_func uptr), cc.Void]{Name: "cairo_user_font_face_set_text_to_glyphs_func"}
-	cairo_user_font_face_set_unicode_to_glyph_func   = cc.DlFunc[func(font_face *UserFontFace, unicode_to_glyph_func uptr), cc.Void]{Name: "cairo_user_font_face_set_unicode_to_glyph_func"}
+	cairo_user_font_face_set_init_func               = cc.DlFunc[func(font_face *UserFontFace, init_func cc.Func), cc.Void]{Name: "cairo_user_font_face_set_init_func"}
+	cairo_user_font_face_set_render_glyph_func       = cc.DlFunc[func(font_face *UserFontFace, render_glyph_func cc.Func), cc.Void]{Name: "cairo_user_font_face_set_render_glyph_func"}
+	cairo_user_font_face_set_render_color_glyph_func = cc.DlFunc[func(font_face *UserFontFace, render_glyph_func cc.Func), cc.Void]{Name: "cairo_user_font_face_set_render_color_glyph_func"}
+	cairo_user_font_face_set_text_to_glyphs_func     = cc.DlFunc[func(font_face *UserFontFace, text_to_glyphs_func cc.Func), cc.Void]{Name: "cairo_user_font_face_set_text_to_glyphs_func"}
+	cairo_user_font_face_set_unicode_to_glyph_func   = cc.DlFunc[func(font_face *UserFontFace, unicode_to_glyph_func cc.Func), cc.Void]{Name: "cairo_user_font_face_set_unicode_to_glyph_func"}
 	cairo_user_font_face_get_init_func               = cc.DlFunc[func(font_face *UserFontFace) cc.Func, cc.Func]{Name: "cairo_user_font_face_get_init_func"}
 	cairo_user_font_face_get_render_glyph_func       = cc.DlFunc[func(font_face *UserFontFace) cc.Func, cc.Func]{Name: "cairo_user_font_face_get_render_glyph_func"}
 	cairo_user_font_face_get_render_color_glyph_func = cc.DlFunc[func(font_face *UserFontFace) cc.Func, cc.Func]{Name: "cairo_user_font_face_get_render_color_glyph_func"}
@@ -236,13 +242,13 @@ var (
 	cairo_surface_create_for_rectangle = cc.DlFunc[func(target *Surface, x, y, width, height float64) *Surface, *Surface]{Name: "cairo_surface_create_for_rectangle"}
 
 	cairo_surface_create_observer              = cc.DlFunc[func(target *Surface, mode SurfaceObserverMode) *SurfaceObserver, *SurfaceObserver]{Name: "cairo_surface_create_observer"}
-	cairo_surface_observer_add_paint_callback  = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_paint_callback"}
-	cairo_surface_observer_add_mask_callback   = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_mask_callback"}
-	cairo_surface_observer_add_fill_callback   = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_fill_callback"}
-	cairo_surface_observer_add_stroke_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_stroke_callback"}
-	cairo_surface_observer_add_glyphs_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_glyphs_callback"}
-	cairo_surface_observer_add_flush_callback  = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_flush_callback"}
-	cairo_surface_observer_add_finish_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn uptr, data uptr) Status, Status]{Name: "cairo_surface_observer_add_finish_callback"}
+	cairo_surface_observer_add_paint_callback  = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_paint_callback"}
+	cairo_surface_observer_add_mask_callback   = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_mask_callback"}
+	cairo_surface_observer_add_fill_callback   = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_fill_callback"}
+	cairo_surface_observer_add_stroke_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_stroke_callback"}
+	cairo_surface_observer_add_glyphs_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_glyphs_callback"}
+	cairo_surface_observer_add_flush_callback  = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_flush_callback"}
+	cairo_surface_observer_add_finish_callback = cc.DlFunc[func(abstract_surface *SurfaceObserver, fn cc.Func, data uptr) Status, Status]{Name: "cairo_surface_observer_add_finish_callback"}
 	cairo_surface_observer_print               = cc.DlFunc[func(abstract_surface *SurfaceObserver, write_func uptr, closure uptr) Status, Status]{Name: "cairo_surface_observer_print"}
 	cairo_surface_observer_elapsed             = cc.DlFunc[func(abstract_surface *SurfaceObserver) float64, float64]{Name: "cairo_surface_observer_elapsed"}
 
@@ -302,13 +308,13 @@ var (
 	cairo_pattern_create_raster_source            = cc.DlFunc[func(user_data uptr, content Content, width, height int32) *RasterSourcePattern, *RasterSourcePattern]{Name: "cairo_pattern_create_raster_source"}
 	cairo_raster_source_pattern_set_callback_data = cc.DlFunc[func(pattern *RasterSourcePattern, data uptr), cc.Void]{Name: "cairo_raster_source_pattern_set_callback_data"}
 	cairo_raster_source_pattern_get_callback_data = cc.DlFunc[func(pattern *RasterSourcePattern) uptr, uptr]{Name: "cairo_raster_source_pattern_get_callback_data"}
-	cairo_raster_source_pattern_set_acquire       = cc.DlFunc[func(pattern *RasterSourcePattern, acquire uptr, release uptr), cc.Void]{Name: "cairo_raster_source_pattern_set_acquire"}
+	cairo_raster_source_pattern_set_acquire       = cc.DlFunc[func(pattern *RasterSourcePattern, acquire, release cc.Func), cc.Void]{Name: "cairo_raster_source_pattern_set_acquire"}
 	cairo_raster_source_pattern_get_acquire       = cc.DlFunc[func(pattern *RasterSourcePattern, acquire *cc.Func, release *cc.Func), cc.Void]{Name: "cairo_raster_source_pattern_get_acquire"}
-	cairo_raster_source_pattern_set_snapshot      = cc.DlFunc[func(pattern *RasterSourcePattern, snapshot uptr), cc.Void]{Name: "cairo_raster_source_pattern_set_snapshot"}
+	cairo_raster_source_pattern_set_snapshot      = cc.DlFunc[func(pattern *RasterSourcePattern, snapshot cc.Func), cc.Void]{Name: "cairo_raster_source_pattern_set_snapshot"}
 	cairo_raster_source_pattern_get_snapshot      = cc.DlFunc[func(pattern *RasterSourcePattern) cc.Func, cc.Func]{Name: "cairo_raster_source_pattern_get_snapshot"}
-	cairo_raster_source_pattern_set_copy          = cc.DlFunc[func(pattern *RasterSourcePattern, copy uptr), cc.Void]{Name: "cairo_raster_source_pattern_set_copy"}
+	cairo_raster_source_pattern_set_copy          = cc.DlFunc[func(pattern *RasterSourcePattern, copy cc.Func), cc.Void]{Name: "cairo_raster_source_pattern_set_copy"}
 	cairo_raster_source_pattern_get_copy          = cc.DlFunc[func(pattern *RasterSourcePattern) cc.Func, cc.Func]{Name: "cairo_raster_source_pattern_get_copy"}
-	cairo_raster_source_pattern_set_finish        = cc.DlFunc[func(pattern *RasterSourcePattern, finish uptr), cc.Void]{Name: "cairo_raster_source_pattern_set_finish"}
+	cairo_raster_source_pattern_set_finish        = cc.DlFunc[func(pattern *RasterSourcePattern, finish cc.Func), cc.Void]{Name: "cairo_raster_source_pattern_set_finish"}
 	cairo_raster_source_pattern_get_finish        = cc.DlFunc[func(pattern *RasterSourcePattern) cc.Func, cc.Func]{Name: "cairo_raster_source_pattern_get_finish"}
 
 	cairo_pattern_create_rgb          = cc.DlFunc[func(red, green, blue float64) *SolidPattern, *SolidPattern]{Name: "cairo_pattern_create_rgb"}
