@@ -523,13 +523,13 @@ var (
 
 	// #region ColumnView
 	gtk_column_view_get_type                   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_column_view_get_type"}
-	gtk_column_view_new                        = cc.DlFunc[func(model *SelectionModel) *ColumnView, *ColumnView]{Name: "gtk_column_view_new"}
-	gtk_column_view_get_columns                = cc.DlFunc[func(self *ColumnView) *gio.GListModel, *gio.GListModel]{Name: "gtk_column_view_get_columns"}
+	gtk_column_view_new                        = cc.DlFunc[func(model uptr) *ColumnView, *ColumnView]{Name: "gtk_column_view_new"}
+	gtk_column_view_get_columns                = cc.DlFunc[func(self *ColumnView) uptr, uptr]{Name: "gtk_column_view_get_columns"}
 	gtk_column_view_append_column              = cc.DlFunc[func(self *ColumnView, column *ColumnViewColumn), cc.Void]{Name: "gtk_column_view_append_column"}
 	gtk_column_view_remove_column              = cc.DlFunc[func(self *ColumnView, column *ColumnViewColumn), cc.Void]{Name: "gtk_column_view_remove_column"}
 	gtk_column_view_insert_column              = cc.DlFunc[func(self *ColumnView, position uint32, column *ColumnViewColumn), cc.Void]{Name: "gtk_column_view_insert_column"}
-	gtk_column_view_get_model                  = cc.DlFunc[func(self *ColumnView) *SelectionModel, *SelectionModel]{Name: "gtk_column_view_get_model"}
-	gtk_column_view_set_model                  = cc.DlFunc[func(self *ColumnView, model *SelectionModel), cc.Void]{Name: "gtk_column_view_set_model"}
+	gtk_column_view_get_model                  = cc.DlFunc[func(self *ColumnView) uptr, uptr]{Name: "gtk_column_view_get_model"}
+	gtk_column_view_set_model                  = cc.DlFunc[func(self *ColumnView, model uptr), cc.Void]{Name: "gtk_column_view_set_model"}
 	gtk_column_view_get_show_row_separators    = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_show_row_separators"}
 	gtk_column_view_set_show_row_separators    = cc.DlFunc[func(self *ColumnView, showRowSeparators int32), cc.Void]{Name: "gtk_column_view_set_show_row_separators"}
 	gtk_column_view_get_show_column_separators = cc.DlFunc[func(self *ColumnView) int32, int32]{Name: "gtk_column_view_get_show_column_separators"}
@@ -746,10 +746,10 @@ var (
 
 	// #region DropDown
 	gtk_drop_down_get_type              = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_drop_down_get_type"}
-	gtk_drop_down_new                   = cc.DlFunc[func(model *gio.GListModel, expression *Expression) *DropDown, *DropDown]{Name: "gtk_drop_down_new"}
+	gtk_drop_down_new                   = cc.DlFunc[func(model uptr, expression *Expression) *DropDown, *DropDown]{Name: "gtk_drop_down_new"}
 	gtk_drop_down_new_from_strings      = cc.DlFunc[func(strings cc.Strings) *DropDown, *DropDown]{Name: "gtk_drop_down_new_from_strings"}
-	gtk_drop_down_set_model             = cc.DlFunc[func(dd *DropDown, model *gio.GListModel), cc.Void]{Name: "gtk_drop_down_set_model"}
-	gtk_drop_down_get_model             = cc.DlFunc[func(dd *DropDown) *gio.GListModel, *gio.GListModel]{Name: "gtk_drop_down_get_model"}
+	gtk_drop_down_set_model             = cc.DlFunc[func(dd *DropDown, model uptr), cc.Void]{Name: "gtk_drop_down_set_model"}
+	gtk_drop_down_get_model             = cc.DlFunc[func(dd *DropDown) uptr, uptr]{Name: "gtk_drop_down_get_model"}
 	gtk_drop_down_set_selected          = cc.DlFunc[func(dd *DropDown, position uint32), cc.Void]{Name: "gtk_drop_down_set_selected"}
 	gtk_drop_down_get_selected          = cc.DlFunc[func(dd *DropDown) uint32, uint32]{Name: "gtk_drop_down_get_selected"}
 	gtk_drop_down_get_selected_item     = cc.DlFunc[func(dd *DropDown) uptr, uptr]{Name: "gtk_drop_down_get_selected_item"}
@@ -1023,8 +1023,8 @@ var (
 	gtk_file_dialog_set_title                       = cc.DlFunc[func(fd *FileDialog, title cc.String), cc.Void]{Name: "gtk_file_dialog_set_title"}
 	gtk_file_dialog_get_modal                       = cc.DlFunc[func(fd *FileDialog) int32, int32]{Name: "gtk_file_dialog_get_modal"}
 	gtk_file_dialog_set_modal                       = cc.DlFunc[func(fd *FileDialog, modal int32), cc.Void]{Name: "gtk_file_dialog_set_modal"}
-	gtk_file_dialog_get_filters                     = cc.DlFunc[func(fd *FileDialog) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_get_filters"}
-	gtk_file_dialog_set_filters                     = cc.DlFunc[func(fd *FileDialog, filters *gio.GListModel), cc.Void]{Name: "gtk_file_dialog_set_filters"}
+	gtk_file_dialog_get_filters                     = cc.DlFunc[func(fd *FileDialog) uptr, uptr]{Name: "gtk_file_dialog_get_filters"}
+	gtk_file_dialog_set_filters                     = cc.DlFunc[func(fd *FileDialog, filters uptr), cc.Void]{Name: "gtk_file_dialog_set_filters"}
 	gtk_file_dialog_get_default_filter              = cc.DlFunc[func(fd *FileDialog) *FileFilter, *FileFilter]{Name: "gtk_file_dialog_get_default_filter"}
 	gtk_file_dialog_set_default_filter              = cc.DlFunc[func(fd *FileDialog, filter *FileFilter), cc.Void]{Name: "gtk_file_dialog_set_default_filter"}
 	gtk_file_dialog_get_initial_folder              = cc.DlFunc[func(fd *FileDialog) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_get_initial_folder"}
@@ -1042,13 +1042,13 @@ var (
 	gtk_file_dialog_save                            = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_save"}
 	gtk_file_dialog_save_finish                     = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_save_finish"}
 	gtk_file_dialog_open_multiple                   = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_multiple"}
-	gtk_file_dialog_open_multiple_finish            = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_open_multiple_finish"}
+	gtk_file_dialog_open_multiple_finish            = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) uptr, uptr]{Name: "gtk_file_dialog_open_multiple_finish"}
 	gtk_file_dialog_select_multiple_folders         = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_select_multiple_folders"}
-	gtk_file_dialog_select_multiple_folders_finish  = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_select_multiple_folders_finish"}
+	gtk_file_dialog_select_multiple_folders_finish  = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, err **glib.GError) uptr, uptr]{Name: "gtk_file_dialog_select_multiple_folders_finish"}
 	gtk_file_dialog_open_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_text_file"}
 	gtk_file_dialog_open_text_file_finish           = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_open_text_file_finish"}
 	gtk_file_dialog_open_multiple_text_files        = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_open_multiple_text_files"}
-	gtk_file_dialog_open_multiple_text_files_finish = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, err **glib.GError) *gio.GListModel, *gio.GListModel]{Name: "gtk_file_dialog_open_multiple_text_files_finish"}
+	gtk_file_dialog_open_multiple_text_files_finish = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, err **glib.GError) uptr, uptr]{Name: "gtk_file_dialog_open_multiple_text_files_finish"}
 	gtk_file_dialog_save_text_file                  = cc.DlFunc[func(fd *FileDialog, parent *Window, cancellable *gio.GCancellable, callback uptr, userData uptr), cc.Void]{Name: "gtk_file_dialog_save_text_file"}
 	gtk_file_dialog_save_text_file_finish           = cc.DlFunc[func(fd *FileDialog, result *gio.GAsyncResult, encoding *cc.String, lineEnding *cc.String, err **glib.GError) *gio.GFile, *gio.GFile]{Name: "gtk_file_dialog_save_text_file_finish"}
 	// #endregion
@@ -1090,14 +1090,14 @@ var (
 
 	// #region FilterListModel
 	gtk_filter_list_model_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_filter_list_model_get_type"}
-	gtk_filter_list_model_new             = cc.DlFunc[func(model *gio.GListModel, filter *Filter) *FilterListModel, *FilterListModel]{Name: "gtk_filter_list_model_new"}
-	gtk_filter_list_model_set_filter      = cc.DlFunc[func(flm *FilterListModel, filter *Filter), cc.Void]{Name: "gtk_filter_list_model_set_filter"}
-	gtk_filter_list_model_get_filter      = cc.DlFunc[func(flm *FilterListModel) *Filter, *Filter]{Name: "gtk_filter_list_model_get_filter"}
-	gtk_filter_list_model_set_model       = cc.DlFunc[func(flm *FilterListModel, model *gio.GListModel), cc.Void]{Name: "gtk_filter_list_model_set_model"}
-	gtk_filter_list_model_get_model       = cc.DlFunc[func(flm *FilterListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_filter_list_model_get_model"}
-	gtk_filter_list_model_set_incremental = cc.DlFunc[func(flm *FilterListModel, incremental int32), cc.Void]{Name: "gtk_filter_list_model_set_incremental"}
-	gtk_filter_list_model_get_incremental = cc.DlFunc[func(flm *FilterListModel) int32, int32]{Name: "gtk_filter_list_model_get_incremental"}
-	gtk_filter_list_model_get_pending     = cc.DlFunc[func(flm *FilterListModel) uint32, uint32]{Name: "gtk_filter_list_model_get_pending"}
+	gtk_filter_list_model_new             = cc.DlFunc[func(model uptr, filter *Filter) uptr, uptr]{Name: "gtk_filter_list_model_new"}
+	gtk_filter_list_model_set_filter      = cc.DlFunc[func(flm uptr, filter *Filter), cc.Void]{Name: "gtk_filter_list_model_set_filter"}
+	gtk_filter_list_model_get_filter      = cc.DlFunc[func(flm uptr) *Filter, *Filter]{Name: "gtk_filter_list_model_get_filter"}
+	gtk_filter_list_model_set_model       = cc.DlFunc[func(flm uptr, model uptr), cc.Void]{Name: "gtk_filter_list_model_set_model"}
+	gtk_filter_list_model_get_model       = cc.DlFunc[func(flm uptr) uptr, uptr]{Name: "gtk_filter_list_model_get_model"}
+	gtk_filter_list_model_set_incremental = cc.DlFunc[func(flm uptr, incremental int32), cc.Void]{Name: "gtk_filter_list_model_set_incremental"}
+	gtk_filter_list_model_get_incremental = cc.DlFunc[func(flm uptr) int32, int32]{Name: "gtk_filter_list_model_get_incremental"}
+	gtk_filter_list_model_get_pending     = cc.DlFunc[func(flm uptr) uint32, uint32]{Name: "gtk_filter_list_model_get_pending"}
 	// #endregion
 
 	// #region Fixed
@@ -1120,10 +1120,10 @@ var (
 
 	// #region FlattenListModel
 	gtk_flatten_list_model_get_type           = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_flatten_list_model_get_type"}
-	gtk_flatten_list_model_new                = cc.DlFunc[func(model *gio.GListModel) *FlattenListModel, *FlattenListModel]{Name: "gtk_flatten_list_model_new"}
-	gtk_flatten_list_model_set_model          = cc.DlFunc[func(flm *FlattenListModel, model *gio.GListModel), cc.Void]{Name: "gtk_flatten_list_model_set_model"}
-	gtk_flatten_list_model_get_model          = cc.DlFunc[func(flm *FlattenListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_flatten_list_model_get_model"}
-	gtk_flatten_list_model_get_model_for_item = cc.DlFunc[func(flm *FlattenListModel, position uint32) *gio.GListModel, *gio.GListModel]{Name: "gtk_flatten_list_model_get_model_for_item"}
+	gtk_flatten_list_model_new                = cc.DlFunc[func(model uptr) uptr, uptr]{Name: "gtk_flatten_list_model_new"}
+	gtk_flatten_list_model_set_model          = cc.DlFunc[func(flm uptr, model uptr), cc.Void]{Name: "gtk_flatten_list_model_set_model"}
+	gtk_flatten_list_model_get_model          = cc.DlFunc[func(flm uptr) uptr, uptr]{Name: "gtk_flatten_list_model_get_model"}
+	gtk_flatten_list_model_get_model_for_item = cc.DlFunc[func(flm uptr, position uint32) uptr, uptr]{Name: "gtk_flatten_list_model_get_model_for_item"}
 	// #endregion
 
 	// #region FlowBox
@@ -1136,7 +1136,7 @@ var (
 	gtk_flow_box_child_changed                = cc.DlFunc[func(f *FlowBoxChild), cc.Void]{Name: "gtk_flow_box_child_changed"}
 	gtk_flow_box_get_type                     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_flow_box_get_type"}
 	gtk_flow_box_new                          = cc.DlFunc[func() *FlowBox, *FlowBox]{Name: "gtk_flow_box_new"}
-	gtk_flow_box_bind_model                   = cc.DlFunc[func(f *FlowBox, model *gio.GListModel, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_flow_box_bind_model"}
+	gtk_flow_box_bind_model                   = cc.DlFunc[func(f *FlowBox, model uptr, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_flow_box_bind_model"}
 	gtk_flow_box_set_homogeneous              = cc.DlFunc[func(f *FlowBox, homogeneous int32), cc.Void]{Name: "gtk_flow_box_set_homogeneous"}
 	gtk_flow_box_get_homogeneous              = cc.DlFunc[func(f *FlowBox) int32, int32]{Name: "gtk_flow_box_get_homogeneous"}
 	gtk_flow_box_set_row_spacing              = cc.DlFunc[func(f *FlowBox, spacing uint32), cc.Void]{Name: "gtk_flow_box_set_row_spacing"}
@@ -1402,9 +1402,9 @@ var (
 
 	// #region GridView
 	gtk_grid_view_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_grid_view_get_type"}
-	gtk_grid_view_new                       = cc.DlFunc[func(model *SelectionModel, factory *ListItemFactory) *GridView, *GridView]{Name: "gtk_grid_view_new"}
-	gtk_grid_view_get_model                 = cc.DlFunc[func(g *GridView) *SelectionModel, *SelectionModel]{Name: "gtk_grid_view_get_model"}
-	gtk_grid_view_set_model                 = cc.DlFunc[func(g *GridView, model *SelectionModel), cc.Void]{Name: "gtk_grid_view_set_model"}
+	gtk_grid_view_new                       = cc.DlFunc[func(model uptr, factory *ListItemFactory) *GridView, *GridView]{Name: "gtk_grid_view_new"}
+	gtk_grid_view_get_model                 = cc.DlFunc[func(g *GridView) uptr, uptr]{Name: "gtk_grid_view_get_model"}
+	gtk_grid_view_set_model                 = cc.DlFunc[func(g *GridView, model uptr), cc.Void]{Name: "gtk_grid_view_set_model"}
 	gtk_grid_view_set_factory               = cc.DlFunc[func(g *GridView, factory *ListItemFactory), cc.Void]{Name: "gtk_grid_view_set_factory"}
 	gtk_grid_view_get_factory               = cc.DlFunc[func(g *GridView) *ListItemFactory, *ListItemFactory]{Name: "gtk_grid_view_get_factory"}
 	gtk_grid_view_get_min_columns           = cc.DlFunc[func(g *GridView) uint32, uint32]{Name: "gtk_grid_view_get_min_columns"}
@@ -1695,7 +1695,7 @@ var (
 	gtk_list_box_drag_unhighlight_row         = cc.DlFunc[func(box *ListBox), cc.Void]{Name: "gtk_list_box_drag_unhighlight_row"}
 	gtk_list_box_drag_highlight_row           = cc.DlFunc[func(box *ListBox, row *ListBoxRow), cc.Void]{Name: "gtk_list_box_drag_highlight_row"}
 	gtk_list_box_new                          = cc.DlFunc[func() *ListBox, *ListBox]{Name: "gtk_list_box_new"}
-	gtk_list_box_bind_model                   = cc.DlFunc[func(box *ListBox, model *gio.GListModel, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_list_box_bind_model"}
+	gtk_list_box_bind_model                   = cc.DlFunc[func(box *ListBox, model uptr, createWidgetFunc uptr, userData uptr, userDataFreeFunc uptr), cc.Void]{Name: "gtk_list_box_bind_model"}
 	gtk_list_box_set_show_separators          = cc.DlFunc[func(box *ListBox, showSeparators int32), cc.Void]{Name: "gtk_list_box_set_show_separators"}
 	gtk_list_box_get_show_separators          = cc.DlFunc[func(box *ListBox) int32, int32]{Name: "gtk_list_box_get_show_separators"}
 	gtk_list_box_set_tab_behavior             = cc.DlFunc[func(box *ListBox, behavior ListTabBehavior), cc.Void]{Name: "gtk_list_box_set_tab_behavior"}
@@ -1737,9 +1737,9 @@ var (
 
 	// #region ListView
 	gtk_list_view_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_list_view_get_type"}
-	gtk_list_view_new                       = cc.DlFunc[func(model *SelectionModel, factory *ListItemFactory) *ListView, *ListView]{Name: "gtk_list_view_new"}
-	gtk_list_view_get_model                 = cc.DlFunc[func(lv *ListView) *SelectionModel, *SelectionModel]{Name: "gtk_list_view_get_model"}
-	gtk_list_view_set_model                 = cc.DlFunc[func(lv *ListView, model *SelectionModel), cc.Void]{Name: "gtk_list_view_set_model"}
+	gtk_list_view_new                       = cc.DlFunc[func(model uptr, factory *ListItemFactory) *ListView, *ListView]{Name: "gtk_list_view_new"}
+	gtk_list_view_get_model                 = cc.DlFunc[func(lv *ListView) uptr, uptr]{Name: "gtk_list_view_get_model"}
+	gtk_list_view_set_model                 = cc.DlFunc[func(lv *ListView, model uptr), cc.Void]{Name: "gtk_list_view_set_model"}
 	gtk_list_view_set_factory               = cc.DlFunc[func(lv *ListView, factory *ListItemFactory), cc.Void]{Name: "gtk_list_view_set_factory"}
 	gtk_list_view_get_factory               = cc.DlFunc[func(lv *ListView) *ListItemFactory, *ListItemFactory]{Name: "gtk_list_view_get_factory"}
 	gtk_list_view_set_header_factory        = cc.DlFunc[func(lv *ListView, factory *ListItemFactory), cc.Void]{Name: "gtk_list_view_set_header_factory"}
@@ -1769,11 +1769,11 @@ var (
 
 	// #region MapListModel
 	gtk_map_list_model_get_type     = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_map_list_model_get_type"}
-	gtk_map_list_model_new          = cc.DlFunc[func(model *gio.GListModel, mapFunc uptr, userData uptr, userDestroy uptr) *MapListModel, *MapListModel]{Name: "gtk_map_list_model_new"}
-	gtk_map_list_model_set_map_func = cc.DlFunc[func(m *MapListModel, mapFunc uptr, userData uptr, userDestroy uptr), cc.Void]{Name: "gtk_map_list_model_set_map_func"}
-	gtk_map_list_model_set_model    = cc.DlFunc[func(m *MapListModel, model *gio.GListModel), cc.Void]{Name: "gtk_map_list_model_set_model"}
-	gtk_map_list_model_get_model    = cc.DlFunc[func(m *MapListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_map_list_model_get_model"}
-	gtk_map_list_model_has_map      = cc.DlFunc[func(m *MapListModel) int32, int32]{Name: "gtk_map_list_model_has_map"}
+	gtk_map_list_model_new          = cc.DlFunc[func(model uptr, mapFunc uptr, userData uptr, userDestroy uptr) uptr, uptr]{Name: "gtk_map_list_model_new"}
+	gtk_map_list_model_set_map_func = cc.DlFunc[func(m uptr, mapFunc uptr, userData uptr, userDestroy uptr), cc.Void]{Name: "gtk_map_list_model_set_map_func"}
+	gtk_map_list_model_set_model    = cc.DlFunc[func(m uptr, model uptr), cc.Void]{Name: "gtk_map_list_model_set_model"}
+	gtk_map_list_model_get_model    = cc.DlFunc[func(m uptr) uptr, uptr]{Name: "gtk_map_list_model_get_model"}
+	gtk_map_list_model_has_map      = cc.DlFunc[func(m uptr) int32, int32]{Name: "gtk_map_list_model_has_map"}
 	// #endregion
 
 	// #region MediaControls
@@ -1887,16 +1887,16 @@ var (
 
 	// #region MultiSorter
 	gtk_multi_sorter_get_type = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_multi_sorter_get_type"}
-	gtk_multi_sorter_new      = cc.DlFunc[func() *MultiSorter, *MultiSorter]{Name: "gtk_multi_sorter_new"}
-	gtk_multi_sorter_append   = cc.DlFunc[func(ms *MultiSorter, s *Sorter), cc.Void]{Name: "gtk_multi_sorter_append"}
-	gtk_multi_sorter_remove   = cc.DlFunc[func(ms *MultiSorter, position uint32), cc.Void]{Name: "gtk_multi_sorter_remove"}
+	gtk_multi_sorter_new      = cc.DlFunc[func() uptr, uptr]{Name: "gtk_multi_sorter_new"}
+	gtk_multi_sorter_append   = cc.DlFunc[func(ms uptr, s *Sorter), cc.Void]{Name: "gtk_multi_sorter_append"}
+	gtk_multi_sorter_remove   = cc.DlFunc[func(ms uptr, position uint32), cc.Void]{Name: "gtk_multi_sorter_remove"}
 	// #endregion
 
 	// #region MultiSelection
 	gtk_multi_selection_get_type  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_multi_selection_get_type"}
-	gtk_multi_selection_new       = cc.DlFunc[func(model *gio.GListModel) *MultiSelection, *MultiSelection]{Name: "gtk_multi_selection_new"}
-	gtk_multi_selection_get_model = cc.DlFunc[func(self *MultiSelection) *gio.GListModel, *gio.GListModel]{Name: "gtk_multi_selection_get_model"}
-	gtk_multi_selection_set_model = cc.DlFunc[func(self *MultiSelection, model *gio.GListModel), cc.Void]{Name: "gtk_multi_selection_set_model"}
+	gtk_multi_selection_new       = cc.DlFunc[func(model uptr) uptr, uptr]{Name: "gtk_multi_selection_new"}
+	gtk_multi_selection_get_model = cc.DlFunc[func(self uptr) uptr, uptr]{Name: "gtk_multi_selection_get_model"}
+	gtk_multi_selection_set_model = cc.DlFunc[func(self uptr, model uptr), cc.Void]{Name: "gtk_multi_selection_set_model"}
 	// #endregion
 
 	// #region Native
@@ -1924,9 +1924,9 @@ var (
 
 	// #region NoSelection
 	gtk_no_selection_get_type  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_no_selection_get_type"}
-	gtk_no_selection_new       = cc.DlFunc[func(model *gio.GListModel) *NoSelection, *NoSelection]{Name: "gtk_no_selection_new"}
-	gtk_no_selection_get_model = cc.DlFunc[func(ns *NoSelection) *gio.GListModel, *gio.GListModel]{Name: "gtk_no_selection_get_model"}
-	gtk_no_selection_set_model = cc.DlFunc[func(ns *NoSelection, model *gio.GListModel), cc.Void]{Name: "gtk_no_selection_set_model"}
+	gtk_no_selection_new       = cc.DlFunc[func(model uptr) uptr, uptr]{Name: "gtk_no_selection_new"}
+	gtk_no_selection_get_model = cc.DlFunc[func(ns uptr) uptr, uptr]{Name: "gtk_no_selection_get_model"}
+	gtk_no_selection_set_model = cc.DlFunc[func(ns uptr, model uptr), cc.Void]{Name: "gtk_no_selection_set_model"}
 	// #endregion
 
 	// #region Notebook
@@ -1977,7 +1977,7 @@ var (
 	gtk_notebook_page_get_type       = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_notebook_page_get_type"}
 	gtk_notebook_get_page            = cc.DlFunc[func(nb *Notebook, child *Widget) *NotebookPage, *NotebookPage]{Name: "gtk_notebook_get_page"}
 	gtk_notebook_page_get_child      = cc.DlFunc[func(page *NotebookPage) *Widget, *Widget]{Name: "gtk_notebook_page_get_child"}
-	gtk_notebook_get_pages           = cc.DlFunc[func(nb *Notebook) *gio.GListModel, *gio.GListModel]{Name: "gtk_notebook_get_pages"}
+	gtk_notebook_get_pages           = cc.DlFunc[func(nb *Notebook) uptr, uptr]{Name: "gtk_notebook_get_pages"}
 	// #endregion
 
 	// #region NumericSorter
@@ -2391,29 +2391,29 @@ var (
 
 	// #region SectionModel
 	gtk_section_model_get_type         = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_section_model_get_type"}
-	gtk_section_model_get_section      = cc.DlFunc[func(self *SectionModel, position uint32, outStart, outEnd *uint32), cc.Void]{Name: "gtk_section_model_get_section"}
-	gtk_section_model_sections_changed = cc.DlFunc[func(self *SectionModel, position, nItems uint32), cc.Void]{Name: "gtk_section_model_sections_changed"}
+	gtk_section_model_get_section      = cc.DlFunc[func(self uptr, position uint32, outStart, outEnd *uint32), cc.Void]{Name: "gtk_section_model_get_section"}
+	gtk_section_model_sections_changed = cc.DlFunc[func(self uptr, position, nItems uint32), cc.Void]{Name: "gtk_section_model_sections_changed"}
 	// #endregion
 
 	// #region SelectionFilterModel
-	gtk_selection_filter_model_new       = cc.DlFunc[func(model *SelectionModel) *SelectionFilterModel, *SelectionFilterModel]{Name: "gtk_selection_filter_model_new"}
-	gtk_selection_filter_model_set_model = cc.DlFunc[func(self *SelectionFilterModel, model *SelectionModel), cc.Void]{Name: "gtk_selection_filter_model_set_model"}
-	gtk_selection_filter_model_get_model = cc.DlFunc[func(self *SelectionFilterModel) *SelectionModel, *SelectionModel]{Name: "gtk_selection_filter_model_get_model"}
+	gtk_selection_filter_model_new       = cc.DlFunc[func(model uptr) uptr, uptr]{Name: "gtk_selection_filter_model_new"}
+	gtk_selection_filter_model_set_model = cc.DlFunc[func(self uptr, model uptr), cc.Void]{Name: "gtk_selection_filter_model_set_model"}
+	gtk_selection_filter_model_get_model = cc.DlFunc[func(self uptr) uptr, uptr]{Name: "gtk_selection_filter_model_get_model"}
 	// #endregion
 
 	// #region SelectionModel
 	gtk_selection_model_get_type               = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_selection_model_get_type"}
-	gtk_selection_model_is_selected            = cc.DlFunc[func(model *SelectionModel, position uint32) int32, int32]{Name: "gtk_selection_model_is_selected"}
-	gtk_selection_model_get_selection          = cc.DlFunc[func(model *SelectionModel) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection"}
-	gtk_selection_model_get_selection_in_range = cc.DlFunc[func(model *SelectionModel, position, nItems uint32) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection_in_range"}
-	gtk_selection_model_select_item            = cc.DlFunc[func(model *SelectionModel, position uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_item"}
-	gtk_selection_model_unselect_item          = cc.DlFunc[func(model *SelectionModel, position uint32) int32, int32]{Name: "gtk_selection_model_unselect_item"}
-	gtk_selection_model_select_range           = cc.DlFunc[func(model *SelectionModel, position, nItems uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_range"}
-	gtk_selection_model_unselect_range         = cc.DlFunc[func(model *SelectionModel, position, nItems uint32) int32, int32]{Name: "gtk_selection_model_unselect_range"}
-	gtk_selection_model_select_all             = cc.DlFunc[func(model *SelectionModel) int32, int32]{Name: "gtk_selection_model_select_all"}
-	gtk_selection_model_unselect_all           = cc.DlFunc[func(model *SelectionModel) int32, int32]{Name: "gtk_selection_model_unselect_all"}
-	gtk_selection_model_set_selection          = cc.DlFunc[func(model *SelectionModel, selected, mask *Bitset) int32, int32]{Name: "gtk_selection_model_set_selection"}
-	gtk_selection_model_selection_changed      = cc.DlFunc[func(model *SelectionModel, position, nItems uint32), cc.Void]{Name: "gtk_selection_model_selection_changed"}
+	gtk_selection_model_is_selected            = cc.DlFunc[func(model uptr, position uint32) int32, int32]{Name: "gtk_selection_model_is_selected"}
+	gtk_selection_model_get_selection          = cc.DlFunc[func(model uptr) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection"}
+	gtk_selection_model_get_selection_in_range = cc.DlFunc[func(model uptr, position, nItems uint32) *Bitset, *Bitset]{Name: "gtk_selection_model_get_selection_in_range"}
+	gtk_selection_model_select_item            = cc.DlFunc[func(model uptr, position uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_item"}
+	gtk_selection_model_unselect_item          = cc.DlFunc[func(model uptr, position uint32) int32, int32]{Name: "gtk_selection_model_unselect_item"}
+	gtk_selection_model_select_range           = cc.DlFunc[func(model uptr, position, nItems uint32, unselectRest int32) int32, int32]{Name: "gtk_selection_model_select_range"}
+	gtk_selection_model_unselect_range         = cc.DlFunc[func(model uptr, position, nItems uint32) int32, int32]{Name: "gtk_selection_model_unselect_range"}
+	gtk_selection_model_select_all             = cc.DlFunc[func(model uptr) int32, int32]{Name: "gtk_selection_model_select_all"}
+	gtk_selection_model_unselect_all           = cc.DlFunc[func(model uptr) int32, int32]{Name: "gtk_selection_model_unselect_all"}
+	gtk_selection_model_set_selection          = cc.DlFunc[func(model uptr, selected, mask *Bitset) int32, int32]{Name: "gtk_selection_model_set_selection"}
+	gtk_selection_model_selection_changed      = cc.DlFunc[func(model uptr, position, nItems uint32), cc.Void]{Name: "gtk_selection_model_selection_changed"}
 	// #endregion
 
 	// #region Separator
@@ -2464,7 +2464,7 @@ var (
 	// #region ShortcutController
 	gtk_shortcut_controller_get_type                = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_shortcut_controller_get_type"}
 	gtk_shortcut_controller_new                     = cc.DlFunc[func() *ShortcutController, *ShortcutController]{Name: "gtk_shortcut_controller_new"}
-	gtk_shortcut_controller_new_for_model           = cc.DlFunc[func(model *gio.GListModel) *ShortcutController, *ShortcutController]{Name: "gtk_shortcut_controller_new_for_model"}
+	gtk_shortcut_controller_new_for_model           = cc.DlFunc[func(model uptr) *ShortcutController, *ShortcutController]{Name: "gtk_shortcut_controller_new_for_model"}
 	gtk_shortcut_controller_set_mnemonics_modifiers = cc.DlFunc[func(ctrl *ShortcutController, modifiers gdk.ModifierType), cc.Void]{Name: "gtk_shortcut_controller_set_mnemonics_modifiers"}
 	gtk_shortcut_controller_get_mnemonics_modifiers = cc.DlFunc[func(ctrl *ShortcutController) gdk.ModifierType, gdk.ModifierType]{Name: "gtk_shortcut_controller_get_mnemonics_modifiers"}
 	gtk_shortcut_controller_set_scope               = cc.DlFunc[func(ctrl *ShortcutController, scope ShortcutScope), cc.Void]{Name: "gtk_shortcut_controller_set_scope"}
@@ -2510,16 +2510,16 @@ var (
 	// #endregion
 
 	// #region SingleSelection
-	gtk_single_selection_new               = cc.DlFunc[func(model *gio.GListModel) *SingleSelection, *SingleSelection]{Name: "gtk_single_selection_new"}
-	gtk_single_selection_get_model         = cc.DlFunc[func(sel *SingleSelection) *gio.GListModel, *gio.GListModel]{Name: "gtk_single_selection_get_model"}
-	gtk_single_selection_set_model         = cc.DlFunc[func(sel *SingleSelection, model *gio.GListModel), cc.Void]{Name: "gtk_single_selection_set_model"}
-	gtk_single_selection_get_selected      = cc.DlFunc[func(sel *SingleSelection) uint32, uint32]{Name: "gtk_single_selection_get_selected"}
-	gtk_single_selection_set_selected      = cc.DlFunc[func(sel *SingleSelection, position uint32), cc.Void]{Name: "gtk_single_selection_set_selected"}
-	gtk_single_selection_get_selected_item = cc.DlFunc[func(sel *SingleSelection) uptr, uptr]{Name: "gtk_single_selection_get_selected_item"}
-	gtk_single_selection_get_autoselect    = cc.DlFunc[func(sel *SingleSelection) int32, int32]{Name: "gtk_single_selection_get_autoselect"}
-	gtk_single_selection_set_autoselect    = cc.DlFunc[func(sel *SingleSelection, autoselect int32), cc.Void]{Name: "gtk_single_selection_set_autoselect"}
-	gtk_single_selection_get_can_unselect  = cc.DlFunc[func(sel *SingleSelection) int32, int32]{Name: "gtk_single_selection_get_can_unselect"}
-	gtk_single_selection_set_can_unselect  = cc.DlFunc[func(sel *SingleSelection, canUnselect int32), cc.Void]{Name: "gtk_single_selection_set_can_unselect"}
+	gtk_single_selection_new               = cc.DlFunc[func(model uptr) uptr, uptr]{Name: "gtk_single_selection_new"}
+	gtk_single_selection_get_model         = cc.DlFunc[func(sel uptr) uptr, uptr]{Name: "gtk_single_selection_get_model"}
+	gtk_single_selection_set_model         = cc.DlFunc[func(sel uptr, model uptr), cc.Void]{Name: "gtk_single_selection_set_model"}
+	gtk_single_selection_get_selected      = cc.DlFunc[func(sel uptr) uint32, uint32]{Name: "gtk_single_selection_get_selected"}
+	gtk_single_selection_set_selected      = cc.DlFunc[func(sel uptr, position uint32), cc.Void]{Name: "gtk_single_selection_set_selected"}
+	gtk_single_selection_get_selected_item = cc.DlFunc[func(sel uptr) uptr, uptr]{Name: "gtk_single_selection_get_selected_item"}
+	gtk_single_selection_get_autoselect    = cc.DlFunc[func(sel uptr) int32, int32]{Name: "gtk_single_selection_get_autoselect"}
+	gtk_single_selection_set_autoselect    = cc.DlFunc[func(sel uptr, autoselect int32), cc.Void]{Name: "gtk_single_selection_set_autoselect"}
+	gtk_single_selection_get_can_unselect  = cc.DlFunc[func(sel uptr) int32, int32]{Name: "gtk_single_selection_get_can_unselect"}
+	gtk_single_selection_set_can_unselect  = cc.DlFunc[func(sel uptr, canUnselect int32), cc.Void]{Name: "gtk_single_selection_set_can_unselect"}
 	// #endregion
 
 	// #region SizeGroup
@@ -2538,13 +2538,13 @@ var (
 
 	// #region SliceListModel
 	gtk_slice_list_model_get_type   = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_slice_list_model_get_type"}
-	gtk_slice_list_model_new        = cc.DlFunc[func(model *gio.GListModel, offset, size uint32) *SliceListModel, *SliceListModel]{Name: "gtk_slice_list_model_new"}
-	gtk_slice_list_model_set_model  = cc.DlFunc[func(self *SliceListModel, model *gio.GListModel), cc.Void]{Name: "gtk_slice_list_model_set_model"}
-	gtk_slice_list_model_get_model  = cc.DlFunc[func(self *SliceListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_slice_list_model_get_model"}
-	gtk_slice_list_model_set_offset = cc.DlFunc[func(self *SliceListModel, offset uint32), cc.Void]{Name: "gtk_slice_list_model_set_offset"}
-	gtk_slice_list_model_get_offset = cc.DlFunc[func(self *SliceListModel) uint32, uint32]{Name: "gtk_slice_list_model_get_offset"}
-	gtk_slice_list_model_set_size   = cc.DlFunc[func(self *SliceListModel, size uint32), cc.Void]{Name: "gtk_slice_list_model_set_size"}
-	gtk_slice_list_model_get_size   = cc.DlFunc[func(self *SliceListModel) uint32, uint32]{Name: "gtk_slice_list_model_get_size"}
+	gtk_slice_list_model_new        = cc.DlFunc[func(model uptr, offset, size uint32) uptr, uptr]{Name: "gtk_slice_list_model_new"}
+	gtk_slice_list_model_set_model  = cc.DlFunc[func(self uptr, model uptr), cc.Void]{Name: "gtk_slice_list_model_set_model"}
+	gtk_slice_list_model_get_model  = cc.DlFunc[func(self uptr) uptr, uptr]{Name: "gtk_slice_list_model_get_model"}
+	gtk_slice_list_model_set_offset = cc.DlFunc[func(self uptr, offset uint32), cc.Void]{Name: "gtk_slice_list_model_set_offset"}
+	gtk_slice_list_model_get_offset = cc.DlFunc[func(self uptr) uint32, uint32]{Name: "gtk_slice_list_model_get_offset"}
+	gtk_slice_list_model_set_size   = cc.DlFunc[func(self uptr, size uint32), cc.Void]{Name: "gtk_slice_list_model_set_size"}
+	gtk_slice_list_model_get_size   = cc.DlFunc[func(self uptr) uint32, uint32]{Name: "gtk_slice_list_model_get_size"}
 	// #endregion
 
 	// #region Snapshot
@@ -2606,16 +2606,16 @@ var (
 
 	// #region SortListModel
 	gtk_sort_list_model_get_type           = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_sort_list_model_get_type"}
-	gtk_sort_list_model_new                = cc.DlFunc[func(model *gio.GListModel, sorter *Sorter) *SortListModel, *SortListModel]{Name: "gtk_sort_list_model_new"}
-	gtk_sort_list_model_set_sorter         = cc.DlFunc[func(m *SortListModel, sorter *Sorter), cc.Void]{Name: "gtk_sort_list_model_set_sorter"}
-	gtk_sort_list_model_get_sorter         = cc.DlFunc[func(m *SortListModel) *Sorter, *Sorter]{Name: "gtk_sort_list_model_get_sorter"}
-	gtk_sort_list_model_set_section_sorter = cc.DlFunc[func(m *SortListModel, sorter *Sorter), cc.Void]{Name: "gtk_sort_list_model_set_section_sorter"}
-	gtk_sort_list_model_get_section_sorter = cc.DlFunc[func(m *SortListModel) *Sorter, *Sorter]{Name: "gtk_sort_list_model_get_section_sorter"}
-	gtk_sort_list_model_set_model          = cc.DlFunc[func(m *SortListModel, model *gio.GListModel), cc.Void]{Name: "gtk_sort_list_model_set_model"}
-	gtk_sort_list_model_get_model          = cc.DlFunc[func(m *SortListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_sort_list_model_get_model"}
-	gtk_sort_list_model_set_incremental    = cc.DlFunc[func(m *SortListModel, incremental int32), cc.Void]{Name: "gtk_sort_list_model_set_incremental"}
-	gtk_sort_list_model_get_incremental    = cc.DlFunc[func(m *SortListModel) int32, int32]{Name: "gtk_sort_list_model_get_incremental"}
-	gtk_sort_list_model_get_pending        = cc.DlFunc[func(m *SortListModel) uint32, uint32]{Name: "gtk_sort_list_model_get_pending"}
+	gtk_sort_list_model_new                = cc.DlFunc[func(model uptr, sorter *Sorter) uptr, uptr]{Name: "gtk_sort_list_model_new"}
+	gtk_sort_list_model_set_sorter         = cc.DlFunc[func(m uptr, sorter *Sorter), cc.Void]{Name: "gtk_sort_list_model_set_sorter"}
+	gtk_sort_list_model_get_sorter         = cc.DlFunc[func(m uptr) *Sorter, *Sorter]{Name: "gtk_sort_list_model_get_sorter"}
+	gtk_sort_list_model_set_section_sorter = cc.DlFunc[func(m uptr, sorter *Sorter), cc.Void]{Name: "gtk_sort_list_model_set_section_sorter"}
+	gtk_sort_list_model_get_section_sorter = cc.DlFunc[func(m uptr) *Sorter, *Sorter]{Name: "gtk_sort_list_model_get_section_sorter"}
+	gtk_sort_list_model_set_model          = cc.DlFunc[func(m uptr, model uptr), cc.Void]{Name: "gtk_sort_list_model_set_model"}
+	gtk_sort_list_model_get_model          = cc.DlFunc[func(m uptr) uptr, uptr]{Name: "gtk_sort_list_model_get_model"}
+	gtk_sort_list_model_set_incremental    = cc.DlFunc[func(m uptr, incremental int32), cc.Void]{Name: "gtk_sort_list_model_set_incremental"}
+	gtk_sort_list_model_get_incremental    = cc.DlFunc[func(m uptr) int32, int32]{Name: "gtk_sort_list_model_get_incremental"}
+	gtk_sort_list_model_get_pending        = cc.DlFunc[func(m uptr) uint32, uint32]{Name: "gtk_sort_list_model_get_pending"}
 	// #endregion
 
 	// #region SpinButton
@@ -2698,7 +2698,7 @@ var (
 	gtk_stack_get_transition_running   = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_transition_running"}
 	gtk_stack_set_interpolate_size     = cc.DlFunc[func(stack *Stack, interpolateSize int32), cc.Void]{Name: "gtk_stack_set_interpolate_size"}
 	gtk_stack_get_interpolate_size     = cc.DlFunc[func(stack *Stack) int32, int32]{Name: "gtk_stack_get_interpolate_size"}
-	gtk_stack_get_pages                = cc.DlFunc[func(stack *Stack) *SelectionModel, *SelectionModel]{Name: "gtk_stack_get_pages"}
+	gtk_stack_get_pages                = cc.DlFunc[func(stack *Stack) uptr, uptr]{Name: "gtk_stack_get_pages"}
 	// #endregion
 
 	// #region StackSidebar
@@ -3154,13 +3154,13 @@ var (
 
 	// #region TreeListModel
 	gtk_tree_list_model_get_type        = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_tree_list_model_get_type"}
-	gtk_tree_list_model_new             = cc.DlFunc[func(root *gio.GListModel, passthrough int32, autoexpand int32, createFunc uptr, userData uptr, userDestroy uptr) *TreeListModel, *TreeListModel]{Name: "gtk_tree_list_model_new"}
-	gtk_tree_list_model_get_model       = cc.DlFunc[func(tlm *TreeListModel) *gio.GListModel, *gio.GListModel]{Name: "gtk_tree_list_model_get_model"}
-	gtk_tree_list_model_get_passthrough = cc.DlFunc[func(tlm *TreeListModel) int32, int32]{Name: "gtk_tree_list_model_get_passthrough"}
-	gtk_tree_list_model_set_autoexpand  = cc.DlFunc[func(tlm *TreeListModel, autoexpand int32), cc.Void]{Name: "gtk_tree_list_model_set_autoexpand"}
-	gtk_tree_list_model_get_autoexpand  = cc.DlFunc[func(tlm *TreeListModel) int32, int32]{Name: "gtk_tree_list_model_get_autoexpand"}
-	gtk_tree_list_model_get_child_row   = cc.DlFunc[func(tlm *TreeListModel, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_child_row"}
-	gtk_tree_list_model_get_row         = cc.DlFunc[func(tlm *TreeListModel, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_row"}
+	gtk_tree_list_model_new             = cc.DlFunc[func(root uptr, passthrough int32, autoexpand int32, createFunc uptr, userData uptr, userDestroy uptr) uptr, uptr]{Name: "gtk_tree_list_model_new"}
+	gtk_tree_list_model_get_model       = cc.DlFunc[func(tlm uptr) uptr, uptr]{Name: "gtk_tree_list_model_get_model"}
+	gtk_tree_list_model_get_passthrough = cc.DlFunc[func(tlm uptr) int32, int32]{Name: "gtk_tree_list_model_get_passthrough"}
+	gtk_tree_list_model_set_autoexpand  = cc.DlFunc[func(tlm uptr, autoexpand int32), cc.Void]{Name: "gtk_tree_list_model_set_autoexpand"}
+	gtk_tree_list_model_get_autoexpand  = cc.DlFunc[func(tlm uptr) int32, int32]{Name: "gtk_tree_list_model_get_autoexpand"}
+	gtk_tree_list_model_get_child_row   = cc.DlFunc[func(tlm uptr, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_child_row"}
+	gtk_tree_list_model_get_row         = cc.DlFunc[func(tlm uptr, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_model_get_row"}
 
 	gtk_tree_list_row_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "gtk_tree_list_row_get_type"}
 	gtk_tree_list_row_get_item      = cc.DlFunc[func(row *TreeListRow) uptr, uptr]{Name: "gtk_tree_list_row_get_item"}
@@ -3169,7 +3169,7 @@ var (
 	gtk_tree_list_row_is_expandable = cc.DlFunc[func(row *TreeListRow) int32, int32]{Name: "gtk_tree_list_row_is_expandable"}
 	gtk_tree_list_row_get_position  = cc.DlFunc[func(row *TreeListRow) uint32, uint32]{Name: "gtk_tree_list_row_get_position"}
 	gtk_tree_list_row_get_depth     = cc.DlFunc[func(row *TreeListRow) uint32, uint32]{Name: "gtk_tree_list_row_get_depth"}
-	gtk_tree_list_row_get_children  = cc.DlFunc[func(row *TreeListRow) *gio.GListModel, *gio.GListModel]{Name: "gtk_tree_list_row_get_children"}
+	gtk_tree_list_row_get_children  = cc.DlFunc[func(row *TreeListRow) uptr, uptr]{Name: "gtk_tree_list_row_get_children"}
 	gtk_tree_list_row_get_parent    = cc.DlFunc[func(row *TreeListRow) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_row_get_parent"}
 	gtk_tree_list_row_get_child_row = cc.DlFunc[func(row *TreeListRow, position uint32) *TreeListRow, *TreeListRow]{Name: "gtk_tree_list_row_get_child_row"}
 	// #endregion
@@ -3390,8 +3390,8 @@ var (
 	gtk_widget_get_last_child                      = cc.DlFunc[func(widget *Widget) *Widget, *Widget]{Name: "gtk_widget_get_last_child"}
 	gtk_widget_get_next_sibling                    = cc.DlFunc[func(widget *Widget) *Widget, *Widget]{Name: "gtk_widget_get_next_sibling"}
 	gtk_widget_get_prev_sibling                    = cc.DlFunc[func(widget *Widget) *Widget, *Widget]{Name: "gtk_widget_get_prev_sibling"}
-	gtk_widget_observe_children                    = cc.DlFunc[func(widget *Widget) *gio.GListModel, *gio.GListModel]{Name: "gtk_widget_observe_children"}
-	gtk_widget_observe_controllers                 = cc.DlFunc[func(widget *Widget) *gio.GListModel, *gio.GListModel]{Name: "gtk_widget_observe_controllers"}
+	gtk_widget_observe_children                    = cc.DlFunc[func(widget *Widget) uptr, uptr]{Name: "gtk_widget_observe_children"}
+	gtk_widget_observe_controllers                 = cc.DlFunc[func(widget *Widget) uptr, uptr]{Name: "gtk_widget_observe_controllers"}
 	gtk_widget_insert_after                        = cc.DlFunc[func(widget *Widget, parent *Widget, previousSibling *Widget), cc.Void]{Name: "gtk_widget_insert_after"}
 	gtk_widget_insert_before                       = cc.DlFunc[func(widget *Widget, parent *Widget, nextSibling *Widget), cc.Void]{Name: "gtk_widget_insert_before"}
 	gtk_widget_set_focus_child                     = cc.DlFunc[func(widget *Widget, child *Widget), cc.Void]{Name: "gtk_widget_set_focus_child"}
@@ -3455,7 +3455,7 @@ var (
 	gtk_window_set_auto_startup_notification = cc.DlFunc[func(setting int32), cc.Void]{Name: "gtk_window_set_auto_startup_notification"}
 	gtk_window_set_modal                     = cc.DlFunc[func(window *Window, modal int32), cc.Void]{Name: "gtk_window_set_modal"}
 	gtk_window_get_modal                     = cc.DlFunc[func(window *Window) int32, int32]{Name: "gtk_window_get_modal"}
-	gtk_window_get_toplevels                 = cc.DlFunc[func() *gio.GListModel, *gio.GListModel]{Name: "gtk_window_get_toplevels"}
+	gtk_window_get_toplevels                 = cc.DlFunc[func() uptr, uptr]{Name: "gtk_window_get_toplevels"}
 	gtk_window_list_toplevels                = cc.DlFunc[func() *glib.GList[Widget], *glib.GList[Widget]]{Name: "gtk_window_list_toplevels"}
 	gtk_window_present                       = cc.DlFunc[func(window *Window), cc.Void]{Name: "gtk_window_present"}
 	gtk_window_minimize                      = cc.DlFunc[func(window *Window), cc.Void]{Name: "gtk_window_minimize"}

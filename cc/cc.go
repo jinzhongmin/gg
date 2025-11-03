@@ -15,10 +15,14 @@ type Long dl.Long
 type Longlong dl.Longlong
 type ULong dl.ULong
 type ULonglong dl.ULonglong
-type Void dl.Void_
+type Void [0]byte
 type Bool uint8
 type SizeT dl.SizeT
 type Enum dl.Enum
+
+type Any [0]byte
+
+func (a *Any) Ptr() uptr { return uptr(a) }
 
 func MakeBool(b bool) Bool {
 	if b {
@@ -69,6 +73,12 @@ func (p Ptr) Free() { Free(uptr(p)) }
 // 	}
 // 	return Slice((*uptr)(uptr(p)), count)
 // }
+
+type Char byte
+type Chars iptr
+
+func (c *Char) ToString() String    { return String(uptr(c)) }
+func (c *Chars) ToStrings() Strings { return Strings(uptr(c)) }
 
 type stringStruct struct {
 	p unsafe.Pointer

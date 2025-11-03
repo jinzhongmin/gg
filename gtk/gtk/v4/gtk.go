@@ -860,7 +860,7 @@ func (i *BitsetIter) IsValid() bool    { return gtk_bitset_iter_is_valid.Fn()(i)
 
 type BookmarkList struct {
 	gobjCore
-	gio.GListModel
+	gio.GListModel[gio.GFileInfo]
 }
 
 func GTypeBookmarkList() gobject.GType { return gtk_bookmark_list_get_type.Fn()() }
@@ -1594,10 +1594,12 @@ type ColumnView struct {
 }
 
 func GTypeColumnView() gobject.GType { return gtk_column_view_get_type.Fn()() }
-func NewColumnView(model SelectionModelIface) *ColumnView {
-	return gtk_column_view_new.Fn()(GetSelectionModelIface(model))
+func NewColumnView(model SelectionModelIface[ColumnViewColumn]) *ColumnView {
+	return gtk_column_view_new.Fn()(uptr(GetSelectionModelIface(model)))
 }
-func (v *ColumnView) GetColumns() *gio.GListModel { return gtk_column_view_get_columns.Fn()(v) }
+func (v *ColumnView) GetColumns() *gio.GListModel[ColumnViewColumn] {
+	return (*gio.GListModel[ColumnViewColumn])(gtk_column_view_get_columns.Fn()(v))
+}
 func (v *ColumnView) AppendColumn(column *ColumnViewColumn) {
 	gtk_column_view_append_column.Fn()(v, column)
 }
@@ -1607,9 +1609,11 @@ func (v *ColumnView) RemoveColumn(column *ColumnViewColumn) {
 func (v *ColumnView) InsertColumn(position uint32, column *ColumnViewColumn) {
 	gtk_column_view_insert_column.Fn()(v, position, column)
 }
-func (v *ColumnView) GetModel() SelectionModelIface { return gtk_column_view_get_model.Fn()(v) }
-func (v *ColumnView) SetModel(model SelectionModelIface) {
-	gtk_column_view_set_model.Fn()(v, GetSelectionModelIface(model))
+func (v *ColumnView) GetModel() *SelectionModel[gobject.GObject] {
+	return (*SelectionModel[gobject.GObject])(gtk_column_view_get_model.Fn()(v))
+}
+func (v *ColumnView) SetModel(model SelectionModelIface[gobject.GObject]) {
+	gtk_column_view_set_model.Fn()(v, uptr(GetSelectionModelIface(model)))
 }
 func (v *ColumnView) GetShowRowSeparators() bool {
 	return gtk_column_view_get_show_row_separators.Fn()(v) != 0
@@ -2113,7 +2117,7 @@ func DialogErrorQuark() glib.GQuark { return gtk_dialog_error_quark.Fn()() }
 
 type DirectoryList struct {
 	gobjCore
-	gio.GListModel
+	gio.GListModel[gio.GFileInfo]
 }
 
 func GTypeDirectoryList() gobject.GType { return gtk_directory_list_get_type.Fn()() }
@@ -2298,19 +2302,19 @@ func (c *DropControllerMotion) ConnectMotion(
 type DropDown struct{ Widget }
 
 func GTypeDropDown() gobject.GType { return gtk_drop_down_get_type.Fn()() }
-func NewDropDown(model gio.GListModelIface, expression ExpressionIface) *DropDown {
-	return gtk_drop_down_new.Fn()(gio.GetGListModelIface(model), GetExpressionIface(expression))
+func NewDropDown[T any](model gio.GListModelIface[T], expression ExpressionIface) *DropDown {
+	return gtk_drop_down_new.Fn()(uptr(gio.GetGListModelIface(model)), GetExpressionIface(expression))
 }
 func NewDropDownFromStrings(strings []string) *DropDown {
 	cpp := cc.NewStrings(strings)
 	defer cpp.Free()
 	return gtk_drop_down_new_from_strings.Fn()(cpp)
 }
-func (dd *DropDown) SetModel(model gio.GListModelIface) {
-	gtk_drop_down_set_model.Fn()(dd, gio.GetGListModelIface(model))
+func (dd *DropDown) SetModel(model gio.GListModelIfaceAny) {
+	gtk_drop_down_set_model.Fn()(dd, (gio.GetGListModelIfaceAny(model)))
 }
-func (dd *DropDown) GetModel() *gio.GListModel {
-	return gtk_drop_down_get_model.Fn()(dd)
+func (dd *DropDown) GetModel() *gio.GListModel[gobject.GObject] {
+	return (*gio.GListModel[gobject.GObject])(gtk_drop_down_get_model.Fn()(dd))
 }
 func (dd *DropDown) SetSelected(position uint32) {
 	gtk_drop_down_set_selected.Fn()(dd, position)
@@ -2318,8 +2322,8 @@ func (dd *DropDown) SetSelected(position uint32) {
 func (dd *DropDown) GetSelected() uint32 {
 	return gtk_drop_down_get_selected.Fn()(dd)
 }
-func (dd *DropDown) GetSelectedItem() uptr {
-	return gtk_drop_down_get_selected_item.Fn()(dd)
+func (dd *DropDown) GetSelectedItem() *gobject.GObject {
+	return (*gobject.GObject)(gtk_drop_down_get_selected_item.Fn()(dd))
 }
 func (dd *DropDown) SetFactory(factory *ListItemFactory) {
 	gtk_drop_down_set_factory.Fn()(dd, factory)
@@ -3207,11 +3211,13 @@ func (fd *FileDialog) SetTitle(title string) {
 	defer cTitle.Free()
 	gtk_file_dialog_set_title.Fn()(fd, cTitle)
 }
-func (fd *FileDialog) GetModal() bool              { return gtk_file_dialog_get_modal.Fn()(fd) != 0 }
-func (fd *FileDialog) SetModal(modal bool)         { gtk_file_dialog_set_modal.Fn()(fd, cbool(modal)) }
-func (fd *FileDialog) GetFilters() *gio.GListModel { return gtk_file_dialog_get_filters.Fn()(fd) }
-func (fd *FileDialog) SetFilters(filters gio.GListModelIface) {
-	gtk_file_dialog_set_filters.Fn()(fd, gio.GetGListModelIface(filters))
+func (fd *FileDialog) GetModal() bool      { return gtk_file_dialog_get_modal.Fn()(fd) != 0 }
+func (fd *FileDialog) SetModal(modal bool) { gtk_file_dialog_set_modal.Fn()(fd, cbool(modal)) }
+func (fd *FileDialog) GetFilters() *gio.GListModel[FileFilter] {
+	return (*gio.GListModel[FileFilter])(gtk_file_dialog_get_filters.Fn()(fd))
+}
+func (fd *FileDialog) SetFilters(filters gio.GListModelIface[FileFilter]) {
+	gtk_file_dialog_set_filters.Fn()(fd, uptr(gio.GetGListModelIface(filters)))
 }
 func (fd *FileDialog) GetDefaultFilter() *FileFilter {
 	return gtk_file_dialog_get_default_filter.Fn()(fd)
@@ -3293,9 +3299,9 @@ func (fd *FileDialog) OpenMultiple(parent WindowIface, cancellable *gio.GCancell
 	fd.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cb) })
 	gtk_file_dialog_open_multiple.Fn()(fd, GetWindowIface(parent), cancellable, cb, nil)
 }
-func (fd *FileDialog) OpenMultipleFinish(result *gio.GAsyncResult) (*gio.GListModel, error) {
+func (fd *FileDialog) OpenMultipleFinish(result *gio.GAsyncResult) (*gio.GListModel[gio.GFile], error) {
 	var gerr *glib.GError
-	files := gtk_file_dialog_open_multiple_finish.Fn()(fd, result, &gerr)
+	files := (*gio.GListModel[gio.GFile])(gtk_file_dialog_open_multiple_finish.Fn()(fd, result, &gerr))
 	if gerr != nil {
 		defer gerr.Free()
 		return nil, gerr.Error()
@@ -3308,9 +3314,9 @@ func (fd *FileDialog) SelectMultipleFolders(parent WindowIface, cancellable *gio
 	fd.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cb) })
 	gtk_file_dialog_select_multiple_folders.Fn()(fd, GetWindowIface(parent), cancellable, cb, nil)
 }
-func (fd *FileDialog) SelectMultipleFoldersFinish(result *gio.GAsyncResult) (*gio.GListModel, error) {
+func (fd *FileDialog) SelectMultipleFoldersFinish(result *gio.GAsyncResult) (*gio.GListModel[gio.GFile], error) {
 	var gerr *glib.GError
-	folders := gtk_file_dialog_select_multiple_folders_finish.Fn()(fd, result, &gerr)
+	folders := (*gio.GListModel[gio.GFile])(gtk_file_dialog_select_multiple_folders_finish.Fn()(fd, result, &gerr))
 	if gerr != nil {
 		defer gerr.Free()
 		return nil, gerr.Error()
@@ -3334,10 +3340,10 @@ func (fd *FileDialog) OpenMultipleTextFiles(parent WindowIface, cancellable *gio
 	fd.WeakRef(func(obj *gobject.GObject) { cc.CbkClose(cb) })
 	gtk_file_dialog_open_multiple_text_files.Fn()(fd, GetWindowIface(parent), cancellable, cb, nil)
 }
-func (fd *FileDialog) OpenMultipleTextFilesFinish(result *gio.GAsyncResult) (*gio.GListModel, string, error) {
+func (fd *FileDialog) OpenMultipleTextFilesFinish(result *gio.GAsyncResult) (*gio.GListModel[gio.GFile], string, error) {
 	var gerr *glib.GError
 	var encoding cc.String
-	return gtk_file_dialog_open_multiple_text_files_finish.Fn()(fd, result, &encoding, &gerr), encoding.TakeString(), gerr.TakeError()
+	return (*gio.GListModel[gio.GFile])(gtk_file_dialog_open_multiple_text_files_finish.Fn()(fd, result, &encoding, &gerr)), encoding.TakeString(), gerr.TakeError()
 }
 func (fd *FileDialog) SaveTextFile(parent WindowIface, cancellable *gio.GCancellable,
 	callback func(fd *FileDialog, res *gio.GAsyncResult)) {
@@ -3469,35 +3475,35 @@ func (f *Filter) Changed(change FilterChange) { gtk_filter_changed.Fn()(f, chang
 
 // #region FilterListModel
 
-type FilterListModel struct {
+type FilterListModel[T any] struct {
 	gobjCore
-	SectionModel
+	SectionModel[T]
 }
 
 func GTypeFilterListModel() gobject.GType { return gtk_filter_list_model_get_type.Fn()() }
-func NewFilterListModel(model gio.GListModelIface, filter FilterIface) *FilterListModel {
-	return gtk_filter_list_model_new.Fn()(gio.GetGListModelIface(model), GetFilterIface(filter))
+func NewFilterListModel[T any](model gio.GListModelIface[T], filter FilterIface) *FilterListModel[T] {
+	return (*FilterListModel[T])(gtk_filter_list_model_new.Fn()(uptr(gio.GetGListModelIface(model)), GetFilterIface(filter)))
 }
-func (flm *FilterListModel) SetFilter(filter FilterIface) {
-	gtk_filter_list_model_set_filter.Fn()(flm, GetFilterIface(filter))
+func (flm *FilterListModel[T]) SetFilter(filter FilterIface) {
+	gtk_filter_list_model_set_filter.Fn()(uptr(flm), GetFilterIface(filter))
 }
-func (flm *FilterListModel) GetFilter() *Filter {
-	return gtk_filter_list_model_get_filter.Fn()(flm)
+func (flm *FilterListModel[T]) GetFilter() *Filter {
+	return gtk_filter_list_model_get_filter.Fn()(uptr(flm))
 }
-func (flm *FilterListModel) SetModel(model gio.GListModelIface) {
-	gtk_filter_list_model_set_model.Fn()(flm, gio.GetGListModelIface(model))
+func (flm *FilterListModel[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_filter_list_model_set_model.Fn()(uptr(flm), uptr(gio.GetGListModelIface(model)))
 }
-func (flm *FilterListModel) GetModel() *gio.GListModel {
-	return gtk_filter_list_model_get_model.Fn()(flm)
+func (flm *FilterListModel[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_filter_list_model_get_model.Fn()(uptr(flm)))
 }
-func (flm *FilterListModel) SetIncremental(incremental bool) {
-	gtk_filter_list_model_set_incremental.Fn()(flm, cbool(incremental))
+func (flm *FilterListModel[T]) SetIncremental(incremental bool) {
+	gtk_filter_list_model_set_incremental.Fn()(uptr(flm), cbool(incremental))
 }
-func (flm *FilterListModel) GetIncremental() bool {
-	return gtk_filter_list_model_get_incremental.Fn()(flm) != 0
+func (flm *FilterListModel[T]) GetIncremental() bool {
+	return gtk_filter_list_model_get_incremental.Fn()(uptr(flm)) != 0
 }
-func (flm *FilterListModel) GetPending() uint32 {
-	return gtk_filter_list_model_get_pending.Fn()(flm)
+func (flm *FilterListModel[T]) GetPending() uint32 {
+	return gtk_filter_list_model_get_pending.Fn()(uptr(flm))
 }
 
 // #endregion
@@ -3555,23 +3561,23 @@ func (child *FixedLayoutChild) GetTransform() *gsk.Transform {
 
 // #region FlattenListModel
 
-type FlattenListModel struct {
+type FlattenListModel[T any] struct {
 	gobjCore
-	SectionModel
+	SectionModel[T]
 }
 
 func GTypeFlattenListModel() gobject.GType { return gtk_flatten_list_model_get_type.Fn()() }
-func NewFlattenListModel(model gio.GListModelIface) *FlattenListModel {
-	return gtk_flatten_list_model_new.Fn()(gio.GetGListModelIface(model))
+func NewFlattenListModel[T any](model gio.GListModelIface[gio.GListModel[T]]) *FlattenListModel[T] {
+	return (*FlattenListModel[T])(gtk_flatten_list_model_new.Fn()(uptr(gio.GetGListModelIface(model))))
 }
-func (flm *FlattenListModel) SetModel(model gio.GListModelIface) {
-	gtk_flatten_list_model_set_model.Fn()(flm, gio.GetGListModelIface(model))
+func (flm *FlattenListModel[T]) SetModel(model gio.GListModelIface[gio.GListModel[T]]) {
+	gtk_flatten_list_model_set_model.Fn()(uptr(flm), uptr(gio.GetGListModelIface(model)))
 }
-func (flm *FlattenListModel) GetModel() *gio.GListModel {
-	return gtk_flatten_list_model_get_model.Fn()(flm)
+func (flm *FlattenListModel[T]) GetModel() *gio.GListModel[gio.GListModel[T]] {
+	return (*gio.GListModel[gio.GListModel[T]])(gtk_flatten_list_model_get_model.Fn()(uptr(flm)))
 }
-func (flm *FlattenListModel) GetModelForItem(position uint32) *gio.GListModel {
-	return gtk_flatten_list_model_get_model_for_item.Fn()(flm, position)
+func (flm *FlattenListModel[T]) GetModelForItem(position uint32) *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_flatten_list_model_get_model_for_item.Fn()(uptr(flm), position))
 }
 
 // #endregion
@@ -3610,16 +3616,16 @@ type FlowBox struct {
 
 func GTypeFlowBox() gobject.GType { return gtk_flow_box_get_type.Fn()() }
 func NewFlowBox() *FlowBox        { return gtk_flow_box_new.Fn()() }
-func (f *FlowBox) BindModel(model gio.GListModelIface, createWidgetFunc func(item *gobject.GObject) *Widget) {
+func (f *FlowBox) BindModel(model gio.GListModelIfaceAny, createWidgetFunc func(item *gobject.GObject) WidgetIface) {
 	var cf, des uptr
 	if createWidgetFunc != nil {
 		cc.CbkRaw[func(item *gobject.GObject, _ uptr) *Widget](func(out, ins uptr) {
 			is := unsafe.Slice((*uptr)(ins), 3)
-			*(**Widget)(out) = createWidgetFunc(*(**gobject.GObject)(is[0]))
+			*(**Widget)(out) = GetWidgetIface(createWidgetFunc(*(**gobject.GObject)(is[0])))
 		})
 		des = cc.Cbk(func(d uptr) { cc.CbkClose(cf) })
 	}
-	gtk_flow_box_bind_model.Fn()(f, gio.GetGListModelIface(model), cf, nil, des)
+	gtk_flow_box_bind_model.Fn()(f, (gio.GetGListModelIfaceAny(model)), cf, nil, des)
 }
 func (f *FlowBox) SetHomogeneous(homogeneous bool) {
 	gtk_flow_box_set_homogeneous.Fn()(f, cbool(homogeneous))
@@ -4428,12 +4434,14 @@ func (c *GridLayoutChild) GetRowSpan() int32     { return gtk_grid_layout_child_
 type GridView struct{ ListBase }
 
 func GTypeGridView() gobject.GType { return gtk_grid_view_get_type.Fn()() }
-func NewGridView(model SelectionModelIface, factory ListItemFactoryIface) *GridView {
-	return gtk_grid_view_new.Fn()(GetSelectionModelIface(model), GetListItemFactoryIface(factory))
+func NewGridView(model SelectionModelIface[gobject.GObject], factory ListItemFactoryIface) *GridView {
+	return gtk_grid_view_new.Fn()(uptr(GetSelectionModelIface(model)), GetListItemFactoryIface(factory))
 }
-func (g *GridView) GetModel() *SelectionModel { return gtk_grid_view_get_model.Fn()(g) }
-func (g *GridView) SetModel(model SelectionModelIface) {
-	gtk_grid_view_set_model.Fn()(g, GetSelectionModelIface(model))
+func (g *GridView) GetModel() *SelectionModel[cc.Any] {
+	return (*SelectionModel[cc.Any])(gtk_grid_view_get_model.Fn()(g))
+}
+func (g *GridView) SetModel(model SelectionModelIface[gobject.GObject]) {
+	gtk_grid_view_set_model.Fn()(g, uptr(GetSelectionModelIface(model)))
 }
 func (g *GridView) SetFactory(factory ListItemFactoryIface) {
 	gtk_grid_view_set_factory.Fn()(g, GetListItemFactoryIface(factory))
@@ -5326,7 +5334,7 @@ func (b *ListBox) DragUnhighlightRow()              { gtk_list_box_drag_unhighli
 func (b *ListBox) DragHighlightRow(row *ListBoxRow) { gtk_list_box_drag_highlight_row.Fn()(b, row) }
 
 func NewListBox() *ListBox { return gtk_list_box_new.Fn()() }
-func (b *ListBox) BindModel(model gio.GListModelIface, createWidgetFunc func(item *gobject.GObject) *Widget) {
+func (b *ListBox) BindModel(model gio.GListModelIfaceAny, createWidgetFunc func(item *gobject.GObject) *Widget) {
 	var cb, des uptr
 	if createWidgetFunc != nil {
 		cc.CbkRaw[func(item *gobject.GObject, _ uptr) *Widget](func(out, ins uptr) {
@@ -5335,7 +5343,7 @@ func (b *ListBox) BindModel(model gio.GListModelIface, createWidgetFunc func(ite
 		})
 		des = cc.Cbk(func(d uptr) { cc.CbkClose(cb) })
 	}
-	gtk_list_box_bind_model.Fn()(b, gio.GetGListModelIface(model), cb, nil, des)
+	gtk_list_box_bind_model.Fn()(b, (gio.GetGListModelIfaceAny(model)), cb, nil, des)
 }
 func (b *ListBox) SetShowSeparators(showSeparators bool) {
 	gtk_list_box_set_show_separators.Fn()(b, cbool(showSeparators))
@@ -5471,12 +5479,14 @@ func GTypeListItemFactory() gobject.GType { return gtk_list_item_factory_get_typ
 type ListView struct{ ListBase }
 
 func GTypeListView() gobject.GType { return gtk_list_view_get_type.Fn()() }
-func NewListView(model SelectionModelIface, factory ListItemFactoryIface) *ListView {
-	return gtk_list_view_new.Fn()(GetSelectionModelIface(model), GetListItemFactoryIface(factory))
+func NewListView(model SelectionModelIface[gobject.GObject], factory ListItemFactoryIface) *ListView {
+	return gtk_list_view_new.Fn()(uptr(GetSelectionModelIface(model)), GetListItemFactoryIface(factory))
 }
-func (lv *ListView) GetModel() *SelectionModel { return gtk_list_view_get_model.Fn()(lv) }
-func (lv *ListView) SetModel(model SelectionModelIface) {
-	gtk_list_view_set_model.Fn()(lv, GetSelectionModelIface(model))
+func (lv *ListView) GetModel() *SelectionModel[cc.Any] {
+	return (*SelectionModel[cc.Any])(gtk_list_view_get_model.Fn()(lv))
+}
+func (lv *ListView) SetModel(model SelectionModelIface[gobject.GObject]) {
+	gtk_list_view_set_model.Fn()(lv, uptr(GetSelectionModelIface(model)))
 }
 func (lv *ListView) SetFactory(factory ListItemFactoryIface) {
 	gtk_list_view_set_factory.Fn()(lv, GetListItemFactoryIface(factory))
@@ -5537,40 +5547,42 @@ func GetLocaleDirection() TextDirection   { return gtk_get_locale_direction.Fn()
 
 // #region MapListModel
 
-type MapListModel struct {
+type MapListModel[A, Z any] struct {
 	gobjCore
-	SectionModel
+	SectionModel[Z]
 }
 
 func GTypeMapListModel() gobject.GType { return gtk_map_list_model_get_type.Fn()() }
-func NewMapListModel[A, B any](model gio.GListModelIface, mapFunc func(item *A) *B) *MapListModel {
+func NewMapListModel[A, Z any](model gio.GListModelIface[A], mapFunc func(item *A) *Z) *MapListModel[A, Z] {
 	var cb, des uptr
 	if mapFunc != nil {
 		cb = cc.CbkRaw[func(item, _ uptr) uptr](func(out, ins uptr) {
 			is := unsafe.Slice((*uptr)(ins), 2)
-			*(**B)(out) = mapFunc(*(**A)(is[0]))
+			*(**Z)(out) = mapFunc(*(**A)(is[0]))
 		})
 		des = cc.Cbk(func(_ uptr) { cc.CbkClose(cb); cc.CbkCloseLate(des) })
 	}
-	return gtk_map_list_model_new.Fn()(gio.GetGListModelIface(model), cb, nil, des)
+	return (*MapListModel[A, Z])(gtk_map_list_model_new.Fn()(uptr(gio.GetGListModelIface(model)), cb, nil, des))
 }
-func (m *MapListModel) SetMapFunc(mapFunc func(item uptr) uptr) {
+func (m *MapListModel[A, Z]) SetMapFunc(mapFunc func(item *A) *Z) {
 
 	var cb, des uptr
 	if mapFunc != nil {
 		cb = cc.CbkRaw[func(item, _ uptr) uptr](func(out, ins uptr) {
 			is := unsafe.Slice((*uptr)(ins), 2)
-			*(*uptr)(out) = mapFunc(*(*uptr)(is[0]))
+			*(**Z)(out) = mapFunc(*(**A)(is[0]))
 		})
 		des = cc.Cbk(func(_ uptr) { cc.CbkClose(cb); cc.CbkCloseLate(des) })
 	}
-	gtk_map_list_model_set_map_func.Fn()(m, cb, nil, des)
+	gtk_map_list_model_set_map_func.Fn()(uptr(m), cb, nil, des)
 }
-func (m *MapListModel) SetModel(model gio.GListModelIface) {
-	gtk_map_list_model_set_model.Fn()(m, gio.GetGListModelIface(model))
+func (m *MapListModel[A, Z]) SetModel(model gio.GListModelIface[A]) {
+	gtk_map_list_model_set_model.Fn()(uptr(m), uptr(gio.GetGListModelIface(model)))
 }
-func (m *MapListModel) GetModel() *gio.GListModel { return gtk_map_list_model_get_model.Fn()(m) }
-func (m *MapListModel) HasMap() bool              { return gtk_map_list_model_has_map.Fn()(m) != 0 }
+func (m *MapListModel[A, Z]) GetModel() *gio.GListModel[A] {
+	return (*gio.GListModel[A])(gtk_map_list_model_get_model.Fn()(uptr(m)))
+}
+func (m *MapListModel[A, Z]) HasMap() bool { return gtk_map_list_model_has_map.Fn()(uptr(m)) != 0 }
 
 // #endregion
 
@@ -5843,7 +5855,7 @@ func (m *MultiFilter) GetMultiFilterIface() *MultiFilter { return m }
 
 type MultiFilter struct {
 	Filter
-	gio.GListModel
+	gio.GListModel[Filter]
 	Buildable
 }
 
@@ -5864,37 +5876,43 @@ func NewEveryFilter() *EveryFilter            { return gtk_every_filter_new.Fn()
 
 // #region MultiSelection
 
-type MultiSelection struct {
+type MultiSelection[T any] struct {
 	gobjCore
 
-	gio.GListModel
-	SectionModel
-	SelectionModel
+	gio.GListModel[T]
+	SectionModel[T]
+	SelectionModel[T]
 }
 
 func GTypeMultiSelection() gobject.GType { return gtk_multi_selection_get_type.Fn()() }
-func NewMultiSelection(model gio.GListModelIface) *MultiSelection {
-	return gtk_multi_selection_new.Fn()(gio.GetGListModelIface(model))
+func NewMultiSelection[T any](model gio.GListModelIface[T]) *MultiSelection[T] {
+	return (*MultiSelection[T])(gtk_multi_selection_new.Fn()(uptr(gio.GetGListModelIface(model))))
 }
-func (m *MultiSelection) GetModel() *gio.GListModel { return gtk_multi_selection_get_model.Fn()(m) }
-func (m *MultiSelection) SetModel(model gio.GListModelIface) {
-	gtk_multi_selection_set_model.Fn()(m, gio.GetGListModelIface(model))
+func (m *MultiSelection[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_multi_selection_get_model.Fn()(uptr(m)))
+}
+func (m *MultiSelection[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_multi_selection_set_model.Fn()(uptr(m), uptr(gio.GetGListModelIface(model)))
 }
 
 // #endregion
 
 // #region MultiSorter
 
-type MultiSorter struct {
+type MultiSorter[T SorterIface] struct {
 	Sorter
-	gio.GListModel
+	gio.GListModel[T]
 	Buildable
 }
 
-func GTypeMultiSorter() gobject.GType          { return gtk_multi_sorter_get_type.Fn()() }
-func NewMultiSorter() *MultiSorter             { return gtk_multi_sorter_new.Fn()() }
-func (ms *MultiSorter) Append(s SorterIface)   { gtk_multi_sorter_append.Fn()(ms, GetSorterIface(s)) }
-func (ms *MultiSorter) Remove(position uint32) { gtk_multi_sorter_remove.Fn()(ms, position) }
+func GTypeMultiSorter() gobject.GType { return gtk_multi_sorter_get_type.Fn()() }
+func NewMultiSorter[T SorterIface]() *MultiSorter[T] {
+	return (*MultiSorter[T])(gtk_multi_sorter_new.Fn()())
+}
+func (ms *MultiSorter[T]) Append(s SorterIface) {
+	gtk_multi_sorter_append.Fn()(uptr(ms), GetSorterIface(s))
+}
+func (ms *MultiSorter[T]) Remove(position uint32) { gtk_multi_sorter_remove.Fn()(uptr(ms), position) }
 
 // #endregion
 
@@ -5959,20 +5977,22 @@ func (nd *NativeDialog) ConnectResponse(sig func(nd *NativeDialog, responseId in
 
 // #region NoSelection
 
-type NoSelection struct {
+type NoSelection[T any] struct {
 	gobjCore
-	gio.GListModel
-	SectionModel
-	SelectionModel
+	gio.GListModel[T]
+	SectionModel[T]
+	SelectionModel[T]
 }
 
 func GTypeNoSelection() gobject.GType { return gtk_no_selection_get_type.Fn()() }
-func NewNoSelection(model gio.GListModelIface) *NoSelection {
-	return gtk_no_selection_new.Fn()(gio.GetGListModelIface(model))
+func NewNoSelection[T any](model gio.GListModelIface[T]) *NoSelection[T] {
+	return (*NoSelection[T])(gtk_no_selection_new.Fn()(uptr(gio.GetGListModelIface(model))))
 }
-func (ns *NoSelection) GetModel() *gio.GListModel { return gtk_no_selection_get_model.Fn()(ns) }
-func (ns *NoSelection) SetModel(model gio.GListModelIface) {
-	gtk_no_selection_set_model.Fn()(ns, gio.GetGListModelIface(model))
+func (ns *NoSelection[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_no_selection_get_model.Fn()(uptr(ns)))
+}
+func (ns *NoSelection[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_no_selection_set_model.Fn()(uptr(ns), uptr(gio.GetGListModelIface(model)))
 }
 
 // #endregion
@@ -6125,8 +6145,10 @@ func GTypeNotebookPage() gobject.GType { return gtk_notebook_page_get_type.Fn()(
 func (nb *Notebook) GetPage(child WidgetIface) *NotebookPage {
 	return gtk_notebook_get_page.Fn()(nb, GetWidgetIface(child))
 }
-func (page *NotebookPage) GetChild() *Widget   { return gtk_notebook_page_get_child.Fn()(page) }
-func (nb *Notebook) GetPages() *gio.GListModel { return gtk_notebook_get_pages.Fn()(nb) }
+func (page *NotebookPage) GetChild() *Widget { return gtk_notebook_page_get_child.Fn()(page) }
+func (nb *Notebook) GetPages() *gio.GListModel[NotebookPage] {
+	return (*gio.GListModel[NotebookPage])(gtk_notebook_get_pages.Fn()(nb))
+}
 
 // #endregion
 
@@ -7338,29 +7360,31 @@ type SectionModelIfaceObj struct {
 	GetSection cc.Func
 }
 
-type SectionModelIface interface {
-	GetSectionModelIface() *SectionModel
+type SectionModelIface[T any] interface {
+	GetSectionModelIface() *SectionModel[T]
 }
 
-func GetSectionModelIface(iface SectionModelIface) *SectionModel {
+func GetSectionModelIface[T any](iface SectionModelIface[T]) *SectionModel[T] {
 	if anyptr(iface) == nil {
 		return nil
 	}
 	return iface.GetSectionModelIface()
 }
-func (s *SectionModel) GetSectionModelIface() *SectionModel { return s }
+func (s *SectionModel[T]) GetSectionModelIface() *SectionModel[T] { return (s) }
 
-type SectionModel struct{ gio.GListModel }
+type SectionModel[T any] struct {
+	gio.GListModel[T]
+}
 
 func GTypeSectionModel() gobject.GType { return gtk_section_model_get_type.Fn()() }
-func (m *SectionModel) GetSection(position uint32) (start, end uint32) {
-	gtk_section_model_get_section.Fn()(m, position, &start, &end)
+func (m *SectionModel[T]) GetSection(position uint32) (start, end uint32) {
+	gtk_section_model_get_section.Fn()(uptr(m), position, &start, &end)
 	return
 }
-func (m *SectionModel) SectionsChanged(position, nItems uint32) {
-	gtk_section_model_sections_changed.Fn()(m, position, nItems)
+func (m *SectionModel[T]) SectionsChanged(position, nItems uint32) {
+	gtk_section_model_sections_changed.Fn()(uptr(m), position, nItems)
 }
-func (m *SectionModel) ConnectSectionsChanged(fn func(m *SectionModel, pos, nItems uint32)) {
+func (m *SectionModel[T]) ConnectSectionsChanged(fn func(m *SectionModel[T], pos, nItems uint32)) {
 	toGobj(m).SignalConnect("sections-changed", fn, nil)
 }
 
@@ -7368,24 +7392,30 @@ func (m *SectionModel) ConnectSectionsChanged(fn func(m *SectionModel, pos, nIte
 
 // #region SelectionFilterModel
 
-type SelectionFilterModel struct {
+type SelectionFilterModel[T any] struct {
 	gobjCore
-	gio.GListModel
+	gio.GListModel[T]
 }
 
-func NewSelectionFilterModel(model SelectionModelIface) *SelectionFilterModel {
-	return gtk_selection_filter_model_new.Fn()(GetSelectionModelIface(model))
+func NewSelectionFilterModel[T any](model SelectionModelIface[gobject.GObject]) *SelectionFilterModel[T] {
+	return (*SelectionFilterModel[T])(gtk_selection_filter_model_new.Fn()(uptr(GetSelectionModelIface(model))))
 }
-func (m *SelectionFilterModel) SetModel(model SelectionModelIface) {
-	gtk_selection_filter_model_set_model.Fn()(m, GetSelectionModelIface(model))
+func (m *SelectionFilterModel[T]) SetModel(model SelectionModelIface[gobject.GObject]) {
+	gtk_selection_filter_model_set_model.Fn()(uptr(m), (uptr)(GetSelectionModelIface(model)))
 }
-func (m *SelectionFilterModel) GetModel() *SelectionModel {
-	return gtk_selection_filter_model_get_model.Fn()(m)
+func (m *SelectionFilterModel[T]) GetModel() *SelectionModel[gobject.GObject] {
+	return (*SelectionModel[gobject.GObject])(gtk_selection_filter_model_get_model.Fn()(uptr(m)))
 }
 
 // #endregion
 
 // #region SelectionModel
+
+type SelectionModeRaw struct{}
+
+func SelectionModeRawCast[T any](s *SelectionModeRaw) *SelectionModel[T] {
+	return (*SelectionModel[T])(uptr(s))
+}
 
 type SelectionModelIfaceObj struct {
 	Parent gobject.GTypeInterface
@@ -7401,57 +7431,57 @@ type SelectionModelIfaceObj struct {
 	SetSelection        cc.Func // gboolean (* set_selection)  (GtkSelectionModel *model,GtkBitset *selected,GtkBitset *mask);
 }
 
-type SelectionModelIface interface {
-	GetSelectionModelIface() *SelectionModel
+type SelectionModelIface[T any] interface {
+	GetSelectionModelIface() *SelectionModel[T]
 }
 
-func GetSelectionModelIface(iface SelectionModelIface) *SelectionModel {
+func GetSelectionModelIface[T any](iface SelectionModelIface[T]) *SelectionModel[T] {
 	if anyptr(iface) == nil {
 		return nil
 	}
 	return iface.GetSelectionModelIface()
 }
-func (s *SelectionModel) GetSelectionModelIface() *SelectionModel { return s }
+func (s *SelectionModel[T]) GetSelectionModelIface() *SelectionModel[T] { return s }
 
-type SelectionModel struct {
-	gio.GListModel
+type SelectionModel[T any] struct {
+	gio.GListModel[T]
 }
 
 func GTypeSelectionModel() gobject.GType { return gtk_selection_model_get_type.Fn()() }
-func (m *SelectionModel) IsSelected(position uint32) bool {
-	return gtk_selection_model_is_selected.Fn()(m, position) != 0
+func (m *SelectionModel[T]) IsSelected(position uint32) bool {
+	return gtk_selection_model_is_selected.Fn()(uptr(m), position) != 0
 }
-func (m *SelectionModel) GetSelection() *Bitset {
-	return gtk_selection_model_get_selection.Fn()(m)
+func (m *SelectionModel[T]) GetSelection() *Bitset {
+	return gtk_selection_model_get_selection.Fn()(uptr(m))
 }
-func (m *SelectionModel) GetSelectionInRange(position, nItems uint32) *Bitset {
-	return gtk_selection_model_get_selection_in_range.Fn()(m, position, nItems)
+func (m *SelectionModel[T]) GetSelectionInRange(position, nItems uint32) *Bitset {
+	return gtk_selection_model_get_selection_in_range.Fn()(uptr(m), position, nItems)
 }
-func (m *SelectionModel) SelectItem(position uint32, unselectRest bool) bool {
-	return gtk_selection_model_select_item.Fn()(m, position, cbool(unselectRest)) != 0
+func (m *SelectionModel[T]) SelectItem(position uint32, unselectRest bool) bool {
+	return gtk_selection_model_select_item.Fn()(uptr(m), position, cbool(unselectRest)) != 0
 }
-func (m *SelectionModel) UnselectItem(position uint32) bool {
-	return gtk_selection_model_unselect_item.Fn()(m, position) != 0
+func (m *SelectionModel[T]) UnselectItem(position uint32) bool {
+	return gtk_selection_model_unselect_item.Fn()(uptr(m), position) != 0
 }
-func (m *SelectionModel) SelectRange(position, nItems uint32, unselectRest bool) bool {
-	return gtk_selection_model_select_range.Fn()(m, position, nItems, cbool(unselectRest)) != 0
+func (m *SelectionModel[T]) SelectRange(position, nItems uint32, unselectRest bool) bool {
+	return gtk_selection_model_select_range.Fn()(uptr(m), position, nItems, cbool(unselectRest)) != 0
 }
-func (m *SelectionModel) UnselectRange(position, nItems uint32) bool {
-	return gtk_selection_model_unselect_range.Fn()(m, position, nItems) != 0
+func (m *SelectionModel[T]) UnselectRange(position, nItems uint32) bool {
+	return gtk_selection_model_unselect_range.Fn()(uptr(m), position, nItems) != 0
 }
-func (m *SelectionModel) SelectAll() bool {
-	return gtk_selection_model_select_all.Fn()(m) != 0
+func (m *SelectionModel[T]) SelectAll() bool {
+	return gtk_selection_model_select_all.Fn()(uptr(m)) != 0
 }
-func (m *SelectionModel) UnselectAll() bool {
-	return gtk_selection_model_unselect_all.Fn()(m) != 0
+func (m *SelectionModel[T]) UnselectAll() bool {
+	return gtk_selection_model_unselect_all.Fn()(uptr(m)) != 0
 }
-func (m *SelectionModel) SetSelection(selected, mask *Bitset) bool {
-	return gtk_selection_model_set_selection.Fn()(m, selected, mask) != 0
+func (m *SelectionModel[T]) SetSelection(selected, mask *Bitset) bool {
+	return gtk_selection_model_set_selection.Fn()(uptr(m), selected, mask) != 0
 }
-func (m *SelectionModel) SelectionChanged(position, nItems uint32) {
-	gtk_selection_model_selection_changed.Fn()(m, position, nItems)
+func (m *SelectionModel[T]) SelectionChanged(position, nItems uint32) {
+	gtk_selection_model_selection_changed.Fn()(uptr(m), position, nItems)
 }
-func (m *SelectionModel) ConnectSelectionChanged(fn func(m *SelectionModel, pos, nItems uint32)) {
+func (m *SelectionModel[T]) ConnectSelectionChanged(fn func(m *SelectionModel[T], pos, nItems uint32)) {
 	toGobj(m).SignalConnect("selection-changed", fn, nil)
 }
 
@@ -7626,14 +7656,14 @@ func (n *NamedAction) GetActionName() string {
 
 type ShortcutController struct {
 	EventController
+	gio.GListModel[Shortcut]
 	Buildable
-	gio.GListModel
 }
 
 func GTypeShortcutController() gobject.GType     { return gtk_shortcut_controller_get_type.Fn()() }
 func NewShortcutController() *ShortcutController { return gtk_shortcut_controller_new.Fn()() }
-func NewShortcutControllerForModel(model gio.GListModelIface) *ShortcutController {
-	return gtk_shortcut_controller_new_for_model.Fn()(gio.GetGListModelIface(model))
+func NewShortcutControllerForModel(model gio.GListModelIface[Shortcut]) *ShortcutController {
+	return gtk_shortcut_controller_new_for_model.Fn()(uptr(gio.GetGListModelIface(model)))
 }
 func (c *ShortcutController) SetMnemonicsModifiers(modifiers gdk.ModifierType) {
 	gtk_shortcut_controller_set_mnemonics_modifiers.Fn()(c, modifiers)
@@ -7775,42 +7805,42 @@ func (l *SignalListItemFactory) ConnectUnbind(fn func(l *SignalListItemFactory, 
 
 // #region SingleSelection
 
-type SingleSelection struct {
+type SingleSelection[T any] struct {
 	gobjCore
-	gio.GListModel
-	SectionModel
-	SelectionModel
+	gio.GListModel[T]
+	SectionModel[T]
+	SelectionModel[T]
 }
 
-func NewSingleSelection(model gio.GListModelIface) *SingleSelection {
-	return gtk_single_selection_new.Fn()(gio.GetGListModelIface(model))
+func NewSingleSelection[T any](model gio.GListModelIface[T]) *SingleSelection[T] {
+	return (*SingleSelection[T])(gtk_single_selection_new.Fn()(uptr(gio.GetGListModelIface(model))))
 }
-func (s *SingleSelection) GetModel() *gio.GListModel {
-	return gtk_single_selection_get_model.Fn()(s)
+func (s *SingleSelection[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_single_selection_get_model.Fn()(uptr(s)))
 }
-func (s *SingleSelection) SetModel(model *gio.GListModel) {
-	gtk_single_selection_set_model.Fn()(s, model)
+func (s *SingleSelection[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_single_selection_set_model.Fn()(uptr(s), uptr(gio.GetGListModelIface(model)))
 }
-func (s *SingleSelection) GetSelected() uint32 {
-	return gtk_single_selection_get_selected.Fn()(s)
+func (s *SingleSelection[T]) GetSelected() uint32 {
+	return gtk_single_selection_get_selected.Fn()(uptr(s))
 }
-func (s *SingleSelection) SetSelected(position uint32) {
-	gtk_single_selection_set_selected.Fn()(s, position)
+func (s *SingleSelection[T]) SetSelected(position uint32) {
+	gtk_single_selection_set_selected.Fn()(uptr(s), position)
 }
-func (s *SingleSelection) GetSelectedItem() uptr {
-	return gtk_single_selection_get_selected_item.Fn()(s)
+func (s *SingleSelection[T]) GetSelectedItem() *T {
+	return (*T)(gtk_single_selection_get_selected_item.Fn()(uptr(s)))
 }
-func (s *SingleSelection) GetAutoselect() bool {
-	return gtk_single_selection_get_autoselect.Fn()(s) != 0
+func (s *SingleSelection[T]) GetAutoselect() bool {
+	return gtk_single_selection_get_autoselect.Fn()(uptr(s)) != 0
 }
-func (s *SingleSelection) SetAutoselect(autoselect bool) {
-	gtk_single_selection_set_autoselect.Fn()(s, cbool(autoselect))
+func (s *SingleSelection[T]) SetAutoselect(autoselect bool) {
+	gtk_single_selection_set_autoselect.Fn()(uptr(s), cbool(autoselect))
 }
-func (s *SingleSelection) GetCanUnselect() bool {
-	return gtk_single_selection_get_can_unselect.Fn()(s) != 0
+func (s *SingleSelection[T]) GetCanUnselect() bool {
+	return gtk_single_selection_get_can_unselect.Fn()(uptr(s)) != 0
 }
-func (s *SingleSelection) SetCanUnselect(canUnselect bool) {
-	gtk_single_selection_set_can_unselect.Fn()(s, cbool(canUnselect))
+func (s *SingleSelection[T]) SetCanUnselect(canUnselect bool) {
+	gtk_single_selection_set_can_unselect.Fn()(uptr(s), cbool(canUnselect))
 }
 
 // #endregion
@@ -7855,22 +7885,26 @@ func DistributeNaturalAllocation(extraSpace int32, nRequestedSizes uint32, sizes
 
 // #region SliceListModel
 
-type SliceListModel struct {
-	SectionModel
+type SliceListModel[T any] struct {
+	SectionModel[T]
 }
 
 func GTypeSliceListModel() gobject.GType { return gtk_slice_list_model_get_type.Fn()() }
-func NewSliceListModel(model gio.GListModelIface, offset, size uint32) *SliceListModel {
-	return gtk_slice_list_model_new.Fn()(gio.GetGListModelIface(model), offset, size)
+func NewSliceListModel[T any](model gio.GListModelIface[T], offset, size uint32) *SliceListModel[T] {
+	return (*SliceListModel[T])(gtk_slice_list_model_new.Fn()(uptr(gio.GetGListModelIface(model)), offset, size))
 }
-func (m *SliceListModel) SetModel(model gio.GListModelIface) {
-	gtk_slice_list_model_set_model.Fn()(m, gio.GetGListModelIface(model))
+func (m *SliceListModel[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_slice_list_model_set_model.Fn()(uptr(m), uptr(gio.GetGListModelIface(model)))
 }
-func (m *SliceListModel) GetModel() *gio.GListModel { return gtk_slice_list_model_get_model.Fn()(m) }
-func (m *SliceListModel) SetOffset(offset uint32)   { gtk_slice_list_model_set_offset.Fn()(m, offset) }
-func (m *SliceListModel) GetOffset() uint32         { return gtk_slice_list_model_get_offset.Fn()(m) }
-func (m *SliceListModel) SetSize(size uint32)       { gtk_slice_list_model_set_size.Fn()(m, size) }
-func (m *SliceListModel) GetSize() uint32           { return gtk_slice_list_model_get_size.Fn()(m) }
+func (m *SliceListModel[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_slice_list_model_get_model.Fn()(uptr(m)))
+}
+func (m *SliceListModel[T]) SetOffset(offset uint32) {
+	gtk_slice_list_model_set_offset.Fn()(uptr(m), offset)
+}
+func (m *SliceListModel[T]) GetOffset() uint32   { return gtk_slice_list_model_get_offset.Fn()(uptr(m)) }
+func (m *SliceListModel[T]) SetSize(size uint32) { gtk_slice_list_model_set_size.Fn()(uptr(m), size) }
+func (m *SliceListModel[T]) GetSize() uint32     { return gtk_slice_list_model_get_size.Fn()(uptr(m)) }
 
 // #endregion
 
@@ -8038,33 +8072,35 @@ func (s *Sorter) ConnectChanged(fn func(s *Sorter, change SorterChange)) {
 
 // #region SortListModel
 
-type SortListModel struct{ SectionModel }
+type SortListModel[T any] struct{ SectionModel[T] }
 
 func GTypeSortListModel() gobject.GType { return gtk_sort_list_model_get_type.Fn()() }
-func NewSortListModel(model gio.GListModelIface, sorter SorterIface) *SortListModel {
-	return gtk_sort_list_model_new.Fn()(gio.GetGListModelIface(model), GetSorterIface(sorter))
+func NewSortListModel[T any](model gio.GListModelIface[T], sorter SorterIface) *SortListModel[T] {
+	return (*SortListModel[T])(gtk_sort_list_model_new.Fn()(uptr(gio.GetGListModelIface(model)), GetSorterIface(sorter)))
 }
-func (m *SortListModel) SetSorter(sorter SorterIface) {
-	gtk_sort_list_model_set_sorter.Fn()(m, GetSorterIface(sorter))
+func (m *SortListModel[T]) SetSorter(sorter SorterIface) {
+	gtk_sort_list_model_set_sorter.Fn()(uptr(m), GetSorterIface(sorter))
 }
-func (m *SortListModel) GetSorter() *Sorter { return gtk_sort_list_model_get_sorter.Fn()(m) }
-func (m *SortListModel) SetSectionSorter(sorter SorterIface) {
-	gtk_sort_list_model_set_section_sorter.Fn()(m, GetSorterIface(sorter))
+func (m *SortListModel[T]) GetSorter() *Sorter { return gtk_sort_list_model_get_sorter.Fn()(uptr(m)) }
+func (m *SortListModel[T]) SetSectionSorter(sorter SorterIface) {
+	gtk_sort_list_model_set_section_sorter.Fn()(uptr(m), GetSorterIface(sorter))
 }
-func (m *SortListModel) GetSectionSorter() *Sorter {
-	return gtk_sort_list_model_get_section_sorter.Fn()(m)
+func (m *SortListModel[T]) GetSectionSorter() *Sorter {
+	return gtk_sort_list_model_get_section_sorter.Fn()(uptr(m))
 }
-func (m *SortListModel) SetModel(model gio.GListModelIface) {
-	gtk_sort_list_model_set_model.Fn()(m, gio.GetGListModelIface(model))
+func (m *SortListModel[T]) SetModel(model gio.GListModelIface[T]) {
+	gtk_sort_list_model_set_model.Fn()(uptr(m), uptr(gio.GetGListModelIface(model)))
 }
-func (m *SortListModel) GetModel() *gio.GListModel { return gtk_sort_list_model_get_model.Fn()(m) }
-func (m *SortListModel) SetIncremental(incremental bool) {
-	gtk_sort_list_model_set_incremental.Fn()(m, cbool(incremental))
+func (m *SortListModel[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_sort_list_model_get_model.Fn()(uptr(m)))
 }
-func (m *SortListModel) GetIncremental() bool {
-	return gtk_sort_list_model_get_incremental.Fn()(m) != 0
+func (m *SortListModel[T]) SetIncremental(incremental bool) {
+	gtk_sort_list_model_set_incremental.Fn()(uptr(m), cbool(incremental))
 }
-func (m *SortListModel) GetPending() uint32 { return gtk_sort_list_model_get_pending.Fn()(m) }
+func (m *SortListModel[T]) GetIncremental() bool {
+	return gtk_sort_list_model_get_incremental.Fn()(uptr(m)) != 0
+}
+func (m *SortListModel[T]) GetPending() uint32 { return gtk_sort_list_model_get_pending.Fn()(uptr(m)) }
 
 // #endregion
 
@@ -8274,8 +8310,10 @@ func (s *Stack) GetTransitionRunning() bool { return gtk_stack_get_transition_ru
 func (s *Stack) SetInterpolateSize(interpolateSize bool) {
 	gtk_stack_set_interpolate_size.Fn()(s, cbool(interpolateSize))
 }
-func (s *Stack) GetInterpolateSize() bool  { return gtk_stack_get_interpolate_size.Fn()(s) != 0 }
-func (s *Stack) GetPages() *SelectionModel { return gtk_stack_get_pages.Fn()(s) }
+func (s *Stack) GetInterpolateSize() bool { return gtk_stack_get_interpolate_size.Fn()(s) != 0 }
+func (s *Stack) GetPages() *SelectionModel[StackPage] {
+	return (*SelectionModel[StackPage])(gtk_stack_get_pages.Fn()(s))
+}
 
 // #endregion
 
@@ -8350,7 +8388,7 @@ func (s *StringObject) String() string    { return gtk_string_object_get_string.
 
 type StringList struct {
 	gobjCore
-	gio.GListModel
+	gio.GListModel[StringObject]
 	Buildable
 }
 
@@ -9695,44 +9733,44 @@ func (te *TreeExpander) SetHideExpander(hideExpander bool) {
 
 // #region TreeListModel
 
-type TreeListModel struct {
+type TreeListModel[T any] struct {
 	gobjCore
-	gio.GListModel
+	gio.GListModel[TreeListRow]
 }
 
 type TreeListRow struct{ gobjCore }
 
 func GTypeTreeListModel() gobject.GType { return gtk_tree_list_model_get_type.Fn()() }
-func NewTreeListModel[T any](root gio.GListModelIface, passthrough, autoexpand bool,
-	createFunc func(item *T) *gio.GListModel) *TreeListModel {
+func NewTreeListModel[T any](root gio.GListModelIface[T], passthrough, autoexpand bool,
+	createFunc func(item *T) gio.GListModelIface[T]) *TreeListModel[T] {
 	var cb, des uptr
 	if createFunc != nil {
 		cb = cc.CbkRaw[func(item, _ uptr) uptr](func(out, ins uptr) {
 			is := unsafe.Slice((*uptr)(ins), 2)
-			*(**gio.GListModel)(out) = createFunc(*(**T)(is[0]))
+			*(*uptr)(out) = uptr(gio.GetGListModelIface(createFunc(*(**T)(is[0]))))
 		})
 		des = cc.Cbk(func(_ uptr) { cc.CbkClose(cb); cc.CbkCloseLate(des) })
 	}
 
-	return gtk_tree_list_model_new.Fn()(gio.GetGListModelIface(root), cbool(passthrough), cbool(autoexpand), cb, nil, des)
+	return (*TreeListModel[T])(gtk_tree_list_model_new.Fn()(uptr(gio.GetGListModelIface(root)), cbool(passthrough), cbool(autoexpand), cb, nil, des))
 }
-func (tlm *TreeListModel) GetModel() *gio.GListModel {
-	return gtk_tree_list_model_get_model.Fn()(tlm)
+func (tlm *TreeListModel[T]) GetModel() *gio.GListModel[T] {
+	return (*gio.GListModel[T])(gtk_tree_list_model_get_model.Fn()(uptr(tlm)))
 }
-func (tlm *TreeListModel) GetPassthrough() bool {
-	return gtk_tree_list_model_get_passthrough.Fn()(tlm) != 0
+func (tlm *TreeListModel[T]) GetPassthrough() bool {
+	return gtk_tree_list_model_get_passthrough.Fn()(uptr(tlm)) != 0
 }
-func (tlm *TreeListModel) SetAutoexpand(autoexpand bool) {
-	gtk_tree_list_model_set_autoexpand.Fn()(tlm, cbool(autoexpand))
+func (tlm *TreeListModel[T]) SetAutoexpand(autoexpand bool) {
+	gtk_tree_list_model_set_autoexpand.Fn()(uptr(tlm), cbool(autoexpand))
 }
-func (tlm *TreeListModel) GetAutoexpand() bool {
-	return gtk_tree_list_model_get_autoexpand.Fn()(tlm) != 0
+func (tlm *TreeListModel[T]) GetAutoexpand() bool {
+	return gtk_tree_list_model_get_autoexpand.Fn()(uptr(tlm)) != 0
 }
-func (tlm *TreeListModel) GetChildRow(position uint32) *TreeListRow {
-	return gtk_tree_list_model_get_child_row.Fn()(tlm, position)
+func (tlm *TreeListModel[T]) GetChildRow(position uint32) *TreeListRow {
+	return gtk_tree_list_model_get_child_row.Fn()(uptr(tlm), position)
 }
-func (tlm *TreeListModel) GetRow(position uint32) *TreeListRow {
-	return gtk_tree_list_model_get_row.Fn()(tlm, position)
+func (tlm *TreeListModel[T]) GetRow(position uint32) *TreeListRow {
+	return gtk_tree_list_model_get_row.Fn()(uptr(tlm), position)
 }
 
 func GTypeTreeListRow() gobject.GType { return gtk_tree_list_row_get_type.Fn()() }
@@ -9754,8 +9792,8 @@ func (row *TreeListRow) GetPosition() uint32 {
 func (row *TreeListRow) GetDepth() uint32 {
 	return gtk_tree_list_row_get_depth.Fn()(row)
 }
-func (row *TreeListRow) GetChildren() *gio.GListModel {
-	return gtk_tree_list_row_get_children.Fn()(row)
+func (row *TreeListRow) GetChildren() *gio.GListModel[TreeListRow] {
+	return (*gio.GListModel[TreeListRow])(gtk_tree_list_row_get_children.Fn()(row))
 }
 func (row *TreeListRow) GetParent() *TreeListRow {
 	return gtk_tree_list_row_get_parent.Fn()(row)
@@ -10299,11 +10337,11 @@ func (w *Widget) GetLastChild() *Widget             { return gtk_widget_get_last
 func (w *Widget) GetNextSibling() *Widget           { return gtk_widget_get_next_sibling.Fn()(w) }
 func (w *Widget) GetPrevSibling() *Widget           { return gtk_widget_get_prev_sibling.Fn()(w) }
 
-func (w *Widget) ObserveChildren() []*Widget {
-	return gio.GListModelList[*Widget](gtk_widget_observe_children.Fn()(w))
+func (w *Widget) ObserveChildren() *gio.GListModel[Widget] {
+	return (*gio.GListModel[Widget])(gtk_widget_observe_children.Fn()(w))
 }
-func (w *Widget) ObserveControllers() []*EventController {
-	return gio.GListModelList[*EventController](gtk_widget_observe_controllers.Fn()(w))
+func (w *Widget) ObserveControllers() *gio.GListModel[EventController] {
+	return (*gio.GListModel[EventController])(gtk_widget_observe_controllers.Fn()(w))
 }
 
 func (w *Widget) InsertAfter(parent, previousSibling WidgetIface) {
@@ -10540,17 +10578,8 @@ func SetAutoStartupNotification(setting bool) {
 }
 func (w *Window) SetModal(modal bool) { gtk_window_set_modal.Fn()(w, cbool(modal)) }
 func (w *Window) GetModal() bool      { return gtk_window_get_modal.Fn()(w) != 0 }
-func GetToplevels() []*Window {
-	// lst := gtk_window_get_toplevels()
-	// num := lst.GetNItems()
-	// if num == 0 {
-	// 	return nil
-	// }
-	// ws := make([]*Window, num)
-	// for i := uint32(0); i < num; i++ {
-	// 	ws[i] = (*Window)(lst.GetItem(i))
-	// }
-	return gio.GListModelList[*Window](gtk_window_get_toplevels.Fn()())
+func GetToplevels() *gio.GListModel[Window] {
+	return (*gio.GListModel[Window])(gtk_window_get_toplevels.Fn()())
 }
 func ListToplevels() *glib.GList[Widget] {
 	return gtk_window_list_toplevels.Fn()()

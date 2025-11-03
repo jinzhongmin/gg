@@ -785,7 +785,9 @@ func (d *Display) GetAppLaunchContext() *AppLaunchContext {
 }
 func (d *Display) GetDefaultSeat() *Seat        { return gdk_display_get_default_seat.Fn()(d) }
 func (d *Display) ListSeats() *glib.GList[Seat] { return gdk_display_list_seats.Fn()(d) }
-func (d *Display) GetMonitors() *gio.GListModel { return gdk_display_get_monitors.Fn()(d) }
+func (d *Display) GetMonitors() *gio.GListModel[Monitor] {
+	return (*gio.GListModel[Monitor])(gdk_display_get_monitors.Fn()(d))
+}
 func (d *Display) GetMonitorAtSurface(surface *Surface) *Monitor {
 	return gdk_display_get_monitor_at_surface.Fn()(d, surface)
 }

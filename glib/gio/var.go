@@ -228,26 +228,26 @@ var (
 
 	// #region ListModel
 	g_list_model_get_type      = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "g_list_model_get_type"}
-	g_list_model_get_item_type = cc.DlFunc[func(list *GListModel) gobject.GType, gobject.GType]{Name: "g_list_model_get_item_type"}
-	g_list_model_get_n_items   = cc.DlFunc[func(list *GListModel) uint32, uint32]{Name: "g_list_model_get_n_items"}
-	g_list_model_get_item      = cc.DlFunc[func(list *GListModel, position uint32) unsafe.Pointer, unsafe.Pointer]{Name: "g_list_model_get_item"}
-	g_list_model_get_object    = cc.DlFunc[func(list *GListModel, position uint32) *gobject.GObject, *gobject.GObject]{Name: "g_list_model_get_object"}
-	g_list_model_items_changed = cc.DlFunc[func(list *GListModel, position, removed, added uint32), cc.Void]{Name: "g_list_model_items_changed"}
+	g_list_model_get_item_type = cc.DlFunc[func(list uptr) gobject.GType, gobject.GType]{Name: "g_list_model_get_item_type"}
+	g_list_model_get_n_items   = cc.DlFunc[func(list uptr) uint32, uint32]{Name: "g_list_model_get_n_items"}
+	g_list_model_get_item      = cc.DlFunc[func(list uptr, position uint32) unsafe.Pointer, unsafe.Pointer]{Name: "g_list_model_get_item"}
+	g_list_model_get_object    = cc.DlFunc[func(list uptr, position uint32) *gobject.GObject, *gobject.GObject]{Name: "g_list_model_get_object"}
+	g_list_model_items_changed = cc.DlFunc[func(list uptr, position, removed, added uint32), cc.Void]{Name: "g_list_model_items_changed"}
 	// #endregion
 
 	// #region ListStore
 	g_list_store_get_type                  = cc.DlFunc[func() gobject.GType, gobject.GType]{Name: "g_list_store_get_type"}
-	g_list_store_new                       = cc.DlFunc[func(itemType gobject.GType) *GListStore, *GListStore]{Name: "g_list_store_new"}
-	g_list_store_insert                    = cc.DlFunc[func(store *GListStore, position uint32, item uptr), cc.Void]{Name: "g_list_store_insert"}
-	g_list_store_insert_sorted             = cc.DlFunc[func(store *GListStore, item uptr, compareFunc uptr, userData uptr) uint32, uint32]{Name: "g_list_store_insert_sorted"}
-	g_list_store_sort                      = cc.DlFunc[func(store *GListStore, compareFunc uptr, userData uptr), cc.Void]{Name: "g_list_store_sort"}
-	g_list_store_append                    = cc.DlFunc[func(store *GListStore, item uptr), cc.Void]{Name: "g_list_store_append"}
-	g_list_store_remove                    = cc.DlFunc[func(store *GListStore, position uint32), cc.Void]{Name: "g_list_store_remove"}
-	g_list_store_remove_all                = cc.DlFunc[func(store *GListStore), cc.Void]{Name: "g_list_store_remove_all"}
-	g_list_store_splice                    = cc.DlFunc[func(store *GListStore, position, nRemovals uint32, additions *uptr, nAdditions uint32), cc.Void]{Name: "g_list_store_splice"}
-	g_list_store_find                      = cc.DlFunc[func(store *GListStore, item uptr, position *uint32) bool, bool]{Name: "g_list_store_find"}
-	g_list_store_find_with_equal_func      = cc.DlFunc[func(store *GListStore, item uptr, equalFunc uptr, position *uint32) bool, bool]{Name: "g_list_store_find_with_equal_func"}
-	g_list_store_find_with_equal_func_full = cc.DlFunc[func(store *GListStore, item uptr, equalFunc uptr, userData uptr, position *uint32) bool, bool]{Name: "g_list_store_find_with_equal_func_full"}
+	g_list_store_new                       = cc.DlFunc[func(itemType gobject.GType) uptr, uptr]{Name: "g_list_store_new"}
+	g_list_store_insert                    = cc.DlFunc[func(store uptr, position uint32, item uptr), cc.Void]{Name: "g_list_store_insert"}
+	g_list_store_insert_sorted             = cc.DlFunc[func(store uptr, item uptr, compareFunc uptr, userData uptr) uint32, uint32]{Name: "g_list_store_insert_sorted"}
+	g_list_store_sort                      = cc.DlFunc[func(store uptr, compareFunc uptr, userData uptr), cc.Void]{Name: "g_list_store_sort"}
+	g_list_store_append                    = cc.DlFunc[func(store uptr, item uptr), cc.Void]{Name: "g_list_store_append"}
+	g_list_store_remove                    = cc.DlFunc[func(store uptr, position uint32), cc.Void]{Name: "g_list_store_remove"}
+	g_list_store_remove_all                = cc.DlFunc[func(store uptr), cc.Void]{Name: "g_list_store_remove_all"}
+	g_list_store_splice                    = cc.DlFunc[func(store uptr, position, nRemovals uint32, additions uptr, nAdditions uint32), cc.Void]{Name: "g_list_store_splice"}
+	g_list_store_find                      = cc.DlFunc[func(store uptr, item uptr, position *uint32) bool, bool]{Name: "g_list_store_find"}
+	g_list_store_find_with_equal_func      = cc.DlFunc[func(store uptr, item uptr, equalFunc uptr, position *uint32) bool, bool]{Name: "g_list_store_find_with_equal_func"}
+	g_list_store_find_with_equal_func_full = cc.DlFunc[func(store uptr, item uptr, equalFunc uptr, userData uptr, position *uint32) bool, bool]{Name: "g_list_store_find_with_equal_func_full"}
 	// #endregion
 
 )

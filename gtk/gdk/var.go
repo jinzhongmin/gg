@@ -250,7 +250,7 @@ var (
 	gdk_display_get_app_launch_context = cc.DlFunc[func(*Display) *AppLaunchContext, *AppLaunchContext]{Name: "gdk_display_get_app_launch_context"}
 	gdk_display_get_default_seat       = cc.DlFunc[func(*Display) *Seat, *Seat]{Name: "gdk_display_get_default_seat"}
 	gdk_display_list_seats             = cc.DlFunc[func(*Display) *glib.GList[Seat], *glib.GList[Seat]]{Name: "gdk_display_list_seats"}
-	gdk_display_get_monitors           = cc.DlFunc[func(*Display) *gio.GListModel, *gio.GListModel]{Name: "gdk_display_get_monitors"}
+	gdk_display_get_monitors           = cc.DlFunc[func(*Display) uptr, uptr]{Name: "gdk_display_get_monitors"}
 	gdk_display_get_monitor_at_surface = cc.DlFunc[func(*Display, *Surface) *Monitor, *Monitor]{Name: "gdk_display_get_monitor_at_surface"}
 	gdk_display_map_keyval             = cc.DlFunc[func(*Display, uint32, **KeymapKey, *int32) int32, int32]{Name: "gdk_display_map_keyval"}
 	gdk_display_map_keycode            = cc.DlFunc[func(*Display, uint32, **KeymapKey, **uint32, *int32) int32, int32]{Name: "gdk_display_map_keycode"}

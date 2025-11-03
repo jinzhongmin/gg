@@ -8,6 +8,20 @@ import (
 	"github.com/jinzhongmin/gg/glib/gobject"
 )
 
+type Integer interface {
+	~int8 | ~int16 | ~int32 | ~int | ~int64 |
+		~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
+}
+
+func slice[T any, N Integer](ptr *T, l N) []T { return unsafe.Slice(ptr, l) }
+func carry[T any, E Integer](slice []T) (*T, E) {
+	p, l := (*T)(nil), uint64(len(slice))
+	if l > 0 {
+		p = &slice[0]
+	}
+	return p, E(l)
+}
+
 // #region Action
 
 type GActionIfaceObj struct {
@@ -50,7 +64,7 @@ func (action *GAction) ChangeState(value *glib.GVariant) {
 func (action *GAction) Activate(parameter *glib.GVariant) {
 	g_action_activate.Fn()(action, parameter)
 }
-func ActionNameIsValid(actionName string) bool {
+func GActionNameIsValid(actionName string) bool {
 	return g_action_name_is_valid.Fn()(actionName)
 }
 
@@ -416,13 +430,13 @@ type GFileIfaceObj struct {
 	SetDisplayNameAsync  cc.Func // void (*set_display_name_async)(GFile *file, const char *display_name, int io_priority, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 	SetDisplayNameFinish cc.Func // GFile *(*set_display_name_finish)(GFile *file, GAsyncResult *res, GError **error);
 
-	QuerySettableAttributes        cc.Func // GFileAttributeInfoList *(*query_settable_attributes)(GFile *file, GCancellable *cancellable, GError **error);
-	_QuerySettableAttributesAsync  cc.Func // void (*_query_settable_attributes_async)(void);
-	_QuerySettableAttributesFinish cc.Func // void (*_query_settable_attributes_finish)(void);
+	QuerySettableAttributes       cc.Func // GFileAttributeInfoList *(*query_settable_attributes)(GFile *file, GCancellable *cancellable, GError **error);
+	QuerySettableAttributesAsync  cc.Func // void (*_query_settable_attributes_async)(void);
+	QuerySettableAttributesFinish cc.Func // void (*_query_settable_attributes_finish)(void);
 
-	QueryWritableNamespaces        cc.Func // GFileAttributeInfoList *(*query_writable_namespaces)(GFile *file, GCancellable *cancellable, GError **error);
-	_QueryWritableNamespacesAsync  cc.Func // void (*_query_writable_namespaces_async)(void);
-	_QueryWritableNamespacesFinish cc.Func // void (*_query_writable_namespaces_finish)(void);
+	QueryWritableNamespaces       cc.Func // GFileAttributeInfoList *(*query_writable_namespaces)(GFile *file, GCancellable *cancellable, GError **error);
+	QueryWritableNamespacesAsync  cc.Func // void (*_query_writable_namespaces_async)(void);
+	QueryWritableNamespacesFinish cc.Func // void (*_query_writable_namespaces_finish)(void);
 
 	SetAttribute          cc.Func // gboolean (*set_attribute)(GFile *file, const char *attribute, GFileAttributeType type, gpointer value_p, GFileQueryInfoFlags flags, GCancellable *cancellable, GError **error);
 	SetAttributesFromInfo cc.Func // gboolean (*set_attributes_from_info)(GFile *file, GFileInfo *info, GFileQueryInfoFlags flags, GCancellable *cancellable, GError **error);
@@ -1100,7 +1114,7 @@ type GInputStream struct{ gobject.GObjectCore }
 
 // #endregion
 
-// #region ListModel
+// #region GListModel
 
 type GListModelIfaceObj struct {
 	GIface      gobject.GTypeInterface
@@ -1109,103 +1123,142 @@ type GListModelIfaceObj struct {
 	GetItem     cc.Func // func(*GListModel, uint32) uptr
 }
 
-type GListModelIface interface {
-	GetGListModelIface() *GListModel
+type GListModelIface[T any] interface {
+	GetGListModelIface() *GListModel[T]
+}
+type GListModelIfaceAny interface {
+	GetGListModelIfaceAny() uptr
 }
 
-func GetGListModelIface(iface GListModelIface) *GListModel {
+func GetGListModelIface[T any](iface GListModelIface[T]) *GListModel[T] {
 	if anyptr(iface) == nil {
 		return nil
 	}
 	return iface.GetGListModelIface()
 }
+func GetGListModelIfaceAny(iface GListModelIfaceAny) uptr {
+	if anyptr(iface) == nil {
+		return nil
+	}
+	return iface.GetGListModelIfaceAny()
+}
 
-func (list *GListModel) GetGListModelIface() *GListModel { return list }
+func (list *GListModel[T]) GetGListModelIface() *GListModel[T] { return list }
+func (list *GListModel[T]) GetGListModelIfaceAny() uptr        { return uptr(list) }
 
-type GListModel struct{}
+type GListModel[T any] struct{}
 
 func GTypeGListModel() gobject.GType { return g_list_model_get_type.Fn()() }
 
-func (list *GListModel) GetItemType() gobject.GType {
-	return g_list_model_get_item_type.Fn()(list)
+func NewGListModel[T any](itemType gobject.GType) *GListModel[T] {
+	return (*GListModel[T])(g_list_store_new.Fn()(itemType))
 }
-func (list *GListModel) GetNItems() uint32 {
-	return g_list_model_get_n_items.Fn()(list)
+func (list *GListModel[T]) GetItemType() gobject.GType {
+	return g_list_model_get_item_type.Fn()(uptr(list))
 }
-func (list *GListModel) GetItem(position uint32) uptr {
-	return g_list_model_get_item.Fn()(list, position)
+func (list *GListModel[T]) GetNItems() uint32 {
+	return g_list_model_get_n_items.Fn()(uptr(list))
 }
-func (list *GListModel) GetObject(position uint32) *gobject.GObject {
-	return g_list_model_get_object.Fn()(list, position)
+func (list *GListModel[T]) GetItem(position uint32) *T {
+	return (*T)(g_list_model_get_item.Fn()(uptr(list), position))
 }
-func (list *GListModel) ItemsChanged(position, removed, added uint32) {
-	g_list_model_items_changed.Fn()(list, position, removed, added)
+func (list *GListModel[T]) GetObject(position uint32) *gobject.GObject {
+	return g_list_model_get_object.Fn()(uptr(list), position)
 }
-func (list *GListModel) ConnectItemsChanged(
-	sig func(list *GListModel, position, removed, added uint32)) uint64 {
+func (list *GListModel[T]) ItemsChanged(position, removed, added uint32) {
+	g_list_model_items_changed.Fn()(uptr(list), position, removed, added)
+}
+func (list *GListModel[T]) ConnectItemsChanged(
+	sig func(list *GListModel[T], position, removed, added uint32)) uint64 {
 	return (*gobject.GObject)(uptr(list)).SignalConnect("items-changed", sig, nil)
 }
-
-func GListModelList[T any](l *GListModel) []T {
-	num := l.GetNItems()
+func (list *GListModel[T]) ToBase() *GListModel[gobject.GObject] {
+	return (*GListModel[gobject.GObject])(uptr(list))
+}
+func (list *GListModel[T]) List() []*T {
+	num := list.GetNItems()
 	if num == 0 {
 		return nil
 	}
+	slice := make([]*T, num)
 
-	slice := make([]T, num)
-
-	var t T
-	switch any(t).(type) {
-	case string:
-		for i := uint32(0); i < num; i++ {
-			a := ((cc.String)(l.GetItem(i))).String()
-			slice[i] = any(a).(T)
-		}
-	default:
-		for i := uint32(0); i < num; i++ {
-			a := l.GetItem(i)
-			slice[i] = *(*T)(uptr(&a))
-		}
+	for i := uint32(0); i < num; i++ {
+		a := list.GetItem(i)
+		slice[i] = a
 	}
-
 	return slice
 }
 
 // #endregion
 
-// #region ListStore
+// #region GListStore
 
-type GListStore struct {
-	GListModel
+type GListStore[T any] struct {
+	GListModel[T]
 }
 
 func GTypeGListStore() gobject.GType { return g_list_store_get_type.Fn()() }
 
-func NewGListStore(itemType gobject.GType) *GListStore {
-	return g_list_store_new.Fn()(itemType)
+func NewGListStore[T any](itemType gobject.GType) *GListStore[T] {
+	return (*GListStore[T])(g_list_store_new.Fn()(itemType))
 }
-func (s *GListStore) Insert(position uint32, item uptr) { g_list_store_insert.Fn()(s, position, item) }
-func (s *GListStore) InsertSorted(item uptr, compareFunc uptr, userData uptr) uint32 {
-	return g_list_store_insert_sorted.Fn()(s, item, compareFunc, userData)
+func (s *GListStore[T]) GetListModel() *GListModel[T] { return (*GListModel[T])(uptr(s)) }
+func (s *GListStore[T]) Insert(position uint32, item *T) {
+	g_list_store_insert.Fn()(uptr(s), position, uptr(item))
 }
-func (s *GListStore) Sort(compareFunc uptr, userData uptr) {
-	g_list_store_sort.Fn()(s, compareFunc, userData)
+func (s *GListStore[T]) InsertSorted(item *T, compareFunc func(a, b *T) int32) uint32 {
+	var cb uptr
+	if compareFunc != nil {
+		cb = cc.CbkRaw[func(a, b, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 3)
+			*(*int32)(out) = compareFunc(*(**T)(is[0]), *(**T)(is[1]))
+		})
+		defer cc.CbkClose(cb)
+	}
+	return g_list_store_insert_sorted.Fn()(uptr(s), uptr(item), cb, nil)
 }
-func (s *GListStore) Append(itemPtr interface{}) { g_list_store_append.Fn()(s, anyptr(itemPtr)) }
-func (s *GListStore) Remove(position uint32)     { g_list_store_remove.Fn()(s, position) }
-func (s *GListStore) RemoveAll()                 { g_list_store_remove_all.Fn()(s) }
-func (s *GListStore) Splice(position, nRemovals uint32, additions *uptr, nAdditions uint32) {
-	g_list_store_splice.Fn()(s, position, nRemovals, additions, nAdditions)
+func (s *GListStore[T]) Sort(compareFunc func(a, b *T) int32) {
+	var cb uptr
+	if compareFunc != nil {
+		cb = cc.CbkRaw[func(a, b, _ uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 3)
+			*(*int32)(out) = compareFunc(*(**T)(is[0]), *(**T)(is[1]))
+		})
+		defer cc.CbkClose(cb)
+	}
+	g_list_store_sort.Fn()(uptr(s), cb, nil)
 }
-func (s *GListStore) Find(item uptr, position *uint32) bool {
-	return g_list_store_find.Fn()(s, item, position)
+func (s *GListStore[T]) Append(item *T)         { g_list_store_append.Fn()(uptr(s), uptr(item)) }
+func (s *GListStore[T]) Remove(position uint32) { g_list_store_remove.Fn()(uptr(s), position) }
+func (s *GListStore[T]) RemoveAll()             { g_list_store_remove_all.Fn()(uptr(s)) }
+func (s *GListStore[T]) Splice(position, nRemovals uint32, additions []*T) {
+	p, n := carry[*T, uint32](additions)
+	g_list_store_splice.Fn()(uptr(s), position, nRemovals, uptr(p), n)
 }
-func (s *GListStore) FindWithEqualFunc(item uptr, equalFunc uptr, position *uint32) bool {
-	return g_list_store_find_with_equal_func.Fn()(s, item, equalFunc, position)
+func (s *GListStore[T]) Find(item *T) (position uint32, ok bool) {
+	ok = g_list_store_find.Fn()(uptr(s), uptr(item), &position)
+	return
 }
-func (s *GListStore) FindWithEqualFuncFull(item uptr, equalFunc uptr, userData uptr, position *uint32) bool {
-	return g_list_store_find_with_equal_func_full.Fn()(s, item, equalFunc, userData, position)
+func (s *GListStore[T]) FindWithEqualFunc(item *T, equalFunc func(a, b *T) bool) (position uint32, ok bool) {
+	var cb uptr
+	if equalFunc != nil {
+		cb = cc.CbkRaw[func(a, b uptr) int32](func(out, ins uptr) {
+			is := slice((*uptr)(ins), 3)
+			if equalFunc(*(**T)(is[0]), *(**T)(is[1])) {
+				*(*int32)(out) = 1
+			} else {
+				*(*int32)(out) = 0
+			}
+		})
+		defer cc.CbkClose(cb)
+	}
+	ok = g_list_store_find_with_equal_func.Fn()(uptr(s), uptr(item), cb, &position)
+	return
 }
+
+// func (s *GListStore[T]) FindWithEqualFuncFull(item uptr, equalFunc uptr, userData uptr, position *uint32) bool {
+// 	return g_list_store_find_with_equal_func_full.Fn()(s, item, equalFunc, userData, position)
+// }
 
 // #endregion
 
